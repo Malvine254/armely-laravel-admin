@@ -491,6 +491,63 @@ class AssistantChatHardeningTest extends TestCase
         $this->assertStringNotContainsString('quote(s) on record', $reply);
     }
 
+    public function test_product_conversation_preserves_cards_and_allows_category_changes(): void
+    {
+        $user = $this->createCustomer('Product Continuity User', 'product-continuity@example.com');
+        $this->insertCatalogProduct('AP-6', 'Office Wi-Fi 6 Access Point', 'Wi-Fi 6 wireless access point for offices.', 449, 'Wireless Access Points');
+        $this->insertCatalogProduct('AP-6E', 'Office Wi-Fi 6E Access Point', 'Wi-Fi 6E wireless access point for dense offices.', 749, 'Wireless Access Points');
+        $this->insertCatalogProduct('SWITCH-POE', '24-Port Managed PoE Switch', 'Managed PoE network switch for wireless access points.', 699, 'Network Switches');
+
+        $first = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Show wireless access points and managed PoE switches for our office.',
+        ])->assertOk();
+
+        $sessionId = (int) $first->json('data.chat_session.id');
+        $firstIds = collect($first->json('data.product_suggestions'))->pluck('product_id');
+        $this->assertContains('AP-6', $firstIds, json_encode($firstIds->values()->all()));
+        $this->assertContains('SWITCH-POE', $firstIds, json_encode($firstIds->values()->all()));
+
+        foreach ([
+            'Include both Wi-Fi 6 and Wi-Fi 6E options.',
+            'Show me their images please.',
+            'Provide a description and price for each product.',
+            'Give me the links to those products.',
+            'Exclude accessories and discontinued products.',
+        ] as $followUp) {
+            $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+                'message' => $followUp,
+                'chat_session_id' => $sessionId,
+            ]);
+
+            $response->assertOk();
+            $this->assertSame('local_product_context_follow_up', $response->json('data.source'), $followUp);
+            $this->assertNotEmpty($response->json('data.product_suggestions'), $followUp);
+            $this->assertFalse(collect($response->json('data.actions', []))->contains(
+                static fn (array $action) => in_array($action['label'] ?? '', ['Open quotes', 'Open orders', 'See all invoices'], true)
+            ));
+        }
+
+        $switchResponse = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Find a compatible managed PoE switch for that access point.',
+            'chat_session_id' => $sessionId,
+        ])->assertOk();
+        $switchIds = collect($switchResponse->json('data.product_suggestions'))->pluck('product_id');
+        $this->assertSame(['SWITCH-POE'], $switchIds->values()->all());
+
+        $quoteResponse = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Add the best access point and switch to a quote.',
+            'chat_session_id' => $sessionId,
+        ]);
+
+        $quoteResponse->assertOk()->assertJsonPath('data.source', 'local_product_context_follow_up');
+        $quoteIds = collect($quoteResponse->json('data.product_suggestions'))->pluck('product_id');
+        $this->assertTrue($quoteIds->contains('SWITCH-POE'));
+        $this->assertTrue($quoteIds->contains(fn (string $id) => str_starts_with($id, 'AP-')));
+        $this->assertFalse(collect($quoteResponse->json('data.actions', []))->contains(
+            static fn (array $action) => ($action['label'] ?? '') === 'Open quotes'
+        ));
+    }
+
     private function createCustomer(string $name, string $email): User
     {
         $companyId = DB::table('companies')->insertGetId([

@@ -1176,25 +1176,28 @@ class MessageController extends Controller
         // The resolved query already contains any intentional refinement. Feeding all earlier
         // nouns back into ranking made new topics inherit stale brands and device types.
         $historyPreferences    = [];
-        $isAccountQuestion = ChatIntentSignals::isQuoteIntentQuery($question)
+        $isProductContextFollowUp = ChatIntentSignals::isProductContextFollowUp($question, $recentChatTurns);
+        $isAccountQuestion = !$isProductContextFollowUp && (
+            ChatIntentSignals::isQuoteIntentQuery($question)
             || ChatIntentSignals::isInvoiceIntentQuery($question)
-            || ChatIntentSignals::isOrderIntentQuery($question);
+            || ChatIntentSignals::isOrderIntentQuery($question)
+        );
         $isGeneralConversation = ChatIntentSignals::isGeneralConversationQuery($question);
         // The model may refine a catalog request, but it must never create product intent.
         // A deterministic gate prevents unrelated prose from becoming a search query.
         $hasLocalProductIntent = !$isAccountQuestion
             && !$isGeneralConversation
             && ChatIntentSignals::isProductLookupIntent($question, $recentChatTurns);
-        $productSearchPlan = !$hasLocalProductIntent
+        $productSearchPlan = !$hasLocalProductIntent || $isProductContextFollowUp
             ? null
             : $this->assistantService->planProductSearch($question, $recentChatTurns);
         $catalogSearchQuery = !$hasLocalProductIntent
             ? ''
             : trim((string) ($productSearchPlan['query'] ?? ''));
-        if ($hasLocalProductIntent && $catalogSearchQuery === '') {
+        if ($hasLocalProductIntent && !$isProductContextFollowUp && $catalogSearchQuery === '') {
             $catalogSearchQuery = $this->resolveConversationalCatalogSearchQuery($question, $recentChatTurns);
         }
-        $catalogSearchQueries = !$hasLocalProductIntent
+        $catalogSearchQueries = !$hasLocalProductIntent || $isProductContextFollowUp
             ? []
             : ChatIntentSignals::resolveCatalogSearchPhrases($question, $catalogSearchQuery);
         if (!empty($catalogSearchQueries)) {
@@ -1736,6 +1739,36 @@ class MessageController extends Controller
         $customerName = trim((string) ($context['customer']['name'] ?? ''));
         $firstName = $customerName !== '' ? explode(' ', $customerName)[0] : '';
         $greet = $firstName !== '' ? "{$firstName}, " : '';
+        $questionLower = ChatIntentSignals::normalizeQuestion($question);
+
+        if (!empty($productSuggestions) && ChatIntentSignals::isProductContextFollowUp(
+            $question,
+            (array) ($context['recent_chat_turns'] ?? [])
+        )) {
+            if (preg_match('/\b(?:image|images|picture|pictures|photo|photos)\b/u', $questionLower) === 1) {
+                $reply = 'Here are the product cards with every catalog image currently available. Products without an image still include their details link.';
+            } elseif (preg_match('/\b(?:link|links|url|urls)\b/u', $questionLower) === 1) {
+                $reply = 'Here are the products again. Use **View details** on each card to open its product page.';
+            } elseif (preg_match('/\b(?:description|descriptions|price|prices)\b/u', $questionLower) === 1) {
+                $reply = 'Here are the catalog descriptions and current prices for those products. Each card also links to the full product details.';
+            } elseif (preg_match('/\badd\b.*\bquote\b/u', $questionLower) === 1) {
+                $reply = 'I kept the selected products below. Review them, then use **Request quote** on the products you want before confirming the quote.';
+                $actions = collect($actions)
+                    ->reject(static fn (array $action) => in_array($action['label'] ?? '', ['Open quotes', 'Browse products'], true))
+                    ->values()
+                    ->all();
+            } else {
+                $reply = 'I kept the current product options and applied your latest instruction. The updated product cards are below.';
+            }
+
+            return [
+                'reply' => $reply,
+                'actions' => $actions,
+                'product_suggestions' => $productSuggestions,
+                'source' => 'local_product_context_follow_up',
+            ];
+        }
+
         $naturalReply = $this->assistantService->generateProductNarration(
             $question,
             $productSuggestions,
@@ -2648,15 +2681,28 @@ class MessageController extends Controller
             'which one', 'which do you', 'suggest one', 'recommend one', 'pick one', 'pick the best',
             'what do you think', 'your recommendation', 'your suggestion', 'go with', 'choose for me',
             'what would you', 'what should i', 'which is better', 'which is best', 'what\'s the best',
+            'yes', 'yeah', 'yep', 'both', 'their image', 'their picture', 'description for each',
+            'link to', 'links to', 'include both', 'include all', 'exclude accessories',
+            'exclude discontinued', 'add the best',
         ];
-        $transactionalFollowUp = Str::contains($questionLower, $transactionalSignals);
+        $transactionalFollowUp = ChatIntentSignals::isProductContextFollowUp($question, $recentChatTurns)
+            || Str::contains($questionLower, $transactionalSignals);
 
-        $lastSuggestionTurn = collect($recentChatTurns)
+        $activeSuggestionTurns = collect($recentChatTurns)
             ->filter(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'assistant')
             ->reverse()
+            ->takeUntil(static fn (array $turn) => in_array(
+                strtolower((string) ($turn['intent'] ?? '')),
+                ['quote_management', 'order_status', 'invoice_payment'],
+                true
+            ));
+        $lastSuggestionTurn = $activeSuggestionTurns
             ->first(static fn (array $turn) => !empty($turn['product_suggestions']));
+        $suggestionItems = preg_match('/\badd\b.*\bquote\b/i', $question) === 1
+            ? $activeSuggestionTurns->pluck('product_suggestions')->flatten(1)->all()
+            : (array) ($lastSuggestionTurn['product_suggestions'] ?? []);
 
-        $recentSuggestedProducts = collect((array) ($lastSuggestionTurn['product_suggestions'] ?? []))
+        $recentSuggestedProducts = collect($suggestionItems)
             ->map(function ($item) {
                 if (!is_array($item)) {
                     return null;

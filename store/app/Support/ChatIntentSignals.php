@@ -33,6 +33,10 @@ class ChatIntentSignals
             return 'general_support';
         }
 
+        if (self::isProductContextFollowUp($question, $recentChatTurns)) {
+            return 'product_search';
+        }
+
         if (self::isOrderIntentQuery($question)) {
             return 'order_status';
         }
@@ -248,6 +252,10 @@ class ChatIntentSignals
             return false;
         }
 
+        if (self::isProductContextFollowUp($question, $recentChatTurns)) {
+            return true;
+        }
+
         if (self::containsAnyPattern($q, [
             '/\bquote(s)?\b/u',
             '/\border(s)?\b/u',
@@ -293,7 +301,7 @@ class ChatIntentSignals
             '/\brecommend\b/u',
             '/\bsuggest(?:ion|ions|ed)?\b/u',
             '/\bi (?:need|want|would like)\b/u',
-            '/\b(?:buy|purchase|price|compare|show me)\b/u',
+            '/\b(?:buy|purchase|price|compare|show(?: me)?)\b/u',
         ]);
 
         $hasProductNoun = self::containsAnyPattern($q, [
@@ -361,6 +369,44 @@ class ChatIntentSignals
             '/\bhow about\b/u',
             '/\binstead\b/u',
         ]);
+    }
+
+    public static function isProductContextFollowUp(string $question, array $recentChatTurns = []): bool
+    {
+        if (!self::hasActiveProductContext($recentChatTurns)) {
+            return false;
+        }
+
+        $q = self::normalizeQuestion($question);
+
+        return $q !== '' && self::containsAnyPattern($q, [
+            '/^(?:yes|yeah|yep|sure|okay|ok|both|all)(?:\s+(?:please|of them|options))?[.!?]*$/u',
+            '/\b(?:their|those|these|the product|the products|each product|each one)\b.*\b(?:image|images|picture|pictures|photo|photos|description|descriptions|price|prices|link|links|url|urls)\b/u',
+            '/\b(?:show|display|provide|give|send|list)\b.*\b(?:image|images|picture|pictures|photo|photos|description|descriptions|link|links|url|urls)\b/u',
+            '/\b(?:include|keep|show)\b.*\b(?:both|all)\b.*\b(?:option|options|version|versions|models?)\b/u',
+            '/\b(?:exclude|remove|hide|without)\b.*\b(?:accessory|accessories|discontinued|unavailable|out of stock)\b/u',
+            '/\badd\b.*\b(?:best|recommended|top|that|those|these|product|products|access point|switch)\b.*\b(?:to|into|for)\s+(?:a|my|the)?\s*quote\b/u',
+        ]);
+    }
+
+    private static function hasActiveProductContext(array $recentChatTurns): bool
+    {
+        foreach (array_reverse($recentChatTurns) as $turn) {
+            if (strtolower((string) ($turn['role'] ?? '')) !== 'assistant') {
+                continue;
+            }
+
+            $intent = strtolower(trim((string) ($turn['intent'] ?? '')));
+            if (in_array($intent, ['quote_management', 'order_status', 'invoice_payment'], true)) {
+                return false;
+            }
+
+            if (!empty((array) ($turn['product_suggestions'] ?? []))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static function isCatalogQueryAudit(string $question): bool
@@ -478,7 +524,7 @@ class ChatIntentSignals
         }
 
         $requestedScope = preg_replace(
-            '/\bfor\s+(?:the|those|these|my|our)\b.*$/i',
+            '/\bfor\s+(?:the|that|those|these|my|our)\b.*$/i',
             '',
             $normalized
         ) ?? $normalized;
@@ -491,7 +537,7 @@ class ChatIntentSignals
             'desktop' => ['desktop', 'desktops', 'workstation', 'workstations'],
             'printer' => ['printer', 'printers'],
             'server' => ['server', 'servers'],
-            'switch' => ['network switch', 'network switches', 'ethernet switch', 'ethernet switches'],
+            'switch' => ['switch', 'switches', 'managed switch', 'managed switches', 'poe switch', 'poe switches', 'network switch', 'network switches', 'ethernet switch', 'ethernet switches'],
             'router' => ['router', 'routers', 'gateway', 'gateways'],
             'access point' => ['access point', 'access points', 'wireless ap', 'wireless aps'],
             'camera' => ['camera', 'cameras', 'webcam', 'webcams'],

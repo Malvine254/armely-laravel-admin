@@ -160,6 +160,47 @@ class ChatIntentSignalsTest extends TestCase
         $this->assertFalse(ChatIntentSignals::isProductLookupIntent('what about it?', $mixedHistory));
     }
 
+    public function test_product_card_operations_preserve_active_context(): void
+    {
+        $productHistory = [[
+            'role' => 'assistant',
+            'intent' => 'product_search',
+            'product_suggestions' => [['product_id' => 'AP-1']],
+        ]];
+
+        foreach ([
+            'yes',
+            'both',
+            'include both Wi-Fi 6 and Wi-Fi 6E options',
+            'show me their images please',
+            'provide a description and price for each product',
+            'give me the links to those products',
+            'exclude accessories and discontinued products',
+            'add the best access point and switch to a quote',
+        ] as $followUp) {
+            $this->assertTrue(ChatIntentSignals::isProductContextFollowUp($followUp, $productHistory), $followUp);
+            $this->assertSame('product_search', ChatIntentSignals::classifyAssistantIntent($followUp, $productHistory));
+        }
+
+        $accountHistory = array_merge($productHistory, [[
+            'role' => 'assistant',
+            'intent' => 'invoice_payment',
+            'product_suggestions' => [],
+        ]]);
+        $this->assertFalse(ChatIntentSignals::isProductContextFollowUp('give me their links', $accountHistory));
+    }
+
+    public function test_compatibility_target_is_not_a_requested_category(): void
+    {
+        $this->assertSame(
+            ['switch'],
+            ChatIntentSignals::resolveCatalogSearchPhrases(
+                'Find a compatible managed PoE switch for that access point',
+                'managed PoE switch for access point'
+            )
+        );
+    }
+
     public function test_it_handles_unfamiliar_products_without_a_fixed_dictionary(): void
     {
         $productRequests = [
