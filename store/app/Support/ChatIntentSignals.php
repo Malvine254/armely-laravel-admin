@@ -384,6 +384,7 @@ class ChatIntentSignals
             '/\b(?:their|those|these|the product|the products|each product|each one)\b.*\b(?:image|images|picture|pictures|photo|photos|description|descriptions|price|prices|link|links|url|urls)\b/u',
             '/\b(?:show|display|provide|give|send|list)\b.*\b(?:image|images|picture|pictures|photo|photos|description|descriptions|link|links|url|urls)\b/u',
             '/\b(?:its|their|those|these|the product|the products)\b.*\b(?:spec|specs|specification|specifications|feature|features|detail|details)\b/u',
+            '/\b(?:which one|which product|what would you recommend|which\b.*\brecommend|recommend one|pick one|choose one)\b/u',
             '/\b(?:include|keep|show)\b.*\b(?:both|all)\b.*\b(?:option|options|version|versions|models?)\b/u',
             '/\b(?:exclude|remove|hide|without)\b.*\b(?:accessory|accessories|discontinued|unavailable|out of stock)\b/u',
             '/\badd\b.*\b(?:best|recommended|top|that|those|these|product|products|access point|switch)\b.*\b(?:to|into|for)\s+(?:a|my|the)?\s*quote\b/u',

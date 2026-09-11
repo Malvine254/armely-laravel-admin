@@ -554,12 +554,19 @@ class AssistantChatHardeningTest extends TestCase
         $this->insertCatalogProduct('CANON-COLOR', 'Canon Color Laser Printer', 'Duplex color laser printer with economical toner.', 799, 'Printers', 'Canon');
         $this->insertCatalogProduct('HP-COLOR', 'HP Enterprise Color Laser Printer', 'High-volume duplex color laser printer.', 1199, 'Printers', 'HP');
         $this->insertCatalogProduct('BROTHER-MONO', 'Brother Mono Laser Printer', 'Compact monochrome laser printer.', 399, 'Printers', 'Brother');
+        $this->insertCatalogProduct('BROTHER-LABEL', 'Brother Wireless Label Printer', 'Desktop laminated label printer.', 476, 'Printers', 'Brother');
+        $this->insertCatalogProduct('XEROX-TONER', 'Xerox Waste Toner Bottle', 'Waste toner bottle for a color printer.', 17, 'Printer Supplies', 'Xerox');
 
         $first = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
             'message' => 'Show me color laser printers for a small accounting office.',
         ])->assertOk();
         $sessionId = (int) $first->json('data.chat_session.id');
-        $this->assertNotEmpty($first->json('data.product_suggestions'));
+        $firstIds = collect($first->json('data.product_suggestions'))->pluck('product_id');
+        $this->assertContains('CANON-COLOR', $firstIds);
+        $this->assertContains('HP-COLOR', $firstIds);
+        $this->assertNotContains('BROTHER-MONO', $firstIds);
+        $this->assertNotContains('BROTHER-LABEL', $firstIds);
+        $this->assertNotContains('XEROX-TONER', $firstIds);
 
         $refined = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
             'message' => 'Show Canon printers under $900.',
@@ -575,6 +582,8 @@ class AssistantChatHardeningTest extends TestCase
             'chat_session_id' => $sessionId,
         ])->assertOk();
         $this->assertSame('CANON-COLOR', $recommended->json('data.product_suggestions.0.product_id'));
+        $this->assertCount(1, $recommended->json('data.product_suggestions'));
+        $this->assertSame('local_product_recommendation_follow_up', $recommended->json('data.source'));
 
         $specifications = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
             'message' => 'Show its specifications.',
@@ -583,6 +592,7 @@ class AssistantChatHardeningTest extends TestCase
         $specifications->assertOk();
         $this->assertSame('local_product_context_follow_up', $specifications->json('data.source'));
         $this->assertSame('CANON-COLOR', $specifications->json('data.product_suggestions.0.product_id'));
+        $this->assertCount(1, $specifications->json('data.product_suggestions'));
 
         $quote = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
             'message' => 'Add that printer to a quote.',
@@ -590,6 +600,7 @@ class AssistantChatHardeningTest extends TestCase
         ]);
         $quote->assertOk()->assertJsonPath('data.source', 'local_product_context_follow_up');
         $this->assertSame('CANON-COLOR', $quote->json('data.product_suggestions.0.product_id'));
+        $this->assertCount(1, $quote->json('data.product_suggestions'));
         $this->assertFalse(collect($quote->json('data.actions', []))->contains(
             static fn (array $action) => ($action['label'] ?? '') === 'Open quotes'
         ));

@@ -1745,7 +1745,38 @@ class MessageController extends Controller
             $question,
             (array) ($context['recent_chat_turns'] ?? [])
         )) {
-            if (preg_match('/\b(?:image|images|picture|pictures|photo|photos)\b/u', $questionLower) === 1) {
+            if (preg_match('/\b(?:which one|which product|what would you recommend|which\b.*\brecommend|recommend one|pick one|choose one)\b/u', $questionLower) === 1) {
+                $selectedProduct = collect($productSuggestions)
+                    ->sortByDesc(static function (array $product) use ($questionLower): int {
+                        $haystack = strtolower(trim(
+                            (string) ($product['name'] ?? '') . ' ' .
+                            (string) ($product['description'] ?? '') . ' ' .
+                            (string) ($product['why'] ?? '')
+                        ));
+                        $score = 0;
+
+                        if (preg_match('/\b(?:running cost|cost per page|economical|high[- ]yield|low cost)\b/u', $questionLower) === 1) {
+                            foreach (['cost per page', 'economical', 'high-yield', 'high yield', 'low running cost', 'low cost'] as $signal) {
+                                if (str_contains($haystack, $signal)) {
+                                    $score += 5;
+                                }
+                            }
+                        }
+
+                        return $score;
+                    })
+                    ->first();
+                $productSuggestions = $selectedProduct ? [$selectedProduct] : [];
+                $selectedName = (string) ($selectedProduct['name'] ?? 'the top catalog match');
+                $selectedDescription = trim((string) ($selectedProduct['description'] ?? ''));
+                $reply = "My recommendation is **{$selectedName}**.";
+                $reply .= $selectedDescription !== ''
+                    ? ' Based on the catalog: ' . rtrim($selectedDescription, '.') . '.'
+                    : ' It is the strongest catalog match among the products shown.';
+                $selectionContext = $context;
+                $selectionContext['product_suggestions'] = $productSuggestions;
+                $actions = $this->buildAssistantActions($question, $selectionContext);
+            } elseif (preg_match('/\b(?:image|images|picture|pictures|photo|photos)\b/u', $questionLower) === 1) {
                 $reply = 'Here are the product cards with every catalog image currently available. Products without an image still include their details link.';
             } elseif (preg_match('/\b(?:link|links|url|urls)\b/u', $questionLower) === 1) {
                 $reply = 'Here are the products again. Use **View details** on each card to open its product page.';
@@ -1767,7 +1798,9 @@ class MessageController extends Controller
                 'reply' => $reply,
                 'actions' => $actions,
                 'product_suggestions' => $productSuggestions,
-                'source' => 'local_product_context_follow_up',
+                'source' => isset($selectedProduct)
+                    ? 'local_product_recommendation_follow_up'
+                    : 'local_product_context_follow_up',
             ];
         }
 
@@ -2638,6 +2671,20 @@ class MessageController extends Controller
             ];
         }
 
+        if ($deviceType === 'printer' && preg_match('/\bcolou?r\b/i', $joined) === 1) {
+            $requiredSpecs[] = [
+                'label' => 'Color printing',
+                'terms' => ['color', 'colour'],
+            ];
+        }
+
+        if ($deviceType === 'printer' && preg_match('/\blaser\b/i', $joined) === 1) {
+            $requiredSpecs[] = [
+                'label' => 'Laser printing',
+                'terms' => ['laser'],
+            ];
+        }
+
         if (preg_match('/\b(one|two|three|four|five|\d+)\s*[- ]?\s*year\s+warranty\b/i', $joined, $warrantyMatch) === 1) {
             $numberWords = ['one' => 1, 'two' => 2, 'three' => 3, 'four' => 4, 'five' => 5];
             $rawYears = strtolower((string) $warrantyMatch[1]);
@@ -2700,7 +2747,11 @@ class MessageController extends Controller
             ));
         $lastSuggestionTurn = $activeSuggestionTurns
             ->first(static fn (array $turn) => !empty($turn['product_suggestions']));
-        $suggestionItems = preg_match('/\badd\b.*\bquote\b/i', $question) === 1
+        $aggregateQuoteSelection = preg_match(
+            '/\badd\b.*(?:\b(?:both|all|products|those|these)\b|\baccess points?\b.*\bswitch(?:es)?\b|\bswitch(?:es)?\b.*\baccess points?\b).*\bquote\b/i',
+            $question
+        ) === 1;
+        $suggestionItems = $aggregateQuoteSelection
             ? $activeSuggestionTurns->pluck('product_suggestions')->flatten(1)->all()
             : (array) ($lastSuggestionTurn['product_suggestions'] ?? []);
 
