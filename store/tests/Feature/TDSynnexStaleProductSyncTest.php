@@ -196,6 +196,39 @@ class TDSynnexStaleProductSyncTest extends TestCase
         Http::assertSentCount(3);
     }
 
+    public function test_failed_final_retry_batch_is_retried_one_sku_at_a_time(): void
+    {
+        $this->createProduct();
+        Product::create([
+            'tdsynnex_product_id' => '1900150026',
+            'tdsynnex_sku_no' => '1900150026',
+            'vendor_id' => 'TD SYNNEX',
+            'product_name' => 'Second product',
+            'base_price' => 100,
+            'retail_price' => 120,
+            'quantity' => 5,
+            'is_available' => true,
+            'is_discontinued' => false,
+        ]);
+        config()->set('tdsynnex.price_availability.batch_size', 2);
+
+        $runtimeError = '<?xml version="1.0"?><priceResponse><errorMessage>Server.RuntimeError</errorMessage></priceResponse>';
+        Http::fakeSequence()
+            ->push($runtimeError, 200)
+            ->push($runtimeError, 200)
+            ->push($runtimeError, 200)
+            ->push($runtimeError, 200)
+            ->push($this->priceAvailabilityResponse('Available', '1900150025'), 200)
+            ->push($this->priceAvailabilityResponse('Available', '1900150026'), 200);
+
+        $result = app(TDSynnexService::class)->refreshLivePricesInDatabase(['1900150025', '1900150026']);
+
+        $this->assertSame(2, $result['checked']);
+        $this->assertSame(0, $result['failed']);
+        $this->assertSame([], $result['batch_errors']);
+        Http::assertSentCount(6);
+    }
+
     private function createProduct(): Product
     {
         return Product::create([

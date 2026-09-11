@@ -526,12 +526,26 @@ class TDSynnexService
                     }
                     $recoveredSkus = array_merge($recoveredSkus, $retryBatch);
                 } catch (\Throwable $retryError) {
-                    $batchErrors[] = "Final retry batch " . ($retryIdx + 1) . ': ' . $retryError->getMessage();
-                    Log::warning('Live price sync final retry batch failed, skipped', [
+                    Log::warning('Live price sync final retry batch failed, retrying SKUs individually', [
                         'retry_batch' => $retryIdx + 1,
                         'skus' => $retryBatch,
                         'error' => $retryError->getMessage(),
                     ]);
+
+                    foreach ($retryBatch as $sku) {
+                        try {
+                            $updated += $this->processLivePriceBatch([$sku], $region, $useTest, $now);
+                            $checkedSkus[$sku] = true;
+                            $recoveredSkus[] = $sku;
+                        } catch (\Throwable $skuError) {
+                            $batchErrors[] = "Final retry SKU {$sku}: " . $skuError->getMessage();
+                            Log::warning('Live price sync individual SKU retry failed, skipped', [
+                                'retry_batch' => $retryIdx + 1,
+                                'sku' => $sku,
+                                'error' => $skuError->getMessage(),
+                            ]);
+                        }
+                    }
                 }
             }
 
@@ -769,6 +783,7 @@ class TDSynnexService
             'could not resolve host',
             'failed to connect',
             'temporarily unavailable',
+            'server.runtimeerror',
             'did not contain a product result list',
         ] as $needle) {
             if (str_contains($haystack, $needle)) {
