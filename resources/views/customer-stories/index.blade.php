@@ -32,13 +32,10 @@
     };
 
     $reviewedAt = function ($story) {
-        $reviewedBy = trim((string) ($story->reviewed_by ?? ''));
-        if ($reviewedBy !== '') {
-            return $reviewedBy;
-        }
-
         try {
-            $date = !empty($story->created_at) ? Carbon::parse($story->created_at) : null;
+            $date = !empty($story->reviewed_at)
+                ? Carbon::parse($story->reviewed_at)
+                : (!empty($story->created_at) ? Carbon::parse($story->created_at) : null);
         } catch (Throwable $e) {
             $date = null;
         }
