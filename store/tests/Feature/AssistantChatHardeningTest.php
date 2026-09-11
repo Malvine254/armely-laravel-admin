@@ -305,6 +305,51 @@ class AssistantChatHardeningTest extends TestCase
         $this->assertSame(899.0, (float) $response->json('data.product_suggestions.0.price'));
     }
 
+    public function test_ai_laptop_conversation_keeps_topic_budget_and_recommendation_context(): void
+    {
+        $this->assertTrue(\App\Support\ChatIntentSignals::isProductLookupIntent('hi check for me lptops best for my ai project below 1k dollars budget'));
+        $user = $this->createCustomer('AI Laptop User', 'ai-laptop@example.com');
+        $this->insertCatalogProduct('LAPTOP-900', 'Contoso AI Laptop 15', 'Laptop with NVIDIA graphics for entry-level AI development.', 899, 'Laptops');
+        $this->insertCatalogProduct('LAPTOP-1500', 'Contoso Deep Learning Laptop 16', 'Laptop with NVIDIA RTX graphics and 32 GB RAM for deep learning.', 1499, 'Laptops');
+        $this->insertCatalogProduct('PROJECTOR-1', 'Portable Presentation Projector', 'Portable projector for presentations.', 1001, 'Projectors');
+
+        $first = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'hi check for me lptops best for my ai project below 1k dollars budget',
+        ])->assertOk();
+        $sessionId = (int) $first->json('data.chat_session.id');
+        $firstIds = collect($first->json('data.product_suggestions'))->pluck('product_id');
+        $this->assertContains('LAPTOP-900', $firstIds, json_encode($first->json('data')));
+        $this->assertNotContains('PROJECTOR-1', $firstIds, json_encode($firstIds->values()->all()));
+
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'deep learning',
+            'chat_session_id' => $sessionId,
+        ])->assertOk();
+
+        $budget = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'check for 1500',
+            'chat_session_id' => $sessionId,
+        ])->assertOk();
+        $budgetIds = collect($budget->json('data.product_suggestions'))->pluck('product_id');
+        $this->assertContains('LAPTOP-1500', $budgetIds, json_encode($budget->json('data')));
+        $this->assertNotContains('PROJECTOR-1', $budgetIds, json_encode($budgetIds->values()->all()));
+
+        $cart = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'can you add it to cart',
+            'chat_session_id' => $sessionId,
+        ])->assertOk();
+        $this->assertSame('local_product_context_follow_up', $cart->json('data.source'));
+        $this->assertNotEmpty($cart->json('data.product_suggestions'));
+
+        $recommendation = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'i need your recommendation i will go with what you recommend',
+            'chat_session_id' => $sessionId,
+        ])->assertOk();
+        $this->assertSame('local_product_recommendation_follow_up', $recommendation->json('data.source'));
+        $this->assertCount(1, $recommendation->json('data.product_suggestions'));
+        $this->assertStringContainsString('LAPTOP', (string) $recommendation->json('data.product_suggestions.0.product_id'));
+    }
+
     public function test_non_product_planner_result_cannot_activate_catalog_search(): void
     {
         config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');

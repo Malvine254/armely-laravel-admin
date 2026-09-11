@@ -1182,7 +1182,8 @@ class MessageController extends Controller
             || ChatIntentSignals::isInvoiceIntentQuery($question)
             || ChatIntentSignals::isOrderIntentQuery($question)
         );
-        $isGeneralConversation = ChatIntentSignals::isGeneralConversationQuery($question);
+        $isGeneralConversation = ChatIntentSignals::isGeneralConversationQuery($question)
+            && !ChatIntentSignals::isProductLookupIntent($question, $recentChatTurns);
         $productSearchPlan = null;
         if (!$isAccountQuestion && !$isGeneralConversation) {
             $productSearchPlan = $this->assistantService->planProductSearch($question, $recentChatTurns);
@@ -1230,6 +1231,17 @@ class MessageController extends Controller
                 foreach (['max_budget', 'budget_priority', 'required_brand', 'required_specs'] as $sharedConstraint) {
                     if (($requestContext[$sharedConstraint] ?? null) !== null) {
                         $searchContext[$sharedConstraint] = $requestContext[$sharedConstraint];
+                    }
+                }
+                if (!empty((array) ($productSearchPlan['constraints'] ?? []))) {
+                    $plannedContext = $this->buildProductSearchContext(
+                        implode(' ', (array) $productSearchPlan['constraints']),
+                        $recentChatTurns
+                    );
+                    foreach (['max_budget', 'budget_priority', 'required_brand', 'required_specs'] as $plannedConstraint) {
+                        if (($plannedContext[$plannedConstraint] ?? null) !== null) {
+                            $searchContext[$plannedConstraint] = $plannedContext[$plannedConstraint];
+                        }
                     }
                 }
                 $plannedProductType = trim((string) ($productSearchPlan['product_type'] ?? ''));
@@ -1750,7 +1762,7 @@ class MessageController extends Controller
             $question,
             (array) ($context['recent_chat_turns'] ?? [])
         )) {
-            if (preg_match('/\b(?:which one|which product|what would you recommend|which\b.*\brecommend|recommend one|pick one|choose one)\b/u', $questionLower) === 1) {
+            if (preg_match('/\b(?:which one|which product|what would you recommend|which\b.*\brecommend|recommend one|pick one|choose one|go with|trust your recommendation|use your recommendation)\b/u', $questionLower) === 1) {
                 $selectedProduct = collect($productSuggestions)
                     ->sortByDesc(static function (array $product) use ($questionLower): int {
                         $haystack = strtolower(trim(
@@ -1974,6 +1986,10 @@ class MessageController extends Controller
         }
 
         $skippedCurrentTurn = false;
+        $categoryTerms = [
+            'laptop', 'notebook', 'desktop', 'monitor', 'printer', 'server', 'switch',
+            'router', 'camera', 'projector', 'tablet', 'phone', 'headset', 'dock',
+        ];
         foreach (array_reverse($recentChatTurns) as $turn) {
             if (strtolower((string) ($turn['role'] ?? '')) !== 'user') {
                 continue;
@@ -1989,6 +2005,12 @@ class MessageController extends Controller
             $previousKeywords = ChatIntentSignals::extractProductSearchKeywords($previous);
             if ($previous === '' || empty($previousKeywords)) {
                 continue;
+            }
+
+            $previousCategory = collect($previousKeywords)
+                ->first(static fn (string $keyword) => in_array($keyword, $categoryTerms, true));
+            if ($previousCategory !== null) {
+                return trim($current . ' ' . $previousCategory);
             }
 
             return trim($current . ' ' . implode(' ', $previousKeywords));
@@ -2611,7 +2633,7 @@ class MessageController extends Controller
         $budgetPriority = (bool) preg_match('/\b(budget(?: friendly)?|affordable|low cost|lower cost|economical|inexpensive|cheapest|value)\b/i', $joined);
 
         $deviceType = null;
-        if (str_contains($joined, 'laptop') || str_contains($joined, 'notebook')) {
+        if (preg_match('/\b(?:laptop|lptop|notebook)\b/i', $joined) === 1) {
             $deviceType = 'laptop';
         } elseif (str_contains($joined, 'desktop') || str_contains($joined, 'workstation')) {
             $deviceType = 'desktop';
@@ -2653,6 +2675,17 @@ class MessageController extends Controller
             if (preg_match_all($pattern, $joined, $matches) && !empty($matches[1])) {
                 $values = array_map('floatval', $matches[1]);
                 $values = array_values(array_filter($values, static fn (float $v) => $v >= 50));
+                if (!empty($values)) {
+                    $maxBudget = min($values);
+                    break;
+                }
+            }
+        }
+
+        foreach ($patterns as $pattern) {
+            if (preg_match_all($pattern, $question, $matches) && !empty($matches[1])) {
+                $values = array_map('floatval', $matches[1]);
+                $values = array_values(array_filter($values, static fn (float $value) => $value >= 50));
                 if (!empty($values)) {
                     $maxBudget = min($values);
                     break;

@@ -136,6 +136,10 @@ class ChatIntentSignals
     {
         $q = self::normalizeQuestion($question);
 
+        if (preg_match('/\b(?:laptop|lptop|notebook|desktop|computer|printer|monitor|switch|router|server|camera|projector|access\s*point|wireless|wifi|tablet|phone|headset|dock)\b/u', $q) === 1) {
+            return false;
+        }
+
         return $q !== '' && (
             (bool) preg_match('/^(hi|hello|hey|yo|howdy|sup)(?:[\s\p{P}].*)?$/u', $q)
             || (bool) preg_match('/^good (morning|afternoon|evening)(?:[\s\p{P}].*)?$/u', $q)
@@ -248,7 +252,11 @@ class ChatIntentSignals
             return false;
         }
 
-        if (self::isGeneralConversationQuery($question)) {
+        if (self::isGeneralConversationQuery($question)
+            && !self::containsAnyPattern($q, [
+                '/\b(?:check|find|search|browse|lookup|show|compare|buy|purchase)\b/u',
+                '/\b(?:laptop|lptop|notebook|printer|monitor|switch|router|server|camera|projector|access\s*point)\b/u',
+            ])) {
             return false;
         }
 
@@ -289,6 +297,7 @@ class ChatIntentSignals
             '/\bbrowse\b/u',
             '/\blookup\b/u',
             '/\bcheck for\b/u',
+            '/\bcheck for me\b/u',
             '/\bcheck the\b/u',
             '/\bavailable\b/u',
             '/\bavailability\b/u',
@@ -305,7 +314,7 @@ class ChatIntentSignals
         ]);
 
         $hasProductNoun = self::containsAnyPattern($q, [
-            '/\b(laptop|notebook|desktop|computer|pc|printer|server|monitor|display|switch|router|firewall|access\s*point|wifi|wireless|tablet|phone|smartphone|camera|projector|scanner|workstation|chromebook|thin\s*client|mini\s*pc|all\s*-?\s*in\s*-?\s*one|docking|dock|keyboard|mouse|webcam|headset|earbuds|speaker|microphone|ups|storage|ssd|hard\s*drive|memory|ram|gpu|cable|adapter|sku|model|part\s*number)\b/u',
+            '/\b(laptop|lptop|notebook|desktop|computer|pc|printer|server|monitor|display|switch|router|firewall|access\s*point|wifi|wireless|tablet|phone|smartphone|camera|projector|scanner|workstation|chromebook|thin\s*client|mini\s*pc|all\s*-?\s*in\s*-?\s*one|docking|dock|keyboard|mouse|webcam|headset|earbuds|speaker|microphone|ups|storage|ssd|hard\s*drive|memory|ram|gpu|cable|adapter|sku|model|part\s*number)\b/u',
         ]) || !empty(array_intersect($keywords, [
             'laptop', 'notebook', 'desktop', 'computer', 'pc', 'printer', 'server', 'monitor',
             'display', 'switch', 'router', 'firewall', 'tablet', 'phone', 'smartphone', 'camera',
@@ -313,6 +322,10 @@ class ChatIntentSignals
             'webcam', 'headset', 'earbud', 'speaker', 'microphone', 'ups', 'storage', 'ssd',
             'memory', 'ram', 'gpu', 'cable', 'adapter', 'sku', 'model',
         ]));
+
+        $hasTerseNumericRequest = self::containsAnyPattern($q, [
+            '/\b(?:check|search|look)\s+for\s+\$?\s*\d{3,6}\b/u',
+        ]);
 
         $hasStrongCatalogRequest = self::containsAnyPattern($q, [
             '/\bsearch(?: for)?\b/u',
@@ -340,7 +353,8 @@ class ChatIntentSignals
 
         if (($hasExplicitProductRequest && $hasProductNoun)
             || ($hasStrongCatalogRequest && !empty($keywords))
-            || ($hasOpenVocabularyShoppingRequest && !empty($keywords))) {
+            || ($hasOpenVocabularyShoppingRequest && !empty($keywords))
+            || $hasTerseNumericRequest) {
             return true;
         }
 
@@ -368,6 +382,8 @@ class ChatIntentSignals
             '/\bwhat about\b/u',
             '/\bhow about\b/u',
             '/\binstead\b/u',
+            '/\b(?:check|search|look)\b.*\b(?:under|below|within|around|up to)\s*\$?\s*\d{3,6}\b/u',
+            '/^(?:deep learning|machine learning|data science|ai|artificial intelligence)(?:\s+(?:please|work))?[.!?]*$/iu',
         ]);
     }
 
@@ -381,6 +397,9 @@ class ChatIntentSignals
 
         return $q !== '' && self::containsAnyPattern($q, [
             '/^(?:yes|yeah|yep|sure|okay|ok|both|all)(?:\s+(?:please|of them|options))?[.!?]*$/u',
+            '/\b(?:add|put|place)\b.*\b(?:it|that|this|one|product|laptop|printer)\b.*\b(?:cart|basket)\b/u',
+            '/\b(?:go with|i(?:\'ll| will) go with|trust your|use your)\b.*\b(?:recommend|recommendation|choice|suggestion)\b/u',
+            '/\b(?:i|we)\s+(?:asked|was asking|were asking)\b.*\b(?:about|for)\b/u',
             '/\b(?:their|those|these|the product|the products|each product|each one)\b.*\b(?:image|images|picture|pictures|photo|photos|description|descriptions|price|prices|link|links|url|urls)\b/u',
             '/\b(?:show|display|provide|give|send|list)\b.*\b(?:image|images|picture|pictures|photo|photos|description|descriptions|link|links|url|urls)\b/u',
             '/\b(?:its|their|those|these|the product|the products)\b.*\b(?:spec|specs|specification|specifications|feature|features|detail|details)\b/u',
@@ -587,7 +606,7 @@ class ChatIntentSignals
             'invoice', 'invoices', 'payment', 'payments', 'billing', 'receipt', 'balance', 'due',
             'track', 'tracking', 'shipping', 'delivery', 'use', 'used', 'using', 'query', 'did',
             'check', 'we', 'us', 'carry', 'stock', 'sell', 'instead', 'ones', 'option', 'options', 'now',
-            'prefer', 'exclude', 'excluding', 'accessory', 'accessories', 'ii',
+            'prefer', 'exclude', 'excluding', 'accessory', 'accessories', 'ii', 'will', 'go', 'trust',
             'how', 'who', 'whom', 'whose', 'yourself', 'name', 'joke', 'chat', 'going',
         ];
 
@@ -605,6 +624,10 @@ class ChatIntentSignals
         )));
 
         if (str_contains($normalized, 'laptop') && !in_array('notebook', $keywords, true)) {
+            $keywords[] = 'notebook';
+        }
+        if (preg_match('/\blptops?\b/i', $normalized) === 1) {
+            $keywords[] = 'laptop';
             $keywords[] = 'notebook';
         }
         if (str_contains($normalized, 'notebook') && !in_array('laptop', $keywords, true)) {
