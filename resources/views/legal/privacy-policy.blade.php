@@ -60,6 +60,7 @@
 						<li><i class="icofont-simple-right"></i></li>
 						<li class="active">Privacy Policy</li>
 					</ul>
+					<p style="margin-top: 16px; color: #dfeaf8; font-size: .95rem;">For Mela security, privacy, and SOC 2 review materials, visit <a href="{{ route('mela.security') }}" style="color: #fff; text-decoration: underline;">Mela Security &amp; Compliance Documentation</a>.</p>
 				</div>
 			</div>
 		</div>
@@ -98,6 +99,7 @@
 					<h3 class="section-heading-modern">Our Privacy Policy</h3>
 					<p>Armely, LLC operates the <a href="https://armely.com/" target="_blank" rel="noopener">www.armely.com</a> website, which provides the SERVICE.</p>
 					<p>This page informs website visitors of our policies regarding the collection, use, and disclosure of Personal Information for anyone using our Service, the Armely website.</p>
+					<p>For privacy, security, and external diligence requests related to Mela AI, including SOC 2 review and full documentation access, please review our <a href="{{ route('mela.security') }}">Mela Security &amp; Compliance Documentation</a> page.</p>
 					<p>By using our Service, you agree to the collection and use of information in accordance with this policy. The Personal Information we collect is used to provide and improve the Service. We will not use or share your information with anyone except as described in this Privacy Policy.</p>
 				</div>
 

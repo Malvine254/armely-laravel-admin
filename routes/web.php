@@ -601,8 +601,13 @@ Route::get('/industries/{industry}', [HomeController::class, 'industryShow'])
 Route::get('/mela-meeting-assistant', [HomeController::class, 'melaMeetingAssistant'])->name('mela-meeting-assistant');
 Route::view('/mela-ai-terms-of-use', 'legal.mela-terms-of-use')->name('mela.terms');
 Route::view('/mela-ai-privacy-policy', 'legal.mela-ai-privacy-policy')->name('mela.privacy');
+Route::view('/mela-security-compliance-documents', 'legal.mela-security-and-compliance')->name('mela.security');
+Route::redirect('/mela-security-documents', '/mela-security-compliance-documents', 301);
+Route::redirect('/mela-soc2', '/mela-security-compliance-documents', 301);
+Route::redirect('/mela-privacy-documents', '/mela-security-compliance-documents', 301);
 Route::redirect('/mela-meeting-assistant-terms-of-use', '/mela-ai-terms-of-use', 301);
 Route::redirect('/mela-meeting-assistant-privacy-policy', '/mela-ai-privacy-policy', 301);
+Route::redirect('/mela-meeting-assistant/security-documents', '/mela-security-compliance-documents', 301);
 Route::redirect('/mela-meeting-assistant/terms-of-use', '/mela-ai-terms-of-use', 301);
 Route::redirect('/mela-meeting-assistant/privacy-policy', '/mela-ai-privacy-policy', 301);
 

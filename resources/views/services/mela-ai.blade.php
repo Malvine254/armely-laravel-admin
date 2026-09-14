@@ -813,7 +813,7 @@
                 </div>
                 <button class="mela-form-submit" name="submit_form" type="submit">Request Free Discovery Call</button>
                 <div class="mela-form-note">No spam. No sales pressure. Just a useful conversation.</div>
-                <div class="mela-form-note"><a href="{{ route('mela.terms') }}">Mela Terms of Use</a> &nbsp;•&nbsp; <a href="{{ route('mela.privacy') }}">Mela AI Privacy Policy</a></div>
+                <div class="mela-form-note"><a href="{{ route('mela.terms') }}">Mela Terms of Use</a> &nbsp;•&nbsp; <a href="{{ route('mela.privacy') }}">Mela AI Privacy Policy</a> &nbsp;•&nbsp; <a href="{{ route('mela.security') }}">Security & Compliance Docs</a></div>
             </form>
         </div>
     </section>

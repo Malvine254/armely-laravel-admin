@@ -11,6 +11,7 @@
                             <li><a href="/privacy-policy"><i class="fa fa-caret-right" aria-hidden="true"></i> Privacy Policy</a></li>
                             <li><a href="{{ route('mela.terms') }}"><i class="fa fa-caret-right mt-2" aria-hidden="true"></i> Mela Terms of Use</a></li>
                             <li><a href="{{ route('mela.privacy') }}"><i class="fa fa-caret-right mt-2" aria-hidden="true"></i> Mela Privacy Policy</a></li>
+                            <li><a href="{{ route('mela.security') }}"><i class="fa fa-caret-right mt-2" aria-hidden="true"></i> Mela Security & Compliance</a></li>
                             <li><a href="/support"><i class="fa fa-caret-right mt-2" aria-hidden="true"></i> Support</a></li>
                             <li><a href="/customer-stories"><i class="fa fa-caret-right mt-2" aria-hidden="true"></i> Customer Stories</a></li>
                             <li><a href="/blog"><i class="fa fa-caret-right mt-2" aria-hidden="true"></i> Blog Articles</a></li>

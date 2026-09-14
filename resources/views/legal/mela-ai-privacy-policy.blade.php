@@ -22,7 +22,7 @@
     <h1>Privacy Policy</h1>
     <p>This Policy explains how Armely handles information when organizations deploy and use Mela Meeting Assistant with Microsoft Teams, Planner, Outlook, and Microsoft 365.</p>
     <div class="mela-legal-meta"><span>Effective: August 5, 2026</span><span>Last updated: August 5, 2026</span></div>
-    <div class="mela-legal-links"><a href="{{ route('mela-meeting-assistant') }}">Mela Meeting Assistant</a><a href="{{ route('mela.terms') }}">Mela Terms of Use</a></div>
+    <div class="mela-legal-links"><a href="{{ route('mela-meeting-assistant') }}">Mela Meeting Assistant</a><a href="{{ route('mela.terms') }}">Mela Terms of Use</a><a href="{{ route('mela.security') }}">Security &amp; Compliance Docs</a></div>
   </div></header>
   <div class="mela-legal-body"><div class="mela-legal-container mela-legal-layout">
     <aside class="mela-legal-toc"><strong>On this page</strong><div>
