@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\AzureMailService;
+use App\Services\NewsletterNotificationService;
 use App\Support\BlogUrl;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -332,6 +333,8 @@ class BlogController extends Controller
             Log::warning('Blog download request insert failed: ' . $e->getMessage());
         }
 
+        $this->notifyAdminOfBlogDownload($blogTitle, $data);
+
         // Generate a secure token valid for 24 hours stored in cache
         $token = Str::random(64);
         Cache::put('blog_download:' . $token, [
@@ -372,6 +375,38 @@ class BlogController extends Controller
             'success' => true,
             'message' => 'A download link has been sent to ' . $data['email'],
         ]);
+    }
+
+    private function notifyAdminOfBlogDownload(string $blogTitle, array $data): void
+    {
+        try {
+            $fromEmail = AzureMailService::outboundFromEmail();
+            if ($fromEmail === '') {
+                Log::warning('Blog download admin notification skipped: missing outbound sender.');
+                return;
+            }
+
+            $adminRecipients = app(NewsletterNotificationService::class)->adminRecipientEmails();
+            if ($adminRecipients === []) {
+                Log::warning('Blog download admin notification skipped: no deliverable admin recipients.');
+                return;
+            }
+
+            $mailer = app(AzureMailService::class);
+            $subject = 'New Article Download Request: ' . $blogTitle;
+            $html = '<p>A visitor requested an article download on the website.</p>'
+                . '<ul>'
+                . '<li><b>Article:</b> ' . e($blogTitle) . '</li>'
+                . '<li><b>Name:</b> ' . e((string) $data['name']) . '</li>'
+                . '<li><b>Email:</b> ' . e((string) $data['email']) . '</li>'
+                . '</ul>';
+
+            foreach ($adminRecipients as $adminRecipient) {
+                $mailer->sendEmail($fromEmail, $adminRecipient, $subject, $html);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Blog download admin notification failed', ['error' => $e->getMessage()]);
+        }
     }
 
     public function downloadPdf(Request $request, $blogId)
