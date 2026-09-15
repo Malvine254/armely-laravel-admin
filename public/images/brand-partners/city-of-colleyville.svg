@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 260" role="img" aria-label="City of Colleyville Texas logo">
+  <g transform="translate(20 8)">
+    <path d="M155 15c110 0 200 90 200 200H155c0-110 90-200 200-200z" fill="#1a3d73" opacity="0.95"/>
+    <path d="M185 40c-15 33-22 72-22 110 0 60 16 98 60 136 40-40 60-86 60-136 0-36-7-72-22-110-12 0-23 0-35 0-14 0-28 0-41 0z" fill="#fff" opacity="0.15"/>
+    <path d="M130 148c15-18 30-27 45-27 15 0 29 6 42 18 14 13 24 29 30 46H138l-8-37z" fill="#d6e1f2" opacity="0.55"/>
+    <path d="M116 212h194v18H116z" fill="#d9e4f1" opacity="0.6"/>
+    <path d="M418 38c35 4 74 12 103 32 32 22 56 51 72 88l-22 12c-16-40-40-71-67-90-25-18-58-29-91-35l5-7z" fill="#173b6d"/>
+    <path d="M447 142c34 10 62 15 84 15 19 0 35-5 47-17 10-10 15-21 19-32l23 10c-8 18-21 33-40 45-25 15-56 22-96 22-43 0-89-17-126-46l19-14c26 20 54 30 70 30z" fill="#13315e"/>
+    <g fill="#1b3d73">
+      <circle cx="78" cy="70" r="6"/>
+      <circle cx="118" cy="70" r="6"/>
+      <circle cx="158" cy="70" r="6"/>
+    </g>
+  </g>
+  <text x="0" y="190" font-family="Georgia, serif" font-size="78" font-weight="700" fill="#173d73" letter-spacing="2">CITY OF</text>
+  <text x="0" y="255" font-family="Georgia, serif" font-size="72" font-weight="700" fill="#173d73">COLLEYVILLE</text>
+  <text x="270" y="320" font-family="Georgia, serif" font-size="42" font-weight="700" fill="#173d73" letter-spacing="8">TEXAS</text>
+</svg>

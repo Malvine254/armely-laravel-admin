@@ -22,6 +22,10 @@
             ['name' => 'Dallas County', 'logo' => $logo('dallas_county.jpg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
             ['name' => 'City of Frisco', 'logo' => $logo('frisco.jpeg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
             ['name' => 'City of Topeka', 'logo' => $logo('City of Topeka.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'Wichita Public Schools', 'logo' => $logo('wichita-public-schools.svg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'City of Colleyville', 'logo' => $logo('city-of-colleyville.svg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'The Bradbury Group', 'logo' => $logo('the-bradbury-group.svg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'Central Electric Cooperative', 'logo' => $logo('central-electric-cooperative.svg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
         ],
         'Healthcare & Life Sciences' => [
             ['name' => 'UNMC', 'logo' => $logo('university_of_nebrask1.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
@@ -29,6 +33,7 @@
             ['name' => 'American Medical Staffing', 'logo' => $logo('ams.svg'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
             ['name' => 'Swope Health', 'logo' => $logo('swope_health.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
             ['name' => 'MHC', 'logo' => $logo('mhc.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
+            ['name' => 'AAFP', 'logo' => $logo('aafp.svg'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
         ],
         'Energy' => [
             ['name' => 'QB Energy', 'logo' => $logo('qb_energy.jpg'), 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
@@ -38,6 +43,11 @@
             ['name' => 'Plano ISD', 'logo' => $logo('Plano.png', 'partners'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
             ['name' => 'UT Dallas', 'logo' => $logo('UTDallas.png'), 'logo_scale' => 2, 'href' => route('case-studies.index', ['industry' => 'higher-education'])],
             ['name' => 'Lambda Legal', 'logo' => $logo('lambda.png'), 'href' => route('case-studies.index', ['industry' => 'legal-social-services'])],
+            ['name' => 'Lathrop GPM', 'logo' => $logo('lathrop-gpm.svg'), 'href' => route('case-studies.index', ['industry' => 'legal-social-services'])],
+        ],
+        'Enterprise & Logistics' => [
+            ['name' => 'Spartan', 'logo' => $logo('spartans.svg'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
+            ['name' => 'ePAK', 'logo' => $logo('epak.svg'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
         ],
         'Nonprofit & Social Services' => [
             ['name' => 'Homeward Bound', 'logo' => $logo('homeward_bound.png'), 'href' => route('case-studies.index', ['industry' => 'legal-social-services'])],

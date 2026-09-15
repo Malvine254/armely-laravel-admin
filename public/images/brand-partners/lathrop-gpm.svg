@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" role="img" aria-label="Lathrop GPM logo">
+  <rect width="760" height="220" fill="#000"/>
+  <g transform="translate(36 20)">
+    <path d="M0 140h80L35 198l-35-58z" fill="#fff"/>
+    <path d="M72 24h92l-34 58h-92z" fill="#d7dce3" opacity="0.9"/>
+    <path d="M154 75h110l-38 58h-110z" fill="#a6afb8" opacity="0.85"/>
+    <path d="M232 122h144l-39 58H190z" fill="#d7dce3" opacity="0.9"/>
+    <path d="M350 76h110l-34 58H316z" fill="#7f8a99" opacity="0.8"/>
+  </g>
+  <text x="420" y="128" font-family="Arial, Helvetica, sans-serif" font-size="98" font-weight="700" fill="#fff">Lathrop</text>
+  <text x="420" y="185" font-family="Arial, Helvetica, sans-serif" font-size="62" font-weight="700" fill="#d7dce3" letter-spacing="6">GPM</text>
+</svg>

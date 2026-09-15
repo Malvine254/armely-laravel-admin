@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 220" role="img" aria-label="The Bradbury Group logo">
+  <g transform="translate(30 0)">
+    <path d="M62 160c0-120 164-138 296-138 60 0 118 13 170 39-18 36-55 67-104 78-38 8-73 11-118 11-61 0-120-13-170-40-4 15-9 28-15 50H62z" fill="#132b5c"/>
+    <path d="M92 154c0-83 139-101 242-101 44 0 87 7 123 23-32 26-86 46-156 52-58 5-130 7-209 26z" fill="#e9edf4" opacity="0.5"/>
+    <path d="M102 140c23-36 70-61 118-65-10 23-9 52 11 78 21 26 52 40 98 49-45 5-66 1-95-18-32-21-56-41-132-44z" fill="#9b0b13"/>
+  </g>
+  <text x="400" y="112" font-family="Arial, Helvetica, sans-serif" font-size="62" font-weight="700" fill="#122d63" letter-spacing="4">THE BRADBURY GROUP</text>
+</svg>

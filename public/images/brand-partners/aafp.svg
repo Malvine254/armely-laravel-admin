@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 180" role="img" aria-label="AAFP logo">
+  <g transform="translate(10 0)">
+    <path d="M70 20c-18 0-32 14-32 32v44c0 18 14 32 32 32h14c11 0 20-9 20-20V102c0-11-9-20-20-20H70V52h14c14 0 25 11 25 25v12h18V77C117 46 92 20 70 20Zm-22 35c0 12-10 22-22 22S4 67 4 55s10-22 22-22 22 10 22 22Zm92 3c25 0 46-20 46-45 0-25-21-45-46-45s-46 20-46 45c0 25 21 45 46 45Zm0-22c-12 0-20-8-20-23 0-14 8-23 20-23s20 9 20 23c0 15-8 23-20 23Z" fill="#d77d2f"/>
+    <path d="M148 30h28v118h-28zm42 0h89l-35 54 35 64h-33l-23-42-22 42h-33l35-64-35-54h33l23 37z" fill="#a4a9b2"/>
+  </g>
+  <text x="300" y="120" font-family="Arial, Helvetica, sans-serif" font-size="94" font-weight="700" letter-spacing="4" fill="#6d727a">AAFP</text>
+</svg>

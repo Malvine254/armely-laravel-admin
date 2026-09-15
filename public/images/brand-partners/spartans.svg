@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 220" role="img" aria-label="Spartan logo">
+  <g transform="translate(30 10)">
+    <path d="M140 12h110L188 101l64 107H176l-62-104 26-92z" fill="#1d1d1d"/>
+    <path d="M170 12l62 102-32 53-34-53 4-102z" fill="#f1f1f1" opacity="0.14"/>
+    <path d="M248 12l99 106-56 102h-28l31-57-46-51 0-100z" fill="#1d1d1d"/>
+    <path d="M56 116c15-15 31-28 52-38-3 12-5 22-5 35 0 21 7 40 22 58-10 0-19-2-28-7-24-14-36-32-41-48z" fill="#1d1d1d"/>
+    <path d="M134 105l40 63 63-99 33 52-70 102H136l-48-71 0-47 46 0z" fill="#1d1d1d"/>
+  </g>
+  <text x="283" y="150" font-family="Arial, Helvetica, sans-serif" font-size="92" font-weight="700" fill="#111">SPARTAN</text>
+  <text x="310" y="193" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#111" letter-spacing="7">PRINTING • HOSPITALITY • SERVICES</text>
+</svg>
