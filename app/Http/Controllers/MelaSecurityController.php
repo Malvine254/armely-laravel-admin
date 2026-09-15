@@ -188,6 +188,7 @@ class MelaSecurityController extends Controller
                 'phone' => (string) $payload['phone'],
                 'message' => (string) $payload['message'],
                 'expiresAt' => (string) $payload['expires_at'],
+                'downloadUrl' => (string) $payload['download_url'],
             ])->render();
 
             $adminRecipients = app(NewsletterNotificationService::class)->adminRecipientEmails();

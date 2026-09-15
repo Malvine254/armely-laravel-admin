@@ -28,11 +28,18 @@
                         </table>
                         <p style="margin:16px 0 0;font-size:13px;color:#6b7fa2;text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Notes</p>
                         <p style="margin:6px 0 0;font-size:14px;line-height:1.6;color:#324a73;">{{ $message !== '' ? nl2br(e($message)) : 'N/A' }}</p>
+                        <table role="presentation" cellspacing="0" cellpadding="0" style="margin:18px 0 0;">
+                            <tr>
+                                <td align="center" style="border-radius:10px;background:#1f4d99;">
+                                    <a href="{{ e($downloadUrl) }}" style="display:inline-block;padding:12px 20px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;border-radius:10px;">Download the documentation (PDF)</a>
+                                </td>
+                            </tr>
+                        </table>
                     </td>
                 </tr>
                 <tr>
                     <td style="padding:16px 30px 22px;background:#f7faff;border-top:1px solid #e5edff;">
-                        <p style="margin:0;color:#7b8fad;font-size:12px;line-height:1.5;">The user has already been emailed a secure download link automatically.</p>
+                        <p style="margin:0;color:#7b8fad;font-size:12px;line-height:1.5;">The requester has already been emailed this same secure download link automatically.</p>
                     </td>
                 </tr>
             </table>
