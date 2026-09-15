@@ -94,31 +94,48 @@
             </button>
 
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="categoryDropdownOpen === cat.value" class="absolute left-0 top-full z-[150] mt-1 w-80 overflow-x-hidden rounded-xl border border-white/20 shadow-2xl whitespace-normal" style="background: #2F5597;">
-                <div class="px-4 py-2.5 border-b border-white/20">
-                  <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Vendors</p>
+              <div v-if="categoryDropdownOpen === cat.value" class="mega-menu-panel absolute left-0 top-full z-[150] mt-1 w-[46rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-white/10 bg-white shadow-2xl">
+                <div class="flex items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-[#2F5597] to-[#1d3f73] px-6 py-4">
+                  <div class="flex items-center gap-3">
+                    <span class="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-white/15 text-white">
+                      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 7l9-4 9 4-9 4-9-4Zm0 0v10l9 4m0-14v14m9-14v10l-9 4"/></svg>
+                    </span>
+                    <div>
+                      <p class="text-sm font-bold text-white">{{ cat.name }}</p>
+                      <p class="text-xs font-medium text-white/70">{{ cat.children?.length || 0 }} vendors available</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="hidden flex-none items-center gap-1 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25 sm:inline-flex"
+                    @click="browseProducts(cat.value)"
+                  >
+                    View all
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                  </button>
                 </div>
-                <div class="py-1.5">
+                <div class="mega-menu-grid grid max-h-[24rem] grid-cols-2 gap-x-4 gap-y-0.5 overflow-y-auto p-4 sm:grid-cols-3">
                   <button
                     v-for="sub in cat.children"
                     :key="`${cat.value}-${sub.value}`"
                     type="button"
-                    class="block w-full min-w-0 border-l-[3px] border-transparent px-4 py-2.5 text-left text-sm text-slate-200 transition hover:bg-white/10 hover:text-cyan-300"
-                    :class="isVendorActive(sub) ? 'border-cyan-300 bg-white/15 font-semibold text-white' : ''"
+                    class="flex min-w-0 items-center justify-between gap-2 rounded-lg border-l-[3px] border-transparent px-3 py-2 text-left text-sm text-slate-600 transition hover:border-[#2F5597] hover:bg-slate-50 hover:text-[#2F5597]"
+                    :class="isVendorActive(sub) ? 'border-[#2F5597] bg-slate-50 font-semibold text-[#2F5597]' : ''"
                     :aria-current="isVendorActive(sub) ? 'page' : undefined"
                     @click="browseCategoryVendor(cat.value, sub.name)"
                   >
-                    <span class="flex min-w-0 items-center justify-between gap-3">
-                      <span class="min-w-0 flex-1 truncate">{{ sub.name }}</span>
-                      <span v-if="sub.count" class="text-[11px] text-slate-400">{{ sub.count }}</span>
-                    </span>
+                    <span class="min-w-0 flex-1 truncate">{{ sub.name }}</span>
+                    <span v-if="sub.count" class="flex-none rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">{{ sub.count }}</span>
                   </button>
+                </div>
+                <div class="border-t border-slate-100 bg-slate-50 px-4 py-3">
                   <button
                     type="button"
-                    class="w-full text-left px-4 py-2.5 text-sm text-cyan-300 hover:bg-white/10 transition"
+                    class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#2F5597] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#244a86]"
                     @click="browseProducts(cat.value)"
                   >
                     View all in {{ cat.name }}
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                   </button>
                 </div>
               </div>
@@ -139,18 +156,24 @@
               </svg>
             </button>
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="moreCategoriesOpen" class="absolute right-0 top-full z-[150] mt-1 w-[42rem] max-w-[calc(100vw-2rem)] rounded-xl shadow-2xl overflow-hidden border border-white/20 whitespace-normal" style="background: #2F5597;">
-                <div class="px-4 py-2.5 border-b border-white/20">
-                  <p class="text-xs font-semibold text-white uppercase tracking-widest">More Categories</p>
+              <div v-if="moreCategoriesOpen" class="mega-menu-panel absolute right-0 top-full z-[150] mt-1 w-[46rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-white/10 bg-white shadow-2xl">
+                <div class="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-[#2F5597] to-[#1d3f73] px-6 py-4">
+                  <span class="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-white/15 text-white">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                  </span>
+                  <div>
+                    <p class="text-sm font-bold text-white">More Categories</p>
+                    <p class="text-xs font-medium text-white/70">Browse every vendor category</p>
+                  </div>
                 </div>
-                <div class="grid grid-cols-[14rem_minmax(0,1fr)]">
-                  <div class="overflow-x-hidden border-r border-white/15 py-1.5">
+                <div class="grid grid-cols-[13rem_minmax(0,1fr)]">
+                  <div class="max-h-[24rem] overflow-y-auto border-r border-slate-100 bg-slate-50 py-2">
                     <button
                       v-for="cat in overflowCategories"
                       :key="cat.value"
                       type="button"
                       class="flex w-full min-w-0 items-center justify-between gap-2 border-l-[3px] border-transparent px-4 py-2.5 text-left text-sm font-semibold transition"
-                      :class="isCategoryActive(cat) ? 'border-l-[3px] border-cyan-300 bg-white/15 text-white' : (activeMoreCategory?.value === cat.value ? 'bg-white/10 text-cyan-300' : 'text-slate-200 hover:bg-white/10 hover:text-cyan-300')"
+                      :class="isCategoryActive(cat) ? 'border-l-[3px] border-[#2F5597] bg-white text-[#2F5597]' : (activeMoreCategory?.value === cat.value ? 'border-l-[3px] border-[#2F5597]/40 bg-white text-[#2F5597]' : 'text-slate-600 hover:bg-white hover:text-[#2F5597]')"
                       :aria-current="isCategoryActive(cat) ? 'page' : undefined"
                       @mouseenter="activeMoreCategoryValue = cat.value"
                       @focus="activeMoreCategoryValue = cat.value"
@@ -163,28 +186,29 @@
                     </button>
                   </div>
 
-                  <div class="overflow-x-hidden py-1.5">
+                  <div class="max-h-[24rem] overflow-y-auto p-4">
                     <template v-if="activeMoreCategory">
+                      <div class="mega-menu-grid grid grid-cols-2 gap-x-4 gap-y-0.5">
+                        <button
+                          v-for="sub in activeMoreCategory.children"
+                          :key="`${activeMoreCategory.value}-${sub.value}`"
+                          type="button"
+                          class="flex min-w-0 items-center justify-between gap-2 rounded-lg border-l-[3px] border-transparent px-3 py-2 text-left text-sm text-slate-600 transition hover:border-[#2F5597] hover:bg-slate-50 hover:text-[#2F5597]"
+                          :class="isVendorActive(sub) ? 'border-[#2F5597] bg-slate-50 font-semibold text-[#2F5597]' : ''"
+                          :aria-current="isVendorActive(sub) ? 'page' : undefined"
+                          @click="browseCategoryVendor(activeMoreCategory.value, sub.name)"
+                        >
+                          <span class="min-w-0 flex-1 truncate">{{ sub.name }}</span>
+                          <span v-if="sub.count" class="flex-none rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">{{ sub.count }}</span>
+                        </button>
+                      </div>
                       <button
                         type="button"
-                        class="block w-full min-w-0 border-b border-white/10 px-4 py-2.5 text-left text-sm font-semibold text-cyan-300 hover:bg-white/10 transition"
+                        class="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#2F5597] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#244a86]"
                         @click="browseProducts(activeMoreCategory.value)"
                       >
                         View all in {{ activeMoreCategory.name }}
-                      </button>
-                      <button
-                        v-for="sub in activeMoreCategory.children"
-                        :key="`${activeMoreCategory.value}-${sub.value}`"
-                        type="button"
-                        class="block w-full min-w-0 border-l-[3px] border-transparent px-4 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10 hover:text-cyan-300"
-                        :class="isVendorActive(sub) ? 'border-cyan-300 bg-white/15 font-semibold text-white' : ''"
-                        :aria-current="isVendorActive(sub) ? 'page' : undefined"
-                        @click="browseCategoryVendor(activeMoreCategory.value, sub.name)"
-                      >
-                        <span class="flex min-w-0 items-center justify-between gap-3">
-                          <span class="min-w-0 flex-1 truncate">{{ sub.name }}</span>
-                          <span v-if="sub.count" class="text-[11px] text-slate-400">{{ sub.count }}</span>
-                        </span>
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                       </button>
                     </template>
                   </div>
