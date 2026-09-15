@@ -121,6 +121,12 @@ class MelaSecurityController extends Controller
 
     public function download(Request $request, int $id)
     {
+        // Some email clients send the literal "&amp;" text instead of decoding it, which
+        // turns the "signature" query param into "amp;signature" and breaks validation.
+        if ($normalized = $this->normalizeAmpEncodedSignatureQuery($request)) {
+            return redirect()->to($normalized);
+        }
+
         if (!$request->hasValidSignature() && !$request->hasValidRelativeSignature()) {
             return redirect()->route('mela.security')
                 ->withErrors(['access' => 'This download link is invalid or has expired. Please request a new one.']);
@@ -236,5 +242,35 @@ class MelaSecurityController extends Controller
         }
 
         return back()->withErrors($errors)->withInput();
+    }
+
+    private function normalizeAmpEncodedSignatureQuery(Request $request): ?string
+    {
+        $query = $request->query();
+        $normalized = [];
+        $changed = false;
+
+        foreach ($query as $key => $value) {
+            $targetKey = (string) $key;
+            if (str_starts_with($targetKey, 'amp;')) {
+                $targetKey = substr($targetKey, 4);
+                $changed = true;
+            }
+
+            if ($targetKey === '') {
+                $changed = true;
+                continue;
+            }
+
+            if (!array_key_exists($targetKey, $normalized)) {
+                $normalized[$targetKey] = $value;
+            }
+        }
+
+        if (!$changed) {
+            return null;
+        }
+
+        return $request->url() . '?' . http_build_query($normalized);
     }
 }
