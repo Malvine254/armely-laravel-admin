@@ -75,14 +75,14 @@
             v-for="(cat, catIdx) in primaryCategories"
             :key="cat.value"
             class="relative flex min-w-0 flex-1 items-center"
-            @mouseenter="categoryDropdownOpen = cat.value"
+            @mouseenter="openCategoryMenu(cat, $event)"
             @mouseleave="categoryDropdownOpen = null"
           >
             <button
               type="button"
               class="flex h-full w-full min-w-0 items-center justify-center gap-1 border-b-[3px] border-transparent px-1.5 py-2 text-sm font-semibold text-white transition hover:bg-white/10 hover:text-cyan-200 2xl:px-2"
               :class="isCategoryActive(cat) ? 'border-cyan-300 bg-[#244a86] text-white' : ''"
-              @click="toggleCategoryDropdown(cat)"
+              @click="toggleCategoryDropdownAt(cat, $event)"
               :aria-expanded="categoryDropdownOpen === cat.value"
               :aria-current="isCategoryActive(cat) ? 'page' : undefined"
               aria-haspopup="menu"
@@ -96,8 +96,8 @@
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
               <div
                 v-if="categoryDropdownOpen === cat.value"
-                class="mega-menu-panel absolute top-full z-[150] mt-1 w-[64rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-white/10 bg-white shadow-2xl"
-                :class="catIdx >= primaryCategories.length - 2 ? 'right-0' : 'left-0'"
+                class="mega-menu-panel z-[150] overflow-hidden rounded-xl border border-white/10 bg-white shadow-2xl"
+                :style="megaMenuStyle"
               >
                 <div class="flex items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-[#2F5597] to-[#1d3f73] px-6 py-4">
                   <div class="flex items-center gap-3">
@@ -147,12 +147,12 @@
           </div>
 
           <!-- More Categories Dropdown -->
-          <div v-if="overflowCategories.length > 0" class="relative flex min-w-0 flex-1 items-center" @mouseenter="moreCategoriesOpen = true" @mouseleave="moreCategoriesOpen = false">
+          <div v-if="overflowCategories.length > 0" class="relative flex min-w-0 flex-1 items-center" @mouseenter="openMoreCategoriesMenu($event)" @mouseleave="moreCategoriesOpen = false">
             <button
               type="button"
               class="flex h-full w-full items-center justify-center gap-1 border-b-[3px] border-transparent px-1.5 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10 hover:text-cyan-300 2xl:px-2"
               :class="hasActiveOverflowCategory ? 'border-cyan-300 bg-[#244a86] text-white' : ''"
-              @click="toggleMoreCategories"
+              @click="toggleMoreCategoriesAt($event)"
             >
               More Categories
               <svg class="w-3.5 h-3.5 transition-transform" :class="moreCategoriesOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,7 +160,7 @@
               </svg>
             </button>
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="moreCategoriesOpen" class="mega-menu-panel absolute right-0 top-full z-[150] mt-1 w-[64rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-white/10 bg-white shadow-2xl">
+              <div v-if="moreCategoriesOpen" class="mega-menu-panel z-[150] overflow-hidden rounded-xl border border-white/10 bg-white shadow-2xl" :style="megaMenuStyle">
                 <div class="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-[#2F5597] to-[#1d3f73] px-6 py-4">
                   <span class="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-white/15 text-white">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -737,6 +737,7 @@ const fetchMenuCategories = async () => {
 onMounted(() => {
   loadSearchHistory()
   document.addEventListener('click', handleDocumentClick)
+  window.addEventListener('resize', handleMegaMenuResize)
   categoryMenuResizeObserver = new ResizeObserver(recalculatePrimaryCategories)
   if (categoryMenuRef.value) categoryMenuResizeObserver.observe(categoryMenuRef.value)
   const cached = loadMenuCategoriesFromStorage()
@@ -751,6 +752,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleDocumentClick)
+  window.removeEventListener('resize', handleMegaMenuResize)
   categoryMenuResizeObserver?.disconnect()
 })
 
@@ -780,6 +782,61 @@ const toggleCategoryDropdown = (category) => {
 
   moreCategoriesOpen.value = false
   categoryDropdownOpen.value = categoryDropdownOpen.value === category.value ? null : category.value
+}
+
+// Mega menus are positioned in fixed coordinates computed from the trigger's
+// actual position, then clamped to stay fully within the viewport. This works
+// for every current category and any future ones added — no index/side
+// guesswork required.
+const MEGA_MENU_WIDTH = 1024
+const MEGA_MENU_MARGIN = 16
+const megaMenuStyle = ref({})
+let megaMenuTriggerEl = null
+
+const positionMegaMenu = (triggerEl) => {
+  if (!triggerEl || typeof window === 'undefined') return
+  megaMenuTriggerEl = triggerEl
+  const rect = triggerEl.getBoundingClientRect()
+  const viewportWidth = window.innerWidth
+  const width = Math.min(MEGA_MENU_WIDTH, Math.max(280, viewportWidth - MEGA_MENU_MARGIN * 2))
+  let left = rect.left
+  left = Math.max(MEGA_MENU_MARGIN, Math.min(left, viewportWidth - width - MEGA_MENU_MARGIN))
+  megaMenuStyle.value = {
+    position: 'fixed',
+    top: `${rect.bottom + 4}px`,
+    left: `${left}px`,
+    width: `${width}px`,
+  }
+}
+
+const handleMegaMenuResize = () => {
+  if (megaMenuTriggerEl && (categoryDropdownOpen.value || moreCategoriesOpen.value)) {
+    positionMegaMenu(megaMenuTriggerEl)
+  }
+}
+
+const openCategoryMenu = (cat, event) => {
+  categoryDropdownOpen.value = cat.value
+  positionMegaMenu(event.currentTarget)
+}
+
+const toggleCategoryDropdownAt = (category, event) => {
+  toggleCategoryDropdown(category)
+  if (categoryDropdownOpen.value === category?.value) {
+    positionMegaMenu(event.currentTarget)
+  }
+}
+
+const openMoreCategoriesMenu = (event) => {
+  moreCategoriesOpen.value = true
+  positionMegaMenu(event.currentTarget)
+}
+
+const toggleMoreCategoriesAt = (event) => {
+  toggleMoreCategories()
+  if (moreCategoriesOpen.value) {
+    positionMegaMenu(event.currentTarget)
+  }
 }
 
 const toggleMobileCategory = (category) => {
