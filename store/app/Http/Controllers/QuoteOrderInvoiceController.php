@@ -1431,10 +1431,12 @@ class QuoteOrderInvoiceController extends Controller
     private function canCheckShippingStatus(Order $order): bool
     {
         $quote = $order->relationLoaded('quote') ? $order->quote : $order->quote()->first();
-        $invoice = $order->relationLoaded('invoice') ? $order->invoice : $order->invoice()->first();
 
-        return strtolower((string) ($quote?->status ?? '')) === 'approved'
-            && strtolower((string) ($invoice?->status ?? '')) === 'paid';
+        // Once TD SYNNEX has accepted the order (quote approved), keep syncing live
+        // status/freight from TD regardless of whether our local invoice has been
+        // reconciled as paid yet — payment reconciliation lag shouldn't freeze
+        // shipment tracking that TD already has.
+        return strtolower((string) ($quote?->status ?? '')) === 'approved';
     }
 
     private function deepFindFirstByKeys(mixed $data, array $keys): mixed
