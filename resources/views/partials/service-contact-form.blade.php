@@ -19,12 +19,13 @@
 @once
     @push('styles')
     <style>
-        .service-contact-form {
+        /* Higher-specificity selectors so this doesn't lose to page-level "* { margin:0; padding:0 }" resets that render after this stack. */
+        form.service-contact-form {
             display: block;
             width: 100%;
         }
 
-        .service-contact-form--card {
+        form.service-contact-form.service-contact-form--card {
             background: #ffffff;
             border: 1px solid rgba(41, 78, 139, 0.12);
             border-radius: 16px;
@@ -32,7 +33,7 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
         }
 
-        .service-contact-form--bare {
+        form.service-contact-form.service-contact-form--bare {
             background: transparent;
             border: 0;
             border-radius: 0;
@@ -40,7 +41,7 @@
             box-shadow: none;
         }
 
-        .service-contact-message {
+        form.service-contact-form .service-contact-message {
             display: none;
             margin: 0 0 16px;
             padding: 12px 14px;
@@ -49,38 +50,38 @@
             line-height: 1.5;
         }
 
-        .service-contact-message.is-success {
+        form.service-contact-form .service-contact-message.is-success {
             display: block;
             background: rgba(34, 197, 94, 0.1);
             color: #166534;
             border: 1px solid rgba(34, 197, 94, 0.22);
         }
 
-        .service-contact-message.is-error {
+        form.service-contact-form .service-contact-message.is-error {
             display: block;
             background: rgba(239, 68, 68, 0.1);
             color: #991b1b;
             border: 1px solid rgba(239, 68, 68, 0.22);
         }
 
-        .service-contact-grid {
+        form.service-contact-form .service-contact-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 12px 14px;
             align-items: start;
         }
 
-        .service-contact-row {
+        form.service-contact-form .service-contact-row {
             margin-bottom: 0;
             display: flex;
             flex-direction: column;
         }
 
-        .service-contact-row.service-contact-row-full {
+        form.service-contact-form .service-contact-row.service-contact-row-full {
             grid-column: 1 / -1;
         }
 
-        .service-contact-row label {
+        form.service-contact-form .service-contact-row label {
             display: block;
             font-size: 0.75rem;
             font-weight: 600;
@@ -90,7 +91,7 @@
             margin-bottom: 8px;
         }
 
-        .service-contact-field {
+        form.service-contact-form .service-contact-field {
             width: 100%;
             display: block;
             background: #FFFFFF;
@@ -108,26 +109,26 @@
             appearance: none;
         }
 
-        .service-contact-field:focus {
+        form.service-contact-form .service-contact-field:focus {
             border-color: rgba(41, 78, 139, 0.45);
             box-shadow: 0 0 0 3px rgba(41, 78, 139, 0.08);
         }
 
-        .service-contact-textarea {
+        form.service-contact-form .service-contact-textarea {
             min-height: 132px;
             resize: vertical;
         }
 
-        .service-contact-field option {
+        form.service-contact-form .service-contact-field option {
             background: #fff;
             color: #1A2540;
         }
 
-        .service-contact-recaptcha {
+        form.service-contact-form .service-contact-recaptcha {
             min-height: 78px;
         }
 
-        .service-contact-submit {
+        form.service-contact-form .service-contact-submit {
             width: 100%;
             background: #294e8b;
             color: #fff;
@@ -142,18 +143,18 @@
             transition: background 0.2s, transform 0.15s;
         }
 
-        .service-contact-submit:hover {
+        form.service-contact-form .service-contact-submit:hover {
             background: #3d6ab5;
             transform: translateY(-1px);
         }
 
-        .service-contact-submit:disabled {
+        form.service-contact-form .service-contact-submit:disabled {
             opacity: 0.7;
             cursor: not-allowed;
             transform: none;
         }
 
-        .service-contact-note {
+        form.service-contact-form .service-contact-note {
             text-align: center;
             margin-top: 12px;
             font-size: 0.75rem;
@@ -161,11 +162,11 @@
         }
 
         @media (max-width: 768px) {
-            .service-contact-grid {
+            form.service-contact-form .service-contact-grid {
                 grid-template-columns: 1fr;
             }
 
-            .service-contact-row.service-contact-row-full {
+            form.service-contact-form .service-contact-row.service-contact-row-full {
                 grid-column: auto;
             }
         }
