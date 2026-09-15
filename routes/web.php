@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\ResourceController as AdminResourceController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\EventRegistrationController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\MelaSecurityController;
 use App\Support\ServiceUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -601,13 +602,22 @@ Route::get('/industries/{industry}', [HomeController::class, 'industryShow'])
 Route::get('/mela-meeting-assistant', [HomeController::class, 'melaMeetingAssistant'])->name('mela-meeting-assistant');
 Route::view('/mela-ai-terms-of-use', 'legal.mela-terms-of-use')->name('mela.terms');
 Route::view('/mela-ai-privacy-policy', 'legal.mela-ai-privacy-policy')->name('mela.privacy');
-Route::view('/mela-security-compliance-documents', 'legal.mela-security-and-compliance')->name('mela.security');
-Route::redirect('/mela-security-documents', '/mela-security-compliance-documents', 301);
-Route::redirect('/mela-soc2', '/mela-security-compliance-documents', 301);
-Route::redirect('/mela-privacy-documents', '/mela-security-compliance-documents', 301);
+
+Route::get('/mela-meeting-assistant-security', [MelaSecurityController::class, 'show'])->name('mela.security');
+Route::post('/mela-meeting-assistant-security/request', [MelaSecurityController::class, 'submitRequest'])
+    ->middleware('throttle:10,1')
+    ->name('mela.security.request');
+Route::get('/mela-meeting-assistant-security/download/{id}', [MelaSecurityController::class, 'download'])
+    ->where('id', '[0-9]+')
+    ->name('mela.security.download');
+
+Route::redirect('/mela-security-compliance-documents', '/mela-meeting-assistant-security', 301);
+Route::redirect('/mela-security-documents', '/mela-meeting-assistant-security', 301);
+Route::redirect('/mela-soc2', '/mela-meeting-assistant-security', 301);
+Route::redirect('/mela-privacy-documents', '/mela-meeting-assistant-security', 301);
 Route::redirect('/mela-meeting-assistant-terms-of-use', '/mela-ai-terms-of-use', 301);
 Route::redirect('/mela-meeting-assistant-privacy-policy', '/mela-ai-privacy-policy', 301);
-Route::redirect('/mela-meeting-assistant/security-documents', '/mela-security-compliance-documents', 301);
+Route::redirect('/mela-meeting-assistant/security-documents', '/mela-meeting-assistant-security', 301);
 Route::redirect('/mela-meeting-assistant/terms-of-use', '/mela-ai-terms-of-use', 301);
 Route::redirect('/mela-meeting-assistant/privacy-policy', '/mela-ai-privacy-policy', 301);
 
