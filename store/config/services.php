@@ -52,6 +52,9 @@ return [
         // If store value is blank, fall back to the shared main-site value.
         'id' => env('STORE_GOOGLE_ADS_ID') ?: env('GOOGLE_ADS_ID', ''),
         'contact_form_conversion_label' => env('STORE_GOOGLE_ADS_CONTACT_FORM_CONVERSION_LABEL') ?: env('GOOGLE_ADS_CONTACT_FORM_CONVERSION_LABEL', 'contact_form_submit'),
+        // Quote submission is a stronger buying signal than a page visit; reuse the
+        // same account tag with a default label like the contact form conversion.
+        'quote_conversion_label' => env('STORE_GOOGLE_ADS_QUOTE_CONVERSION_LABEL') ?: env('GOOGLE_ADS_QUOTE_CONVERSION_LABEL', 'quote_submit'),
     ],
 
     'stripe' => [

@@ -345,6 +345,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { usePricingSettings } from '../../composables/usePricingSettings'
 import { API_BASE_URL } from '../../services/runtimeConfig'
 import api from '../../services/api'
+import { trackQuoteSubmission } from '../../services/purchaseTracking'
 import Navbar from '../../components/Navbar.vue'
 
 const router = useRouter()
@@ -893,6 +894,7 @@ const requestQuote = async (shippingConfirmed = false) => {
 
     if (response.data?.success) {
       toastStore.addToast(`Quote #${response.data.data.quote_id} created successfully`, 'success', 3000, { category: 'quotes' })
+      trackQuoteSubmission({ quote_id: response.data.data.quote_id, value: cartStore.cartTotal })
       cartStore.clearCart()
 
       // Navigate immediately after success for faster UX

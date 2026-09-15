@@ -20,6 +20,7 @@
         @php($ga4Id = config('services.google_analytics.ga4_id', ''))
         @php($adsId = config('services.google_ads.id', ''))
         @php($purchaseLabel = config('services.google_ads.purchase_conversion_label', ''))
+        @php($quoteLabel = config('services.google_ads.quote_conversion_label', ''))
         @if($ga4Id || $adsId)
             <script async src="https://www.googletagmanager.com/gtag/js?id={{ $ga4Id ?: $adsId }}"></script>
             <script>
@@ -31,7 +32,8 @@
                     ga4Id: @json($ga4Id),
                     {{-- Prefer a conversion-specific label when one is configured; otherwise still
                          report to the base Ads account tag rather than sending nothing. --}}
-                    adsPurchaseDestination: @json($adsId ? ($purchaseLabel ? $adsId.'/'.$purchaseLabel : $adsId) : '')
+                    adsPurchaseDestination: @json($adsId ? ($purchaseLabel ? $adsId.'/'.$purchaseLabel : $adsId) : ''),
+                    adsQuoteDestination: @json($adsId ? ($adsId.'/'.$quoteLabel) : '')
                 };
                 @if($ga4Id)
                     gtag('config', @json($ga4Id), { send_page_view: false });
