@@ -68,8 +68,20 @@ window.axios.interceptors.response.use(
 		const context = getActiveAuthContext();
 
 		if (status === 401 && !isAuthEntryRequest) {
-			clearScopedAuthStorage(context);
-			redirectToLogin('unauthorized');
+			// A request made before login (e.g. an app-mount fetch) can still be in
+			// flight when login succeeds and stores a fresh token. If that stale
+			// request's 401 arrives afterward, it must not wipe the token that was
+			// just saved. Only treat this as a real session expiry if it was sent
+			// with the token that is still the active one right now.
+			const sentAuthHeader = error?.config?.headers?.Authorization || error?.config?.headers?.authorization || '';
+			const sentToken = String(sentAuthHeader).replace(/^Bearer\s+/i, '');
+			const tokenKey = getAuthStorageKeys(context).token;
+			const currentToken = localStorage.getItem(tokenKey) || sessionStorage.getItem(tokenKey) || '';
+
+			if (sentToken === currentToken) {
+				clearScopedAuthStorage(context);
+				redirectToLogin('unauthorized');
+			}
 		}
 
 		return Promise.reject(error);
