@@ -72,7 +72,7 @@
         <div data-category-menu class="order-4 -mx-3 mt-3 hidden min-h-14 w-[calc(100%+1.5rem)] flex-none items-stretch justify-center bg-[#2F5597] sm:-mx-4 sm:w-[calc(100%+2rem)] lg:-mx-5 lg:w-[calc(100%+2.5rem)] lg:flex">
           <div ref="categoryMenuRef" class="mx-3 flex w-[calc(100%-1.5rem)] items-stretch justify-center sm:mx-5 sm:w-[calc(100%-2.5rem)] lg:mx-8 lg:w-[calc(100%-4rem)] 2xl:mx-10 2xl:w-[calc(100%-5rem)]">
           <div
-            v-for="cat in primaryCategories"
+            v-for="(cat, catIdx) in primaryCategories"
             :key="cat.value"
             class="relative flex min-w-0 flex-1 items-center"
             @mouseenter="categoryDropdownOpen = cat.value"
@@ -94,11 +94,15 @@
             </button>
 
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="categoryDropdownOpen === cat.value" class="mega-menu-panel absolute left-0 top-full z-[150] mt-1 w-[46rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-white/10 bg-white shadow-2xl">
+              <div
+                v-if="categoryDropdownOpen === cat.value"
+                class="mega-menu-panel absolute top-full z-[150] mt-1 w-[64rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-white/10 bg-white shadow-2xl"
+                :class="catIdx >= primaryCategories.length - 2 ? 'right-0' : 'left-0'"
+              >
                 <div class="flex items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-[#2F5597] to-[#1d3f73] px-6 py-4">
                   <div class="flex items-center gap-3">
                     <span class="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-white/15 text-white">
-                      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 7l9-4 9 4-9 4-9-4Zm0 0v10l9 4m0-14v14m9-14v10l-9 4"/></svg>
+                      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" v-html="categoryIcon(cat)"></svg>
                     </span>
                     <div>
                       <p class="text-sm font-bold text-white">{{ cat.name }}</p>
@@ -114,7 +118,7 @@
                     <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                   </button>
                 </div>
-                <div class="mega-menu-grid grid max-h-[24rem] grid-cols-2 gap-x-4 gap-y-0.5 overflow-y-auto p-4 sm:grid-cols-3">
+                <div class="mega-menu-grid grid max-h-[32rem] grid-cols-3 gap-x-4 gap-y-0.5 overflow-y-auto p-4 sm:grid-cols-4">
                   <button
                     v-for="sub in cat.children"
                     :key="`${cat.value}-${sub.value}`"
@@ -156,7 +160,7 @@
               </svg>
             </button>
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="moreCategoriesOpen" class="mega-menu-panel absolute right-0 top-full z-[150] mt-1 w-[46rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-white/10 bg-white shadow-2xl">
+              <div v-if="moreCategoriesOpen" class="mega-menu-panel absolute right-0 top-full z-[150] mt-1 w-[64rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-white/10 bg-white shadow-2xl">
                 <div class="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-[#2F5597] to-[#1d3f73] px-6 py-4">
                   <span class="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-white/15 text-white">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -167,7 +171,7 @@
                   </div>
                 </div>
                 <div class="grid grid-cols-[13rem_minmax(0,1fr)]">
-                  <div class="max-h-[24rem] overflow-y-auto border-r border-slate-100 bg-slate-50 py-2">
+                  <div class="max-h-[32rem] overflow-y-auto border-r border-slate-100 bg-slate-50 py-2">
                     <button
                       v-for="cat in overflowCategories"
                       :key="cat.value"
@@ -186,9 +190,9 @@
                     </button>
                   </div>
 
-                  <div class="max-h-[24rem] overflow-y-auto p-4">
+                  <div class="max-h-[32rem] overflow-y-auto p-4">
                     <template v-if="activeMoreCategory">
-                      <div class="mega-menu-grid grid grid-cols-2 gap-x-4 gap-y-0.5">
+                      <div class="mega-menu-grid grid grid-cols-3 gap-x-4 gap-y-0.5">
                         <button
                           v-for="sub in activeMoreCategory.children"
                           :key="`${activeMoreCategory.value}-${sub.value}`"
@@ -861,6 +865,35 @@ const browseProducts = (category = null) => {
   const query = category ? { category } : {}
   router.push(buildProductsLocation(query))
   closeAll()
+}
+
+// Distinct, recognizable icons per category for the mega menu headers.
+const CATEGORY_ICON_PATHS = {
+  laptop: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5V15H4V5.5Z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2 15h20l-1.5 3.5a1 1 0 0 1-.9.5H4.4a1 1 0 0 1-.9-.5L2 15Z"/>',
+  desktop: '<rect x="5" y="3" width="10" height="14" rx="1.5" stroke-width="1.8"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 6.5h4M8 10h4M8 13.5h1.5M18 8v8m0 0-2-2m2 2 2-2"/>',
+  monitor: '<rect x="3" y="4" width="18" height="12" rx="1.5" stroke-width="1.8"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 20h8M12 16v4"/>',
+  networking: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 3v4m-5 6V9m10 4V9M5 13a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm14 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM12 7a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 13v-1a5 5 0 0 1 10 0v1"/>',
+  server: '<rect x="3" y="3" width="18" height="7" rx="1.5" stroke-width="1.8"/><rect x="3" y="13" width="18" height="7" rx="1.5" stroke-width="1.8"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 6.5h.01M7 16.5h.01"/>',
+  printer: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 9V3h12v6M6 18h12v3H6v-3Z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 9H4.5A1.5 1.5 0 0 0 3 10.5V15a1.5 1.5 0 0 0 1.5 1.5H6m12-7.5h1.5A1.5 1.5 0 0 1 21 10.5V15a1.5 1.5 0 0 1-1.5 1.5H18"/>',
+  memory: '<rect x="5" y="6" width="14" height="12" rx="1.5" stroke-width="1.8"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 3v3M12 3v3M16 3v3M8 18v3M12 18v3M16 18v3"/>',
+  software: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m8 8-4 4 4 4m8-8 4 4-4 4m-2-9-2 14"/>',
+  audio: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 10v4a1 1 0 0 0 1 1h2l4 3.5V5.5L7 9H5a1 1 0 0 0-1 1Z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16.5 8.5a5 5 0 0 1 0 7m2.5-9.5a8 8 0 0 1 0 12"/>',
+  accessories: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 8V5.5a2.5 2.5 0 0 1 5 0V8m-8 0h11a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9a1 1 0 0 1 1-1Z"/>',
+  default: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 7l9-4 9 4-9 4-9-4Zm0 0v10l9 4m0-14v14m9-14v10l-9 4"/>',
+}
+
+const categoryIcon = (cat) => {
+  const label = String(cat?.name || cat?.value || '').toLowerCase()
+  const match = Object.keys(CATEGORY_ICON_PATHS).find((key) => key !== 'default' && label.includes(key))
+    || (label.includes('notebook') ? 'laptop' : null)
+    || (label.includes('workstation') || label.includes('tower') ? 'desktop' : null)
+    || (label.includes('display') ? 'monitor' : null)
+    || (label.includes('storage') && label.includes('memory') ? 'memory' : null)
+    || (label.includes('storage') ? 'server' : null)
+    || (label.includes('scanner') ? 'printer' : null)
+    || (label.includes('speaker') || label.includes('headset') ? 'audio' : null)
+    || (label.includes('cable') || label.includes('mount') || label.includes('bag') ? 'accessories' : null)
+  return CATEGORY_ICON_PATHS[match] || CATEGORY_ICON_PATHS.default
 }
 
 const browseCategoryVendor = (category, vendor) => {
