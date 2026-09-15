@@ -29,7 +29,9 @@
 
                 window.storeTracking = {
                     ga4Id: @json($ga4Id),
-                    adsPurchaseDestination: @json($adsId && $purchaseLabel ? $adsId.'/'.$purchaseLabel : '')
+                    {{-- Prefer a conversion-specific label when one is configured; otherwise still
+                         report to the base Ads account tag rather than sending nothing. --}}
+                    adsPurchaseDestination: @json($adsId ? ($purchaseLabel ? $adsId.'/'.$purchaseLabel : $adsId) : '')
                 };
                 @if($ga4Id)
                     gtag('config', @json($ga4Id), { send_page_view: false });
