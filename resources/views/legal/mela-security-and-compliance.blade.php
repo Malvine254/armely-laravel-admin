@@ -75,44 +75,47 @@
           <h2>3. Request the documentation</h2>
           <p>Complete the form and we will immediately email you a secure download link for the full PDF. Your request is also logged so our team can follow up if you need additional materials.</p>
 
-          <form id="mela-security-request-form" class="mela-legal-request-form" novalidate>
+          <form id="mela-security-request-form" class="service-contact-form service-contact-form--card" method="post" novalidate>
             @csrf
-            <div class="mela-legal-request-message" role="status" aria-live="polite"></div>
-            <div class="mela-legal-request-grid">
-              <div class="mela-legal-request-row">
-                <label for="mela-req-name">Full name *</label>
-                <input type="text" id="mela-req-name" name="name" class="mela-legal-request-field" required maxlength="255">
+            <input type="hidden" name="website" value="">
+            <p class="service-contact-message" role="alert" aria-live="polite"></p>
+
+            <div class="service-contact-grid">
+              <div class="service-contact-row">
+                <label>Full Name *</label>
+                <input class="service-contact-field" name="name" type="text" placeholder="Jane Smith" required maxlength="255">
               </div>
-              <div class="mela-legal-request-row">
-                <label for="mela-req-email">Work email *</label>
-                <input type="email" id="mela-req-email" name="email" class="mela-legal-request-field" required maxlength="255">
+              <div class="service-contact-row">
+                <label>Work Email *</label>
+                <input class="service-contact-field" name="email" type="email" placeholder="jane@yourcompany.com" required maxlength="255">
               </div>
-              <div class="mela-legal-request-row">
-                <label for="mela-req-org">Organization</label>
-                <input type="text" id="mela-req-org" name="organization" class="mela-legal-request-field" maxlength="255">
+              <div class="service-contact-row">
+                <label>Organization</label>
+                <input class="service-contact-field" name="organization" type="text" placeholder="Acme Corp" maxlength="255">
               </div>
-              <div class="mela-legal-request-row">
-                <label for="mela-req-title">Job title</label>
-                <input type="text" id="mela-req-title" name="job_title" class="mela-legal-request-field" maxlength="255">
+              <div class="service-contact-row">
+                <label>Job Title</label>
+                <input class="service-contact-field" name="job_title" type="text" placeholder="IT Security Manager" maxlength="255">
               </div>
-              <div class="mela-legal-request-row">
-                <label for="mela-req-phone">Phone</label>
-                <input type="tel" id="mela-req-phone" name="phone" class="mela-legal-request-field" maxlength="50">
+              <div class="service-contact-row service-contact-row-full">
+                <label>Phone</label>
+                <input class="service-contact-field" name="phone" type="tel" inputmode="tel" pattern="^\+?[0-9][0-9\s().-]{6,19}$" placeholder="e.g. +1 (555) 123-4567" title="Enter a valid phone number" maxlength="50">
               </div>
-              <div class="mela-legal-request-row mela-legal-request-row-full">
-                <label for="mela-req-message">What are you evaluating? (optional)</label>
-                <textarea id="mela-req-message" name="message" class="mela-legal-request-field mela-legal-request-textarea" maxlength="2000"></textarea>
+              <div class="service-contact-row service-contact-row-full">
+                <label>What are you evaluating? (optional)</label>
+                <textarea class="service-contact-field service-contact-textarea" name="message" placeholder="Tell us about your review or deployment plans..." maxlength="2000"></textarea>
               </div>
-              <input type="text" name="website" class="mela-legal-request-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true">
-              <div class="mela-legal-request-row mela-legal-request-row-full">
+              <div class="service-contact-row service-contact-row-full">
+                <label>Confirm you are not a robot *</label>
                 @if(!empty($recaptchaSiteKey))
-                  <div class="mela-security-recaptcha" data-sitekey="{{ $recaptchaSiteKey }}"></div>
+                  <div class="service-contact-recaptcha" data-sitekey="{{ $recaptchaSiteKey }}"></div>
                 @else
-                  <p style="color:#991b1b;font-size:.85rem;">reCAPTCHA is not configured. Please contact support.</p>
+                  <div class="service-contact-message is-error" style="display:block;">reCAPTCHA is not configured. Please contact support.</div>
                 @endif
               </div>
-              <div class="mela-legal-request-row mela-legal-request-row-full">
-                <button type="submit" class="mela-legal-request-submit">Email me the documentation</button>
+              <div class="service-contact-row service-contact-row-full">
+                <button type="submit" class="service-contact-submit">Email me the documentation</button>
+                <p class="service-contact-note">Secure link delivered by email in seconds.</p>
               </div>
             </div>
           </form>
@@ -138,19 +141,28 @@
 
 @push('scripts')
 <style>
-.mela-legal-request-form { margin: 22px 0; padding: 22px; border: 1px solid #dce5f1; border-radius: 12px; background: #f5f8fd; }
-.mela-legal-request-message { display: none; margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; font-size: .9rem; line-height: 1.5; }
-.mela-legal-request-message.is-success { display: block; background: rgba(34,197,94,.1); color: #166534; border: 1px solid rgba(34,197,94,.22); }
-.mela-legal-request-message.is-error { display: block; background: rgba(239,68,68,.1); color: #991b1b; border: 1px solid rgba(239,68,68,.22); }
-.mela-legal-request-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px 14px; }
-.mela-legal-request-row { display: flex; flex-direction: column; }
-.mela-legal-request-row-full { grid-column: 1 / -1; }
-.mela-legal-request-row label { font-size: .75rem; font-weight: 600; color: #6b7fa3; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
-.mela-legal-request-field { width: 100%; box-sizing: border-box; background: #fff; border: 1px solid rgba(41,78,139,.15); border-radius: 10px; padding: 12px 14px; font-family: 'Poppins', sans-serif; font-size: .875rem; color: #1a2540; min-height: 46px; }
-.mela-legal-request-textarea { min-height: 110px; resize: vertical; }
-.mela-legal-request-honeypot { position: absolute; left: -9999px; opacity: 0; }
-.mela-legal-request-submit { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 24px; border: 0; border-radius: 8px; background: #2f5597; color: #fff; font-weight: 700; font-size: .95rem; cursor: pointer; }
-.mela-legal-request-submit:disabled { opacity: .65; cursor: not-allowed; }
+/* Reuses the same visual design as partials/service-contact-form.blade.php so this page matches the rest of the site's lead forms. */
+form.service-contact-form { display: block; width: 100%; }
+form.service-contact-form.service-contact-form--card { background: #ffffff; border: 1px solid rgba(41, 78, 139, 0.12); border-radius: 16px; padding: 28px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06); margin: 22px 0; }
+form.service-contact-form .service-contact-message { display: none; margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; font-size: 0.9rem; line-height: 1.5; }
+form.service-contact-form .service-contact-message.is-success { display: block; background: rgba(34, 197, 94, 0.1); color: #166534; border: 1px solid rgba(34, 197, 94, 0.22); }
+form.service-contact-form .service-contact-message.is-error { display: block; background: rgba(239, 68, 68, 0.1); color: #991b1b; border: 1px solid rgba(239, 68, 68, 0.22); }
+form.service-contact-form .service-contact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; align-items: start; }
+form.service-contact-form .service-contact-row { margin-bottom: 0; display: flex; flex-direction: column; }
+form.service-contact-form .service-contact-row.service-contact-row-full { grid-column: 1 / -1; }
+form.service-contact-form .service-contact-row label { display: block; font-size: 0.75rem; font-weight: 600; color: #6B7FA3; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+form.service-contact-form .service-contact-field { width: 100%; display: block; background: #FFFFFF; border: 1px solid rgba(41, 78, 139, 0.15); border-radius: 10px; padding: 12px 14px; font-family: 'Poppins', sans-serif; font-size: 0.875rem; line-height: 1.45; color: #1A2540; outline: none; transition: border-color 0.2s, box-shadow 0.2s; box-sizing: border-box; min-height: 48px; appearance: none; }
+form.service-contact-form .service-contact-field:focus { border-color: rgba(41, 78, 139, 0.45); box-shadow: 0 0 0 3px rgba(41, 78, 139, 0.08); }
+form.service-contact-form .service-contact-textarea { min-height: 132px; resize: vertical; }
+form.service-contact-form .service-contact-recaptcha { min-height: 78px; }
+form.service-contact-form .service-contact-submit { width: 100%; background: #294e8b; color: #fff; border: none; border-radius: 7px; padding: 14px 16px; margin-top: 10px; font-family: 'Poppins', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.15s; }
+form.service-contact-form .service-contact-submit:hover { background: #3d6ab5; transform: translateY(-1px); }
+form.service-contact-form .service-contact-submit:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+form.service-contact-form .service-contact-note { text-align: center; margin-top: 12px; font-size: 0.75rem; color: #6B7FA3; }
+@media (max-width: 768px) {
+    form.service-contact-form .service-contact-grid { grid-template-columns: 1fr; }
+    form.service-contact-form .service-contact-row.service-contact-row-full { grid-column: auto; }
+}
 </style>
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <script>
@@ -161,12 +173,12 @@
     const submitUrl = @json(route('mela.security.request'));
     const csrfToken = @json(csrf_token());
     const siteKey = @json($recaptchaSiteKey ?? '');
-    const messageEl = form.querySelector('.mela-legal-request-message');
-    const submitBtn = form.querySelector('.mela-legal-request-submit');
+    const messageEl = form.querySelector('.service-contact-message');
+    const submitBtn = form.querySelector('.service-contact-submit');
     let widgetId = null;
 
     function renderWidget() {
-        const el = form.querySelector('.mela-security-recaptcha');
+        const el = form.querySelector('.service-contact-recaptcha');
         if (!el || typeof grecaptcha === 'undefined' || !grecaptcha.render || widgetId !== null) return false;
         widgetId = grecaptcha.render(el, { sitekey: siteKey });
         return true;
@@ -181,7 +193,7 @@
 
     function showMessage(text, isError) {
         if (!messageEl) return;
-        messageEl.className = 'mela-legal-request-message ' + (isError ? 'is-error' : 'is-success');
+        messageEl.className = 'service-contact-message ' + (isError ? 'is-error' : 'is-success');
         messageEl.style.display = 'block';
         messageEl.textContent = text;
     }
