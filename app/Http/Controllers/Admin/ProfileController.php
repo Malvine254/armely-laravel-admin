@@ -130,8 +130,10 @@ class ProfileController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:50',
+            'phone' => ['nullable', 'string', 'max:50', 'regex:/^\+?[0-9][0-9\s().-]{6,19}$/'],
             'password' => 'nullable|string|min:8|confirmed',
+        ], [
+            'phone.regex' => 'Please enter a valid phone number.',
         ]);
 
         $admin->name = $validated['name'];

@@ -162,7 +162,7 @@
 							</div>
 							<div class="job-field">
 								<label for="phone">Phone</label>
-								<input id="phone" name="phone" type="text" class="job-input" placeholder="Phone" value="{{ old('phone') }}">
+								<input id="phone" name="phone" type="tel" inputmode="tel" pattern="^\+?[0-9][0-9\s().-]{6,19}$" class="job-input" placeholder="Phone e.g. +1 (555) 123-4567" title="Enter a valid phone number" value="{{ old('phone') }}">
 							</div>
 							<div class="job-field">
 								<label for="cv">CV - PDF only *</label>

@@ -136,7 +136,7 @@ class CaseStudiesController extends Controller
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', $this->emailValidationRule(), 'max:255'],
-            'phone' => ['nullable', 'string', 'max:50'],
+            'phone' => ['nullable', 'string', 'max:50', 'regex:/^\+?[0-9][0-9\s().-]{6,19}$/'],
             'organization' => ['nullable', 'string', 'max:255'],
             'job_title' => ['nullable', 'string', 'max:255'],
             'country' => ['nullable', 'string', 'max:120'],
@@ -161,6 +161,7 @@ class CaseStudiesController extends Controller
             'name.required' => 'Name is required.',
             'email.required' => 'Email is required.',
             'email.email' => 'Please enter a valid work email with a valid domain.',
+            'phone.regex' => 'Please enter a valid phone number.',
             'interest.required' => 'Please select what you are interested in.',
             'g-recaptcha-response.required' => 'Please verify that you are not a robot.',
         ]);

@@ -789,7 +789,7 @@
                     </div>
                     <div class="mela-form-row">
                         <label for="mela-contact-phone">Phone</label>
-                        <input id="mela-contact-phone" type="tel" name="phone" placeholder="Optional" autocomplete="tel">
+                        <input id="mela-contact-phone" type="tel" name="phone" inputmode="tel" pattern="^\+?[0-9][0-9\s().-]{6,19}$" placeholder="e.g. +1 (555) 123-4567" title="Enter a valid phone number" autocomplete="tel">
                     </div>
                     <div class="mela-form-row mela-form-row-full">
                         <label for="mela-contact-subject">Primary Need *</label>

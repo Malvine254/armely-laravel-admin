@@ -816,7 +816,7 @@ class HomeController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email:rfc,dns,filter', 'max:255'],
             'organization' => ['nullable', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:50'],
+            'phone' => ['nullable', 'string', 'max:50', 'regex:/^\+?[0-9][0-9\s().-]{6,19}$/'],
             'service_type' => ['required', 'string', 'max:255'],
             'message' => ['required', 'string'],
             'website' => ['nullable', 'string', 'max:255'], // honeypot
@@ -825,6 +825,7 @@ class HomeController extends Controller
             'name.required' => 'Name is required.',
             'email.required' => 'Email is required.',
             'email.email' => 'Invalid email format.',
+            'phone.regex' => 'Please enter a valid phone number.',
             'service_type.required' => 'Service of interest is required.',
             'message.required' => 'Message is required.',
             'g-recaptcha-response.required' => 'Please verify you are not a robot.',
@@ -1029,7 +1030,7 @@ class HomeController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email:rfc,dns,filter', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:50'],
+            'phone' => ['nullable', 'string', 'max:50', 'regex:/^\+?[0-9][0-9\s().-]{6,19}$/'],
             'address' => ['required', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:100'],
             'zip' => ['required', 'string', 'max:20'],
@@ -1043,6 +1044,7 @@ class HomeController extends Controller
         ], [
             'cv.required' => 'Please upload your CV.',
             'cv.mimes' => 'The cv field must be a file of type: pdf.',
+            'phone.regex' => 'Please enter a valid phone number.',
             'cv.max' => 'The CV file may not be larger than 5MB.',
             'type.required' => 'Please select a job type.',
             'position.required' => 'Job position is required.',
@@ -1246,7 +1248,7 @@ class HomeController extends Controller
                 'name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'email:filter', 'max:255'],
                 'organization' => ['nullable', 'string', 'max:255'],
-                'phone' => ['nullable', 'string', 'max:50'],
+                'phone' => ['nullable', 'string', 'max:50', 'regex:/^\+?[0-9][0-9\s().-]{6,19}$/'],
                 'message' => ['required', 'string'],
                 'subject' => ['nullable', 'string', 'max:255'],
                 'website' => ['nullable', 'string', 'max:255'], // honeypot
@@ -1255,6 +1257,7 @@ class HomeController extends Controller
                 'name.required' => 'Name is required.',
                 'email.required' => 'Email is required.',
                 'email.email' => 'Invalid email format.',
+                'phone.regex' => 'Please enter a valid phone number.',
                 'message.required' => 'Message is required.',
                 'g-recaptcha-response.required' => 'Please verify you are not a robot.',
             ]);

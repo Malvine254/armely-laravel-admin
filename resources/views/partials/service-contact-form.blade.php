@@ -373,7 +373,7 @@
         </div>
         <div class="service-contact-row">
             <label>Phone</label>
-            <input class="service-contact-field" name="phone" type="tel" placeholder="Optional" value="">
+            <input class="service-contact-field" name="phone" type="tel" inputmode="tel" pattern="^\+?[0-9][0-9\s().-]{6,19}$" placeholder="e.g. +1 (555) 123-4567" title="Enter a valid phone number" value="">
         </div>
         <div class="service-contact-row service-contact-row-full">
             <label>Primary Need *</label>
