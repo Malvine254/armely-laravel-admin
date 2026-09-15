@@ -239,11 +239,18 @@ class DataReadinessLeadController extends Controller
             }
 
             if (AzureMailService::isDeliverableEmail((string) $lead->email)) {
-                Http::withToken($accessToken)
+                $response = Http::withToken($accessToken)
                     ->withHeaders(['Content-Type' => 'application/json'])
                     ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $payload);
 
-                Log::info('Data Readiness: User report sent successfully');
+                if ($response->successful()) {
+                    Log::info('Data Readiness: User report sent successfully');
+                } else {
+                    Log::error('Data Readiness: User report send failed', [
+                        'status' => $response->status(),
+                        'response' => $response->body(),
+                    ]);
+                }
             } else {
                 Log::warning('Data Readiness: user report email skipped due to undeliverable address', [
                     'email' => $lead->email,

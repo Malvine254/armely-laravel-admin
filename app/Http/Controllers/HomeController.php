@@ -2035,9 +2035,15 @@ class HomeController extends Controller
                 $adminPayload['message']['replyTo'] = $replyTo;
             }
 
-            Http::withToken($accessToken)
+            $adminResponse = Http::withToken($accessToken)
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $adminPayload);
+            if (!$adminResponse->successful()) {
+                Log::error('Consultation admin notification failed', [
+                    'status' => $adminResponse->status(),
+                    'response' => $adminResponse->body(),
+                ]);
+            }
 
             $userBody = view('emails.consultation.user-confirmation', [
                 'name' => $name,
@@ -2064,9 +2070,16 @@ class HomeController extends Controller
             }
 
             if (AzureMailService::isDeliverableEmail($email)) {
-                Http::withToken($accessToken)
+                $userResponse = Http::withToken($accessToken)
                     ->withHeaders(['Content-Type' => 'application/json'])
                     ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $userPayload);
+                if (!$userResponse->successful()) {
+                    Log::error('Consultation user confirmation failed', [
+                        'status' => $userResponse->status(),
+                        'response' => $userResponse->body(),
+                        'email' => $email,
+                    ]);
+                }
             } else {
                 Log::warning('Consultation user confirmation email skipped: undeliverable address', ['email' => $email]);
             }
@@ -2159,9 +2172,15 @@ class HomeController extends Controller
                 $adminPayload['message']['replyTo'] = $replyTo;
             }
 
-            Http::withToken($accessToken)
+            $adminResponse = Http::withToken($accessToken)
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $adminPayload);
+            if (!$adminResponse->successful()) {
+                Log::error('Job application admin notification failed', [
+                    'status' => $adminResponse->status(),
+                    'response' => $adminResponse->body(),
+                ]);
+            }
 
             $userBody = view('emails.jobs.user-application-confirmation', [
                 'name' => (string) ($payload['name'] ?? 'Candidate'),
@@ -2188,9 +2207,16 @@ class HomeController extends Controller
             }
 
             if (AzureMailService::isDeliverableEmail((string) ($payload['email'] ?? ''))) {
-                Http::withToken($accessToken)
+                $userResponse = Http::withToken($accessToken)
                     ->withHeaders(['Content-Type' => 'application/json'])
                     ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $userPayload);
+                if (!$userResponse->successful()) {
+                    Log::error('Job application user confirmation failed', [
+                        'status' => $userResponse->status(),
+                        'response' => $userResponse->body(),
+                        'email' => $payload['email'] ?? null,
+                    ]);
+                }
             } else {
                 Log::warning('Job application user confirmation email skipped: undeliverable address', [
                     'email' => $payload['email'] ?? null,
