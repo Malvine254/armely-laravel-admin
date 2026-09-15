@@ -25,6 +25,7 @@
             ['name' => 'Wichita Public Schools', 'logo' => $logo('usd-259-logo.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
             ['name' => 'City of Colleyville', 'logo' => $logo('City of Colleyville.jpg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
             ['name' => 'The Bradbury Group', 'logo' => $logo('Bradbury-Group-Logo.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'Central Electric Cooperative', 'logo' => $logo('central-electric-cooperative.svg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
             ['name' => 'Central Electric Power', 'logo' => $logo('Central-Electric-Power.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
         ],
         'Healthcare & Life Sciences' => [

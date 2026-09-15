@@ -1831,7 +1831,7 @@ class HomeController extends Controller
             return;
         }
 
-        $adminEmails = collect([$adminEmail, 'ask.me@armely.com']);
+        $adminEmails = collect([$adminEmail, 'ask.me@armely.com', 'info@armely.com']);
         if (Schema::hasTable('admin') && Schema::hasColumn('admin', 'email')) {
             $adminQuery = DB::table('admin')->whereNotNull('email');
             if (Schema::hasColumn('admin', 'status')) {
@@ -1967,7 +1967,7 @@ class HomeController extends Controller
             return;
         }
 
-        $adminEmails = collect([$adminEmail, 'ask.me@armely.com']);
+        $adminEmails = collect([$adminEmail, 'ask.me@armely.com', 'info@armely.com']);
         if (Schema::hasTable('admin') && Schema::hasColumn('admin', 'email')) {
             $adminQuery = DB::table('admin')->whereNotNull('email');
 
@@ -2081,7 +2081,6 @@ class HomeController extends Controller
         $clientId = env('AZURE_CLIENT_ID');
         $clientSecret = env('AZURE_CLIENT_SECRET');
         $fromEmail = AzureMailService::outboundFromEmail();
-        $adminEmail = env('ADMIN_EMAIL', $fromEmail);
         $replyTo = AzureMailService::graphReplyToRecipients();
 
         if (!$tenantId || !$clientId || !$clientSecret || !$fromEmail) {
@@ -2089,8 +2088,12 @@ class HomeController extends Controller
             return;
         }
 
-        if (!AzureMailService::isDeliverableEmail((string) $adminEmail)) {
-            Log::warning('Job application admin email skipped: undeliverable admin address', ['email' => $adminEmail]);
+        $adminRecipients = collect(app(\App\Services\NewsletterNotificationService::class)->adminRecipientEmails())
+            ->map(fn ($adminAddress) => ['emailAddress' => ['address' => $adminAddress]])
+            ->all();
+
+        if ($adminRecipients === []) {
+            Log::warning('Job application admin email skipped: no deliverable admin recipients.');
             return;
         }
 
@@ -2147,13 +2150,7 @@ class HomeController extends Controller
                         'contentType' => 'HTML',
                         'content' => $adminBody,
                     ],
-                    'toRecipients' => [
-                        ['emailAddress' => ['address' => $adminEmail]],
-                        ['emailAddress' => ['address' => 'ask.me@armely.com']],
-                    ],
-                    'ccRecipients' => [
-                        ['emailAddress' => ['address' => 'ask.me@armely.com']],
-                    ],
+                    'toRecipients' => $adminRecipients,
                 ],
                 'saveToSentItems' => true,
             ];

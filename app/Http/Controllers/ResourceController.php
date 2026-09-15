@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Resource;
 use App\Models\ResourceCategory;
 use App\Services\AzureMailService;
+use App\Services\NewsletterNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -534,6 +535,7 @@ class ResourceController extends Controller
         $resourceUrl = $links['resource_url'];
         $downloadUrl = $links['download_url'];
         $this->recordResourceLead($resource, $data);
+        $this->notifyAdminOfResourceLead($resource, $data);
 
         try {
             $mailer = app(AzureMailService::class);
@@ -641,6 +643,44 @@ class ResourceController extends Controller
             Log::warning('Resource request contact insert failed', [
                 'resource_id' => $resource->id,
                 'email' => (string) ($data['email'] ?? ''),
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function notifyAdminOfResourceLead(Resource $resource, array $data): void
+    {
+        try {
+            $fromEmail = AzureMailService::outboundFromEmail();
+            if ($fromEmail === '') {
+                Log::warning('Resource lead admin notification skipped: missing outbound sender.');
+                return;
+            }
+
+            $adminRecipients = app(NewsletterNotificationService::class)->adminRecipientEmails();
+            if ($adminRecipients === []) {
+                Log::warning('Resource lead admin notification skipped: no deliverable admin recipients.');
+                return;
+            }
+
+            $mailer = app(AzureMailService::class);
+            $subject = 'New Resource Request: ' . $resource->title;
+            $html = '<p>A new resource request was submitted on the website.</p>'
+                . '<ul>'
+                . '<li><b>Resource:</b> ' . e($resource->title) . '</li>'
+                . '<li><b>Name:</b> ' . e((string) $data['name']) . '</li>'
+                . '<li><b>Email:</b> ' . e((string) $data['email']) . '</li>'
+                . '<li><b>Organization:</b> ' . e((string) ($data['organization'] ?? '')) . '</li>'
+                . '<li><b>Job title:</b> ' . e((string) ($data['job_title'] ?? '')) . '</li>'
+                . '<li><b>Notes:</b> ' . e((string) ($data['message'] ?? '')) . '</li>'
+                . '</ul>';
+
+            foreach ($adminRecipients as $adminRecipient) {
+                $mailer->sendEmail($fromEmail, $adminRecipient, $subject, $html);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Resource lead admin notification failed', [
+                'resource_id' => $resource->id,
                 'error' => $e->getMessage(),
             ]);
         }

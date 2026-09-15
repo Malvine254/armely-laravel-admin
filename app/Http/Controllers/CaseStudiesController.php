@@ -1498,7 +1498,7 @@ class CaseStudiesController extends Controller
                 return false;
             }
 
-            $adminEmail = trim((string) env('ADMIN_EMAIL', ''));
+            $adminRecipients = app(\App\Services\NewsletterNotificationService::class)->adminRecipientEmails();
 
             $mailer = new AzureMailService();
             $subject = 'Case Studies Lead: ' . $payload['interest'];
@@ -1537,12 +1537,8 @@ class CaseStudiesController extends Controller
                 'message' => (string) ($payload['message'] ?? ''),
             ])->render();
 
-            if ($adminEmail !== '') {
-                $this->sendEmailWithFallback($mailer, $fromEmail, $adminEmail, $subject, $html);
-            }
-
-            if ($adminEmail === '' || strtolower($adminEmail) !== 'ask.me@armely.com') {
-                $this->sendEmailWithFallback($mailer, $fromEmail, 'ask.me@armely.com', $subject, $html);
+            foreach ($adminRecipients as $adminRecipient) {
+                $this->sendEmailWithFallback($mailer, $fromEmail, $adminRecipient, $subject, $html);
             }
 
             return $userSent;

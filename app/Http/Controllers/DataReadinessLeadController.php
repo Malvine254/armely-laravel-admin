@@ -95,18 +95,10 @@ class DataReadinessLeadController extends Controller
         $clientId = env('AZURE_CLIENT_ID');
         $clientSecret = env('AZURE_CLIENT_SECRET');
         $fromEmail = AzureMailService::outboundFromEmail();
-        $adminEmail = env('ADMIN_EMAIL', $fromEmail);
         $replyTo = AzureMailService::graphReplyToRecipients();
 
         if (!$tenantId || !$clientId || !$clientSecret || !$fromEmail) {
             Log::warning('Data Readiness Admin Notification: missing env configuration.');
-            return;
-        }
-
-        if (!AzureMailService::isDeliverableEmail((string) $adminEmail)) {
-            Log::warning('Data Readiness Admin Notification: undeliverable admin email, send skipped', [
-                'email' => $adminEmail,
-            ]);
             return;
         }
 
@@ -148,6 +140,15 @@ class DataReadinessLeadController extends Controller
                 'submittedAt' => optional($lead->created_at)->toDateTimeString(),
             ])->render();
 
+            $adminRecipients = collect(app(\App\Services\NewsletterNotificationService::class)->adminRecipientEmails())
+                ->map(fn ($adminAddress) => ['emailAddress' => ['address' => $adminAddress]])
+                ->all();
+
+            if ($adminRecipients === []) {
+                Log::warning('Data Readiness Admin Notification: no deliverable admin recipients.');
+                return;
+            }
+
             $payload = [
                 'message' => [
                     'subject' => "New Assessment: AI Readiness ({$lead->first_name} - {$lead->overall_score} pts)",
@@ -155,11 +156,8 @@ class DataReadinessLeadController extends Controller
                         'contentType' => 'HTML',
                         'content' => $adminBody,
                     ],
-                    'toRecipients' => [
-                        ['emailAddress' => ['address' => $adminEmail]],
-                    ],
+                    'toRecipients' => $adminRecipients,
                     'ccRecipients' => [
-                        ['emailAddress' => ['address' => 'ask.me@armely.com']],
                         ['emailAddress' => ['address' => 'sales@armely.com']],
                     ],
                 ],

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240" role="img" aria-label="Central Electric Cooperative logo">
-  <g transform="translate(20 10)">
+  <g transform="translate(0 40) scale(0.65)">
     <path d="M74 170l64-143h30l-64 143H74zm58 0l44-96h30l-44 96h-30zm80 0l36-75h28l-36 75h-28zm80 0l36-75h28l-36 75h-28zm116 0l46-75h22l-46 75h-22zm-12-142l-38 77 22 1 26-51 27 50 24 0-40-77h-21z" fill="#1c4589"/>
     <path d="M46 190c44-124 122-168 176-168 77 0 145 53 190 145l-33 0c-36-61-86-101-154-101-52 0-94 22-137 65L46 190z" fill="#1f5c8d" opacity="0.2"/>
   </g>

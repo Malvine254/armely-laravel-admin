@@ -59,7 +59,7 @@ class NewsletterNotificationService
     {
         $emails = array_merge(
             $this->adminEmailsFromEnv(),
-            ['ask.me@armely.com'],
+            ['ask.me@armely.com', 'info@armely.com'],
             $this->activeAdminTableEmails()
         );
 
