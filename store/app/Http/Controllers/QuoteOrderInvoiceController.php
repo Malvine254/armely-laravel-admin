@@ -1282,7 +1282,7 @@ class QuoteOrderInvoiceController extends Controller
             $rawStatus = $this->deepFindFirstByKeys($response, ['status', 'Status', 'code', 'Code', 'orderStatus', 'OrderStatus', 'poStatus', 'POStatus']);
             $shippingStatus = $this->deepFindFirstByKeys($response, ['shippingStatus', 'shipping_status', 'shipmentStatus', 'ShipmentStatus', 'deliveryStatus', 'DeliveryStatus', 'status', 'Status']);
             $trackingNumber = $this->deepFindFirstByKeys($response, ['tracking_number', 'trackingNumber', 'TrackingNumber', 'carrierTrackingNumber', 'shipmentTrackingNumber', 'proNumber', 'ProNumber']);
-            $freightAmount = $this->deepFindFirstByKeys($response, ['freight', 'Freight', 'freightAmount', 'FreightAmount', 'poFreight', 'shippingAmount', 'ShippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight', 'shipCharge', 'ShipCharge']);
+            $freightAmount = $this->extractFreightAmount($response);
             $estimatedDelivery = $this->deepFindFirstByKeys($response, ['estimatedDeliveryDate', 'EstimatedDeliveryDate', 'estimatedShipDate', 'EstimatedShipDate', 'estimatedArrivalDate', 'EstimatedArrivalDate']);
             $tdPoNumber = $this->deepFindFirstByKeys($response, ['PONumber', 'poNumber', 'po_number']);
             $tdOrderType = $this->deepFindFirstByKeys($response, ['OrderType', 'orderType', 'order_type']);
@@ -1457,6 +1457,52 @@ class QuoteOrderInvoiceController extends Controller
         }
 
         return null;
+    }
+
+    private function collectValuesByKeys(mixed $data, array $keys, array &$values): void
+    {
+        if (!is_array($data)) {
+            return;
+        }
+
+        foreach ($data as $key => $value) {
+            if (in_array((string) $key, $keys, true) && !is_array($value) && $value !== null && $value !== '') {
+                $values[] = (string) $value;
+            }
+            if (is_array($value)) {
+                $this->collectValuesByKeys($value, $keys, $values);
+            }
+        }
+    }
+
+    /**
+     * TD SYNNEX often includes a $0.00 freight placeholder at a shallower level
+     * (e.g. header) while the real invoiced freight sits deeper in the payload.
+     * deepFindFirstByKeys() returns on the first match, which would wrongly lock
+     * in that $0.00. Collect every freight-like value and prefer the largest
+     * positive amount found; only fall back to 0 if every candidate is zero.
+     */
+    private function extractFreightAmount(array $response): mixed
+    {
+        $candidates = [];
+        $this->collectValuesByKeys(
+            $response,
+            ['freight', 'Freight', 'freightAmount', 'FreightAmount', 'poFreight', 'PoFreight', 'shippingAmount', 'ShippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight', 'shipCharge', 'ShipCharge'],
+            $candidates
+        );
+
+        if ($candidates === []) {
+            return null;
+        }
+
+        $numeric = array_filter($candidates, fn ($value) => is_numeric($value));
+        if ($numeric === []) {
+            return $candidates[0];
+        }
+
+        $positive = array_filter($numeric, fn ($value) => (float) $value > 0);
+
+        return $positive !== [] ? (string) max(array_map('floatval', $positive)) : $numeric[array_key_first($numeric)];
     }
 
     private function normalizeTdOrderStatus(string $raw): string

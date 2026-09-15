@@ -421,6 +421,7 @@ import axios from 'axios'
 import Navbar from '../../components/Navbar.vue'
 import { usePricingSettings } from '../../composables/usePricingSettings'
 import { API_BASE_URL } from '../../services/runtimeConfig'
+import { trackVerifiedPurchases } from '../../services/purchaseTracking'
 
 export default {
   components: { Navbar },
@@ -1273,14 +1274,30 @@ export default {
       }
       const suffix = suffixParts.length > 0 ? ` (${suffixParts.join(' | ')})` : ''
 
+      let paymentConfirmed = false
       if (paymentStatus === 'success') {
-        toastStore.addToast(`Payment completed successfully${suffix}.`, 'success', 3000, { category: 'invoices' })
+        const invoiceNumbers = [...new Set([paymentInvoice, ...paymentInvoiceList.split(',')].map(value => value.trim()).filter(Boolean))]
+        try {
+          for (let attempt = 0; invoiceNumbers.length && attempt < 5; attempt++) {
+            const response = await axios.post(`${API_BASE_URL}/purchase-conversions`, { invoice_numbers: invoiceNumbers })
+            const purchases = response?.data?.purchases || []
+            trackVerifiedPurchases(purchases)
+            paymentConfirmed = purchases.length === invoiceNumbers.length
+            if (paymentConfirmed) break
+            if (attempt < 4) await new Promise(resolve => setTimeout(resolve, 2000))
+          }
+          const confirmed = paymentConfirmed
+          toastStore.addToast(confirmed ? `Payment confirmed${suffix}.` : 'Payment confirmation is pending. Your invoice will update when payment is verified.', confirmed ? 'success' : 'info', 5000, { category: 'invoices' })
+        } catch {
+          toastStore.addToast('Unable to verify payment yet. Please check your invoice status.', 'warning', 5000, { category: 'invoices' })
+        }
       }
       if (paymentStatus === 'cancel') {
         toastStore.addToast(`Payment was canceled${suffix}.`, 'warning', 3000, { category: 'invoices' })
       }
 
-      if (paymentStatus) {
+      // Keep pending return parameters so reloading can retry after payment reconciliation.
+      if (paymentStatus && (paymentStatus !== 'success' || paymentConfirmed)) {
         router.replace({ path: route.path, query: {} })
       }
     })

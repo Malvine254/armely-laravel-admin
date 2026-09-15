@@ -48,6 +48,7 @@ return [
     ],
 
     'google_ads' => [
+        'purchase_conversion_label' => env('STORE_GOOGLE_ADS_PURCHASE_CONVERSION_LABEL', ''),
         // If store value is blank, fall back to the shared main-site value.
         'id' => env('STORE_GOOGLE_ADS_ID') ?: env('GOOGLE_ADS_ID', ''),
         'contact_form_conversion_label' => env('STORE_GOOGLE_ADS_CONTACT_FORM_CONVERSION_LABEL') ?: env('GOOGLE_ADS_CONTACT_FORM_CONVERSION_LABEL', 'contact_form_submit'),

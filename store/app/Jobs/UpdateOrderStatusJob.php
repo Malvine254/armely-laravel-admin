@@ -62,7 +62,7 @@ class UpdateOrderStatusJob implements ShouldQueue
             $rawStatus = $this->extractTdOrderStatus($tdStatus);
             $trackingNumber = $this->deepFindFirstByKeys($tdStatus, ['tracking_number', 'trackingNumber', 'TrackingNumber', 'carrierTrackingNumber', 'shipmentTrackingNumber', 'proNumber', 'ProNumber']);
             $shippingStatus = $this->deepFindFirstByKeys($tdStatus, ['shippingStatus', 'shipping_status', 'shipmentStatus', 'ShipmentStatus', 'deliveryStatus', 'DeliveryStatus', 'status', 'Status']);
-            $freightAmount = $this->deepFindFirstByKeys($tdStatus, ['freight', 'Freight', 'freightAmount', 'poFreight', 'shippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight']);
+            $freightAmount = $this->extractFreightAmount($tdStatus);
             $estimatedDelivery = $this->deepFindFirstByKeys($tdStatus, ['estimatedDeliveryDate', 'EstimatedDeliveryDate', 'estimatedShipDate', 'EstimatedShipDate', 'estimatedArrivalDate', 'EstimatedArrivalDate', 'ETADate', 'etaDate']);
             $actualDelivery = $this->deepFindFirstByKeys($tdStatus, ['DeliveredDate', 'deliveredDate', 'DeliveryDate', 'deliveryDate', 'ActualDeliveryDate', 'actualDeliveryDate']);
             $carrier = $this->deepFindFirstByKeys($tdStatus, ['ShipMethodDescription', 'shipMethodDescription', 'Carrier', 'carrier', 'shipMethod', 'ShipMethod']);
@@ -226,6 +226,37 @@ class UpdateOrderStatusJob implements ShouldQueue
         }
 
         return null;
+    }
+
+    /**
+     * TD SYNNEX often includes a $0.00 freight placeholder at a shallower level
+     * (e.g. header) while the real invoiced freight sits deeper in the payload.
+     * deepFindFirstByKeys() returns on the first match, which would wrongly lock
+     * in that $0.00. Instead, collect every freight-like value in the payload
+     * and prefer the largest positive amount found; only fall back to 0 if
+     * every candidate is genuinely zero.
+     */
+    private function extractFreightAmount(array $tdStatus): mixed
+    {
+        $candidates = [];
+        $this->collectValuesByKeys(
+            $tdStatus,
+            ['freight', 'Freight', 'freightAmount', 'FreightAmount', 'poFreight', 'PoFreight', 'shippingAmount', 'ShippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight'],
+            $candidates
+        );
+
+        if ($candidates === []) {
+            return null;
+        }
+
+        $numeric = array_filter($candidates, fn ($value) => is_numeric($value));
+        if ($numeric === []) {
+            return $candidates[0];
+        }
+
+        $positive = array_filter($numeric, fn ($value) => (float) $value > 0);
+
+        return $positive !== [] ? (string) max(array_map('floatval', $positive)) : $numeric[array_key_first($numeric)];
     }
 
     /**

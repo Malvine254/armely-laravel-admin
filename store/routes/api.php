@@ -132,6 +132,7 @@ Route::prefix('v1')->group(function () {
 
     // Invoices endpoints (protected)
     Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
+        Route::post('/purchase-conversions', \App\Http\Controllers\PurchaseConversionController::class);
         Route::get('/invoices', [QuoteOrderInvoiceController::class, 'getInvoices']);
         Route::get('/invoices/{invoiceNumber}', [QuoteOrderInvoiceController::class, 'getInvoice']);
         Route::get('/invoices/{invoiceNumber}/pdf', [QuoteOrderInvoiceController::class, 'downloadInvoicePdf']);

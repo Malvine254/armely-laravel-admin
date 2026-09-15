@@ -951,6 +951,52 @@ class AdminController extends Controller
         return null;
     }
 
+    private function collectValuesByKeys(mixed $data, array $keys, array &$values): void
+    {
+        if (!is_array($data)) {
+            return;
+        }
+
+        foreach ($data as $key => $value) {
+            if (in_array((string) $key, $keys, true) && !is_array($value) && $value !== null && $value !== '') {
+                $values[] = (string) $value;
+            }
+            if (is_array($value)) {
+                $this->collectValuesByKeys($value, $keys, $values);
+            }
+        }
+    }
+
+    /**
+     * TD SYNNEX often includes a $0.00 freight placeholder at a shallower level
+     * (e.g. header) while the real invoiced freight sits deeper in the payload.
+     * deepFindFirstByKeys() returns on the first match, which would wrongly lock
+     * in that $0.00. Collect every freight-like value and prefer the largest
+     * positive amount found; only fall back to 0 if every candidate is zero.
+     */
+    private function extractFreightAmount(array $payload): mixed
+    {
+        $candidates = [];
+        $this->collectValuesByKeys(
+            $payload,
+            ['freight', 'Freight', 'freightAmount', 'FreightAmount', 'poFreight', 'PoFreight', 'shippingAmount', 'ShippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight'],
+            $candidates
+        );
+
+        if ($candidates === []) {
+            return null;
+        }
+
+        $numeric = array_filter($candidates, fn ($value) => is_numeric($value));
+        if ($numeric === []) {
+            return $candidates[0];
+        }
+
+        $positive = array_filter($numeric, fn ($value) => (float) $value > 0);
+
+        return $positive !== [] ? (string) max(array_map('floatval', $positive)) : $numeric[array_key_first($numeric)];
+    }
+
     private function normalizeCanonicalOrderStatus(?string $rawStatus): string
     {
         $value = strtolower(trim((string) $rawStatus));
@@ -1023,7 +1069,7 @@ class AdminController extends Controller
         $rawStatus = $this->deepFindFirstByKeys($payload, ['status', 'Status', 'code', 'Code', 'orderStatus', 'OrderStatus', 'poStatus', 'POStatus']);
         $shippingStatus = $this->deepFindFirstByKeys($payload, ['shippingStatus', 'shipping_status', 'shipmentStatus', 'deliveryStatus', 'ShipmentStatus', 'DeliveryStatus', 'status', 'Status']);
         $trackingNumber = $this->deepFindFirstByKeys($payload, ['tracking_number', 'trackingNumber', 'TrackingNumber', 'carrierTrackingNumber', 'shipmentTrackingNumber', 'proNumber', 'ProNumber']);
-        $freight = $this->deepFindFirstByKeys($payload, ['freight', 'Freight', 'freightAmount', 'poFreight', 'shippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight']);
+        $freight = $this->extractFreightAmount($payload);
         $estimatedDelivery = $this->deepFindFirstByKeys($payload, ['estimatedDeliveryDate', 'EstimatedDeliveryDate', 'estimatedShipDate', 'EstimatedShipDate', 'estimatedArrivalDate', 'EstimatedArrivalDate']);
         $invoiceNumber = $this->deepFindFirstByKeys($payload, ['invoiceNumber', 'InvoiceNumber', 'invoiceNo', 'invoice_id', 'invoiceId']);
         $invoiceTotal = $this->deepFindFirstByKeys($payload, ['invoiceTotal', 'InvoiceTotal', 'totalInvoice', 'amountToInvoice', 'amount_to_be_invoiced', 'invoiceAmount']);
@@ -2563,7 +2609,11 @@ class AdminController extends Controller
                 $packages   = [];
                 $tdStatus   = null;
 
-                if ($poNumber && $this->canCheckShippingStatus($order)) {
+                // Delivered/cancelled orders are terminal — re-querying TD SYNNEX for
+                // them on every page load only adds latency without changing anything.
+                $isTerminalStatus = in_array(strtolower((string) $order->status), ['delivered', 'cancelled'], true);
+
+                if ($poNumber && !$isTerminalStatus && $this->canCheckShippingStatus($order)) {
                     try {
                         UpdateOrderStatusJob::dispatchSync($order);
                         $order->refresh();

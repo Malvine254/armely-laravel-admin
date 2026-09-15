@@ -52,6 +52,32 @@ class InvoiceLifecycleFlowTest extends TestCase
         });
     }
 
+    public function test_purchase_conversions_require_full_payment_and_invoice_ownership(): void
+    {
+        // This fixture has no company tables; keep authentication but skip company eligibility.
+        $this->withoutMiddleware(\App\Http\Middleware\EnsureUserIsActive::class);
+        $user = User::create(['name' => 'Buyer', 'email' => 'buyer@example.com', 'password' => 'secret']);
+        foreach (['paid', 'issued', 'partial', 'cancelled', 'merged', 'other-user', 'no-date'] as $index => $state) {
+            Invoice::create([
+                'user_id' => $state === 'other-user' ? $user->id + 1 : $user->id,
+                'invoice_number' => 'INV-'.$state,
+                'status' => in_array($state, ['other-user', 'no-date', 'partial']) ? 'paid' : $state,
+                'total_amount' => 115,
+                'tax_amount' => 10,
+                'paid_amount' => $state === 'partial' ? 50 : 115,
+                'paid_at' => $state === 'no-date' ? null : now(),
+                'raw_data' => ['invoice_charge_breakdown' => ['shipping_amount' => 5]],
+            ]);
+        }
+        $response = $this->actingAs($user)->postJson('/api/v1/purchase-conversions', [
+            'invoice_numbers' => ['INV-paid', 'INV-issued', 'INV-partial', 'INV-cancelled', 'INV-merged', 'INV-other-user', 'INV-no-date'],
+        ]);
+        $response->assertOk()->assertJsonCount(1, 'purchases')
+            ->assertJsonPath('purchases.0.currency', 'USD')
+            ->assertJsonPath('purchases.0.value', 100)
+            ->assertJsonPath('purchases.0.total', 115);
+    }
+
     public function test_issued_invoice_email_is_sent_only_once_even_without_cache(): void
     {
         $user = User::query()->create([
