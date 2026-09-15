@@ -15,25 +15,27 @@
             ['name' => 'Sage Butte Energy', 'logo' => $logo('sage_bute.webp'), 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
             ['name' => 'BNSF Railway', 'logo' => $logo('bnsf.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
             ['name' => 'Colonial Pipeline', 'logo' => $logo('ColonialPipeline.webp'), 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
-            ['name' => 'DH Pace', 'logo' => $logo('dh-pace-logo.png'), 'logo_scale' => 2.2, 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
+            ['name' => 'DH Pace', 'logo' => $logo('dh-pace-logo.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
         ],
         'Public Sector & Municipal' => [
             ['name' => 'City of San Diego', 'logo' => $logo('City of San Diego.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
             ['name' => 'Dallas County', 'logo' => $logo('dallas_county.jpg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
             ['name' => 'City of Frisco', 'logo' => $logo('frisco.jpeg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
             ['name' => 'City of Topeka', 'logo' => $logo('City of Topeka.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
-            ['name' => 'Wichita Public Schools', 'logo' => $logo('wichita-public-schools.svg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
-            ['name' => 'City of Colleyville', 'logo' => $logo('city-of-colleyville.svg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
-            ['name' => 'The Bradbury Group', 'logo' => $logo('the-bradbury-group.svg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'Wichita Public Schools', 'logo' => $logo('usd-259-logo.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'City of Colleyville', 'logo' => $logo('City of Colleyville.jpg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'The Bradbury Group', 'logo' => $logo('Bradbury-Group-Logo.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
             ['name' => 'Central Electric Cooperative', 'logo' => $logo('central-electric-cooperative.svg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'Central Electric Power', 'logo' => $logo('Central-Electric-Power.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
         ],
         'Healthcare & Life Sciences' => [
             ['name' => 'UNMC', 'logo' => $logo('university_of_nebrask1.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
-            ['name' => 'Esse Health', 'logo' => $logo('esse_health.jpg'), 'logo_scale' => 1.4, 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
+            ['name' => 'Esse Health', 'logo' => $logo('esse_health.jpg'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
             ['name' => 'American Medical Staffing', 'logo' => $logo('ams.svg'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
             ['name' => 'Swope Health', 'logo' => $logo('swope_health.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
-            ['name' => 'MHC', 'logo' => $logo('mhc.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
-            ['name' => 'AAFP', 'logo' => $logo('aafp.svg'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
+            ['name' => 'MHC', 'logo' => $logo('mhc.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
+            ['name' => 'AAFP', 'logo' => $logo('AAFP_logo_e47cfe45a5.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
+            ['name' => 'Fort Worth Project Management Institute', 'logo' => $logo('fort_worth_project_management_institute.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
         ],
         'Energy' => [
             ['name' => 'QB Energy', 'logo' => $logo('qb_energy.jpg'), 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
@@ -41,13 +43,13 @@
         'Finance, Legal & Education' => [
             ['name' => 'Bank OZK', 'logo' => $logo('Bank_OZK_Logo.png'), 'href' => route('case-studies.index', ['industry' => 'financial-services'])],
             ['name' => 'Plano ISD', 'logo' => $logo('Plano.png', 'partners'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
-            ['name' => 'UT Dallas', 'logo' => $logo('UTDallas.png'), 'logo_scale' => 2, 'href' => route('case-studies.index', ['industry' => 'higher-education'])],
+            ['name' => 'UT Dallas', 'logo' => $logo('UTDallas.png'), 'href' => route('case-studies.index', ['industry' => 'higher-education'])],
             ['name' => 'Lambda Legal', 'logo' => $logo('lambda.png'), 'href' => route('case-studies.index', ['industry' => 'legal-social-services'])],
-            ['name' => 'Lathrop GPM', 'logo' => $logo('lathrop-gpm.svg'), 'href' => route('case-studies.index', ['industry' => 'legal-social-services'])],
+            ['name' => 'Lathrop GPM', 'logo' => $logo('lathropGPM.png'), 'href' => route('case-studies.index', ['industry' => 'legal-social-services'])],
         ],
-        'Enterprise & Logistics' => [
-            ['name' => 'Spartan', 'logo' => $logo('spartans.svg'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
-            ['name' => 'ePAK', 'logo' => $logo('epak.svg'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
+        'Transportation & Manufacturing' => [
+            ['name' => 'Spartan Light Metal Products', 'logo' => $logo('Spartan Light Metal Products.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
+            ['name' => 'ePAK', 'logo' => $logo('ePak Internation.jpg'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
         ],
         'Nonprofit & Social Services' => [
             ['name' => 'Homeward Bound', 'logo' => $logo('homeward_bound.png'), 'href' => route('case-studies.index', ['industry' => 'legal-social-services'])],
@@ -72,8 +74,8 @@
     .clients-card { min-width: 0; display: flex; flex-direction: column; padding: 14px; color: inherit; text-decoration: none; background: #ffffff; border: 1px solid #dfe6f0; border-radius: 8px; box-shadow: 0 8px 20px rgba(31, 53, 96, 0.05); transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
     .clients-card:hover { transform: translateY(-2px); border-color: rgba(47, 85, 151, 0.2); box-shadow: 0 12px 24px rgba(31, 53, 96, 0.09); }
     .clients-card:focus-visible { outline: 3px solid rgba(47, 85, 151, 0.35); outline-offset: 3px; }
-    .clients-logo { height: 112px; min-height: 112px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 14px; border: 1px solid #e5eaf2; border-radius: 6px; background: #ffffff; }
-    .clients-logo img { display: block; max-width: 100%; max-height: 80px; object-fit: contain; }
+    .clients-logo { height: 112px; min-height: 112px; display: flex; align-items: center; justify-content: center; overflow: visible; padding: 14px; border: 1px solid #e5eaf2; border-radius: 6px; background: #ffffff; }
+    .clients-logo img { display: block; max-width: 100%; max-height: 80px; width: auto; height: auto; object-fit: contain; }
     .clients-logo-fallback { color: #203a63; font-size: 1rem; font-weight: 800; line-height: 1.2; text-align: center; }
     .clients-name { min-height: 2.6em; margin: 13px 0 2px; display: flex; align-items: center; justify-content: center; color: #172b4d; font-size: 0.95rem; font-weight: 600; line-height: 1.3; text-align: center; }
     .clients-cta { margin-top: 72px; padding: 34px; display: flex; align-items: center; justify-content: space-between; gap: 24px; background: #ffffff; border: 1px solid #dfe6f0; border-radius: 8px; }
@@ -115,9 +117,6 @@
                                     alt="{{ $client['name'] }} logo"
                                     loading="lazy"
                                     decoding="async"
-                                    @if(!empty($client['logo_scale']))
-                                    style="transform: scale({{ $client['logo_scale'] }}); transform-origin: center;"
-                                    @endif
                                 >
                             @else
                                 <span class="clients-logo-fallback">{{ $client['name'] }}</span>
