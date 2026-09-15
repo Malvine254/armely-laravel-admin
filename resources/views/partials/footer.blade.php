@@ -7,16 +7,8 @@
                 <div class="col-lg-2 col-md-6 col-12">
                     <div class="single-footer">
                         <h2 class="footer-logo-font">armely</h2>
-                        <div class="row"><div class="col-lg-12"><ul class="text-light">
-                            <li><a href="/privacy-policy"><i class="fa fa-caret-right" aria-hidden="true"></i> Privacy Policy</a></li>
-                            <li><a href="{{ route('mela.terms') }}"><i class="fa fa-caret-right mt-2" aria-hidden="true"></i> Mela Terms of Use</a></li>
-                            <li><a href="{{ route('mela.privacy') }}"><i class="fa fa-caret-right mt-2" aria-hidden="true"></i> Mela Privacy Policy</a></li>
-                            <li><a href="{{ route('mela.security') }}"><i class="fa fa-caret-right mt-2" aria-hidden="true"></i> Mela Security & Compliance</a></li>
-                            <li><a href="/support"><i class="fa fa-caret-right mt-2" aria-hidden="true"></i> Support</a></li>
-                            <li><a href="/customer-stories"><i class="fa fa-caret-right mt-2" aria-hidden="true"></i> Customer Stories</a></li>
-                            <li><a href="/blog"><i class="fa fa-caret-right mt-2" aria-hidden="true"></i> Blog Articles</a></li>
-                            <li><a href="/industries"><i class="fa fa-caret-right mt-2" aria-hidden="true"></i> Industries</a></li>
-                        </ul></div></div>
+                        <p class="footer-brand-description">Helping businesses grow with data, AI, and cloud solutions.</p>
+                        <a class="footer-brand-link" href="/customer-stories"><i class="fa fa-caret-right" aria-hidden="true"></i> Customer Stories</a>
                     </div>
                 </div>
                 <div class="col-lg-2 col-md-6 col-12">
@@ -25,6 +17,7 @@
                         <li><a href="/career"><i class="fa fa-caret-right" aria-hidden="true"></i>Job Board</a></li>
                         <li><a href="/company"><i class="fa fa-caret-right" aria-hidden="true"></i>Company Overview</a></li>
                         <li><a href="/blog"><i class="fa fa-caret-right" aria-hidden="true"></i>Blog Articles </a></li>
+                        <li><a href="/industries"><i class="fa fa-caret-right" aria-hidden="true"></i>Industries</a></li>
                     </ul></div></div></div>
                 </div>
                 <div class="col-lg-2 col-md-6 col-12">
@@ -40,6 +33,7 @@
                         <li><a href="tel:+19724600643" target="_blank"><i class="fa fa-phone" aria-hidden="true"></i> +1 972 460 0643</a></li>
                         <li><a href="https://maps.app.goo.gl/YaMkStLJ6eKwAQ2c7" target="_blank"><i class="fa fa-map-marker" aria-hidden="true"></i>17400 Dallas Pkwy, Suite 111 Dallas, TX 75287</a></li>
                         <li><a href="mailto:info@armely.com" target="_blank"><i class="fa fa-envelope" aria-hidden="true"></i><span class="lowercase">info@armely.com</span></a></li>
+                        <li><a href="/support"><i class="fa fa-life-ring" aria-hidden="true"></i>Support</a></li>
                     </ul></div>
                 </div>
                 <div class="col-lg-3 col-md-6 col-12">
@@ -68,12 +62,27 @@
     </div>
     <div class="copyright">
         <div class="container"><div class="row"><div class="col-lg-12">
-            <div class="copyright-content"><p>&copy; {{ $year }} ARMELY LLC., ALL RIGHTS RESERVED</p></div>
+            <div class="copyright-content">
+                <p>&copy; {{ $year }} ARMELY LLC., ALL RIGHTS RESERVED</p>
+                <nav class="footer-legal" aria-label="Legal">
+                    <a href="/privacy-policy">Privacy Policy</a>
+                    <a href="{{ route('mela.terms') }}">Mela Terms of Use</a>
+                    <a href="{{ route('mela.privacy') }}">Mela Privacy Policy</a>
+                    <a href="{{ route('mela.security') }}">Mela Security & Compliance</a>
+                </nav>
+            </div>
         </div></div></div>
     </div>
 </footer>
 
 <style>
+    #footer .footer-brand-description { color: #fff; line-height: 1.7; margin: 0 0 18px; }
+    #footer .footer-brand-link { color: #fff; display: inline-block; }
+    #footer .footer-brand-link:hover { text-decoration: underline; }
+    #footer .footer-legal { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 24px; margin-top: 12px; }
+    #footer .footer-legal a { color: #fff; font-size: 12px; line-height: 1.6; }
+    #footer .footer-legal a:hover { text-decoration: underline; }
+    #footer .footer-legal a:focus-visible, #footer .footer-brand-link:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
     .footer-newsletter { margin-top: 22px; }
     .footer-newsletter h3 { color: #fff; font-size: 18px; font-weight: 800; margin: 0 0 8px; }
     .footer-newsletter p { color: rgba(255,255,255,.78); font-size: 13px; line-height: 1.55; margin: 0 0 12px; }

@@ -462,33 +462,22 @@
         <p class="section-body">We review your current environment, point out the issues most likely to cause trouble, and recommend the right level of support for your team. No commitment required beyond the conversation.</p>
       </div>
     </div>
-    <div class="cta-form">
-      <div class="form-row"><label>Full Name</label><input type="text" placeholder="Jane Smith"></div>
-      <div class="form-row"><label>Business Email</label><input type="email" placeholder="jane@yourcompany.com"></div>
-      <div class="form-row"><label>Company</label><input type="text" placeholder="Your company name"></div>
-      <div class="form-row"><label>Database platform</label>
-        <select>
-          <option value="">Select platform...</option>
-          <option>SQL Server (on-premises)</option>
-          <option>Azure SQL Database</option>
-          <option>Azure SQL Managed Instance</option>
-          <option>Snowflake</option>
-          <option>Multiple platforms</option>
-          <option>Not sure</option>
-        </select>
-      </div>
-      <div class="form-row"><label>Current situation</label>
-        <select>
-          <option value="">Select...</option>
-          <option>No dedicated DBA on staff</option>
-          <option>DBA recently left, need coverage</option>
-          <option>Need senior expertise for a specific project</option>
-          <option>Evaluating ongoing DBA support options</option>
-        </select>
-      </div>
-      <button class="form-submit">Request Free Review</button>
-      <div class="form-note">An Armely DBA will follow up within one business day.</div>
-    </div>
+    @include('partials.service-contact-form', [
+      'serviceContact' => [
+        'title' => 'Request Your Free Database Review',
+        'subtitle' => 'Tell us about your database platform and current situation.',
+        'button_label' => 'Request Free Review',
+        'note' => 'An Armely DBA will follow up within one business day.',
+        'options' => [
+          'SQL Server (on-premises)',
+          'Azure SQL Database',
+          'Azure SQL Managed Instance',
+          'Snowflake',
+          'Multiple platforms',
+          'Not sure',
+        ],
+      ],
+    ])
   </div>
 </section>
 
