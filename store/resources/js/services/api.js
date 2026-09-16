@@ -76,7 +76,7 @@ api.interceptors.response.use(
       const tokenKey = getAuthStorageKeys(context).token
       const currentToken = localStorage.getItem(tokenKey) || sessionStorage.getItem(tokenKey) || ''
 
-      if (sentToken === currentToken) {
+      if (sentToken && sentToken === currentToken) {
         clearScopedAuthStorage(context)
         redirectToLogin('unauthorized')
       }
