@@ -96,12 +96,10 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
-import { useCartStore } from '@/stores/cartStore'
 import { normalizeLocalAssetUrl } from '@/services/runtimeConfig'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const cartStore = useCartStore()
 
 const form = ref({
   email: '',
@@ -131,8 +129,6 @@ const handleLogin = async () => {
     })
 
     if (result.ok) {
-      cartStore.mergeGuestCartIntoCurrentUser()
-
       // Check if user is actually an admin
       if (!authStore.isAdmin) {
         errorMessage.value = 'Access denied. Admin credentials required.'
