@@ -237,26 +237,6 @@
 
 @section('content')
 <div class="reports-page">
-<div class="report-hero shadow">
-    <div class="row align-items-center">
-        <div class="col-md-7">
-            <h5 class="text-white-50 mb-1">INTELLECTUAL INSIGHTS</h5>
-            <h1 class="font-weight-bold mb-2">Business Operations Center</h1>
-            <p class="mb-0 text-white-50">Real-time performance metrics and cross-platform interaction analysis.</p>
-        </div>
-        <div class="col-md-5 text-md-right mt-3 mt-md-0">
-            <div class="d-inline-flex align-items-center bg-white p-2 rounded-pill shadow-sm">
-                <span class="text-dark font-weight-bold px-3 small">
-                    <span class="indicator-pulse"></span> SYSTEM LIVE
-                </span>
-                <div class="bg-primary px-3 py-1 rounded-pill text-white small font-weight-bold">
-                    {{ now()->format('M Y') }}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="row mb-4">
     <!-- Main KPIs -->
     @php

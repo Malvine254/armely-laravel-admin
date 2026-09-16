@@ -23,19 +23,19 @@
 }
 
 .job-board-hero {
-	padding: 38px 0 20px;
+	padding: 28px 0 18px;
 	background:
-		radial-gradient(circle at 16% 22%, rgba(255, 255, 255, 0.12), transparent 28%),
-		radial-gradient(circle at 84% 18%, rgba(255, 255, 255, 0.08), transparent 24%),
-		linear-gradient(135deg, var(--job-navy) 0%, #224a87 52%, var(--job-blue) 100%);
+		radial-gradient(circle at 16% 22%, rgba(255, 255, 255, 0.08), transparent 30%),
+		radial-gradient(circle at 84% 18%, rgba(255, 255, 255, 0.06), transparent 26%),
+		linear-gradient(135deg, var(--job-navy) 0%, #1e437b 52%, var(--job-blue) 100%);
 	color: #fff;
 	overflow: hidden;
 }
 
 .job-board-hero-shell {
 	display: grid;
-	grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.95fr);
-	gap: 20px;
+	grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.9fr);
+	gap: 18px;
 	align-items: stretch;
 }
 
@@ -51,8 +51,8 @@
 
 .job-board-title {
 	margin: 0 0 10px;
-	font-size: clamp(2.4rem, 5vw, 4.2rem);
-	line-height: 0.98;
+	font-size: clamp(2rem, 3.8vw, 3.1rem);
+	line-height: 1.03;
 	font-weight: 800;
 	letter-spacing: -0.04em;
 	max-width: none;
@@ -61,14 +61,14 @@
 
 .job-board-subtitle {
 	margin: 0;
-	max-width: 760px;
-	color: rgba(255, 255, 255, 0.9);
-	font-size: 1.05rem;
-	line-height: 1.8;
+	max-width: 700px;
+	color: rgba(255, 255, 255, 0.88);
+	font-size: 0.98rem;
+	line-height: 1.65;
 }
 
 .job-board-pills {
-	margin-top: 18px;
+	margin-top: 16px;
 	display: flex;
 	flex-wrap: wrap;
 	gap: 10px;
@@ -77,25 +77,37 @@
 .job-pill {
 	display: inline-flex;
 	align-items: center;
-	padding: 9px 14px;
+	padding: 8px 12px;
 	border-radius: 999px;
-	background: rgba(255, 255, 255, 0.14);
-	border: 1px solid rgba(255, 255, 255, 0.16);
+	background: rgba(255, 255, 255, 0.12);
+	border: 1px solid rgba(255, 255, 255, 0.18);
 	color: #fff;
-	font-size: 0.8rem;
+	font-size: 0.74rem;
 	font-weight: 800;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
 }
 
+.job-pill-status.is-open {
+	background: rgba(187, 247, 208, 0.14);
+	border-color: rgba(187, 247, 208, 0.24);
+	color: #d9fbe7;
+}
+
+.job-pill-status.is-closed {
+	background: rgba(254, 202, 202, 0.12);
+	border-color: rgba(254, 202, 202, 0.26);
+	color: #fee2e2;
+}
+
 .job-board-hero-card {
 	background: rgba(255, 255, 255, 0.12);
 	border: 1px solid rgba(255, 255, 255, 0.16);
-	border-radius: 28px;
-	padding: 24px;
-	box-shadow: 0 24px 60px rgba(7, 23, 57, 0.26);
-	backdrop-filter: blur(16px);
-	-webkit-backdrop-filter: blur(16px);
+	border-radius: 22px;
+	padding: 18px 18px 16px;
+	box-shadow: 0 18px 40px rgba(7, 23, 57, 0.18);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
 }
 
 .job-board-hero-card-label,
@@ -120,18 +132,18 @@
 }
 
 .job-summary-grid {
-	margin-top: 14px;
+	margin-top: 12px;
 	display: grid;
-	gap: 10px;
+	gap: 8px;
 }
 
 .job-summary-item {
 	display: flex;
 	align-items: flex-start;
 	gap: 12px;
-	padding: 12px 12px;
-	border-radius: 16px;
-	background: rgba(255, 255, 255, 0.12);
+	padding: 11px 12px;
+	border-radius: 14px;
+	background: rgba(255, 255, 255, 0.1);
 	border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -167,17 +179,29 @@
 }
 
 .job-board-actions {
-	margin-top: 16px;
+	margin-top: 14px;
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 10px;
 }
 
+.job-closed-message {
+	grid-column: 1 / -1;
+	padding: 12px 14px;
+	border-radius: 12px;
+	background: rgba(254, 202, 202, 0.12);
+	border: 1px solid rgba(254, 202, 202, 0.22);
+	color: #fef2f2;
+	font-size: 0.9rem;
+	font-weight: 700;
+	text-align: center;
+}
+
 .apply-now-btn,
 .job-back-btn {
 	width: 100%;
-	border-radius: 15px;
-	padding: 12px 16px;
+	border-radius: 12px;
+	padding: 11px 14px;
 	font-weight: 800;
 	display: inline-flex;
 	align-items: center;
@@ -525,8 +549,8 @@
 
 .job-application-fields {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 18px 18px;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16px;
 }
 
 .job-field {
@@ -539,6 +563,17 @@
 	grid-column: 1 / -1;
 }
 
+.job-field-cv {
+	grid-column: span 2;
+}
+
+.job-field-pair {
+	grid-column: 1 / -1;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px;
+}
+
 .job-field label {
 	font-size: 0.76rem;
 	font-weight: 800;
@@ -549,10 +584,11 @@
 
 .job-input {
 	width: 100%;
+	box-sizing: border-box;
 	border: 1px solid #d7dfec;
 	border-radius: 12px;
 	padding: 0 14px;
-	min-height: 54px;
+	height: 48px;
 	background: #fff;
 	color: var(--job-text);
 	font-size: 1rem;
@@ -593,40 +629,55 @@ textarea.job-input {
 	padding-bottom: 14px;
 }
 
-.job-input-file {
-	padding: 11px 14px;
+.job-file-control {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	height: 48px;
+	padding: 0 12px;
+	border: 1px solid #d7dfec;
+	border-radius: 12px;
 	background: #fff;
+	cursor: pointer;
 	overflow: hidden;
+}
+
+.job-file-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	height: 38px;
+	padding: 0 16px;
+	border-radius: 10px;
+	background: linear-gradient(135deg, var(--job-blue), #355fa6);
+	color: #fff;
+	font-weight: 800;
+}
+
+.job-file-name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--job-text);
+}
+
+.job-file-input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	left: -9999px;
+	op: -9999px;
 }
 
 .job-select {
 	cursor: pointer;
 	padding-right: 42px;
-	background-image:
-		linear-gradient(45deg, transparent 50%, #64748b 50%),
-		linear-gradient(135deg, #64748b 50%, transparent 50%),
-		linear-gradient(to right, transparent, transparent);
-	background-position:
-		calc(100% - 22px) calc(50% - 3px),
-		calc(100% - 16px) calc(50% - 3px),
-		100% 0;
-	background-size: 6px 6px, 6px 6px, 2.5em 2.5em;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m3 6 5 5 5-5' fill='none' stroke='%2364758b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	background-position: right 14px center;
+	background-size: 16px 16px;
 	background-repeat: no-repeat;
-}
-
-.job-input-file::file-selector-button {
-	border: none;
-	margin-right: 12px;
-	padding: 10px 14px;
-	border-radius: 12px;
-	background: linear-gradient(135deg, var(--job-blue), #355fa6);
-	color: #fff;
-	font-weight: 800;
-	cursor: pointer;
-}
-
-.job-input-file::file-selector-button:hover {
-	filter: brightness(1.03);
 }
 
 .job-help {
@@ -700,6 +751,10 @@ textarea.job-input {
 	.job-application-sidecard {
 		position: static;
 	}
+
+	.job-application-fields {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
 }
 
 @media (max-width: 768px) {
@@ -725,6 +780,15 @@ textarea.job-input {
 
 	.job-application-fields {
 		grid-template-columns: 1fr;
+	}
+
+	.job-field-pair {
+	grid-column: 1 / -1;
+	grid-template-columns: 1fr;
+	}
+
+	.job-field-cv {
+		grid-column: 1 / -1;
 	}
 }
 

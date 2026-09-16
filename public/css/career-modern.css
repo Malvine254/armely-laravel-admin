@@ -333,36 +333,39 @@
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
-	gap: 10px;
+	gap: 8px;
 	flex-wrap: wrap;
-	margin-top: 5px;
+	margin-left: auto;
+	margin-top: 0;
 }
 
 .career-badge {
-	background: linear-gradient(135deg, rgba(47, 85, 151, 0.1), rgba(47, 85, 151, 0.05));
-	color: var(--default-color);
+	background: linear-gradient(135deg, rgba(47, 85, 151, 0.08), rgba(47, 85, 151, 0.04));
+	color: #5a6472;
 	border-radius: 999px;
-	padding: 7px 15px;
-	font-weight: 800;
-	font-size: 0.75rem;
+	padding: 6px 12px;
+	font-weight: 700;
+	font-size: 0.67rem;
 	text-transform: uppercase;
-	letter-spacing: 0.6px;
+	letter-spacing: 0.08em;
 	white-space: nowrap;
-	border: 1px solid rgba(47, 85, 151, 0.2);
+	border: 1px solid rgba(47, 85, 151, 0.16);
+	line-height: 1.2;
 }
 
 .career-status {
 	display: inline-flex;
 	align-items: center;
-	gap: 7px;
-	padding: 7px 13px;
+	gap: 6px;
+	padding: 6px 10px;
 	border-radius: 999px;
-	font-size: 0.76rem;
+	font-size: 0.66rem;
 	font-weight: 800;
 	text-transform: uppercase;
-	letter-spacing: 0.6px;
+	letter-spacing: 0.06em;
 	border: 1px solid transparent;
 	white-space: nowrap;
+	line-height: 1.2;
 }
 
 .career-status.is-open {
@@ -386,17 +389,20 @@
 }
 
 .career-card .role-title {
-	font-weight: 800;
-	color: var(--career-text);
+	font-weight: 700;
+	color: #5a6472;
 	margin: 0;
 	line-height: 1.18;
-	font-size: 1.35rem;
-	letter-spacing: -0.02em;
+	font-size: clamp(1.05rem, 1.45vw, 1.32rem);
+	letter-spacing: -0.03em;
 	transition: color 0.2s ease;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .career-card:hover .role-title {
-	color: var(--default-color);
+	color: #3f4f67;
 }
 
 .career-meta-list {

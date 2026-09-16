@@ -10,6 +10,9 @@
 @section('content')
 
 @if($job)
+	@php
+		$jobIsExpired = !empty($job->job_deadline) && \Carbon\Carbon::parse($job->job_deadline)->endOfDay()->lt(now());
+	@endphp
 	<section class="job-board-hero">
 		<div class="container">
 			<div class="job-board-hero-shell">
@@ -18,6 +21,9 @@
 					<p class="job-board-subtitle text-light">Explore the role details, responsibilities, and application path for this opening at Armely.</p>
 					<div class="job-board-pills">
 						<span class="job-pill">{{ $job->job_type }}</span>
+						<span class="job-pill job-pill-status {{ $jobIsExpired ? 'is-closed' : 'is-open' }}">
+							{{ $jobIsExpired ? 'Closed' : 'Open' }}
+						</span>
 					</div>
 				</div>
 
@@ -53,20 +59,22 @@
 							</svg>
 							<div>
 								<span>Status</span>
-								<strong class="job-status {{ $job->job_deadline && strtotime($job->job_deadline) < time() ? 'is-closed' : 'is-open' }}">
-									{{ $job->job_deadline && strtotime($job->job_deadline) < time() ? 'Closed' : 'Open' }}
-								</strong>
+								<strong class="job-status {{ $jobIsExpired ? 'is-closed' : 'is-open' }}">{{ $jobIsExpired ? 'Closed' : 'Open' }}</strong>
 							</div>
 						</div>
 					</div>
 					<div class="job-board-actions">
-						<a href="#apply" class="btn default-button apply-now-btn">
-							<span>Apply Now</span>
-							<svg class="icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-								<path d="M5 12h14" />
-								<path d="m13 6 6 6-6 6" />
-							</svg>
-						</a>
+						@if($jobIsExpired)
+							<div class="job-closed-message">Applications are now closed for this position.</div>
+						@else
+							<a href="#apply" class="btn default-button apply-now-btn">
+								<span>Apply Now</span>
+								<svg class="icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+									<path d="M5 12h14" />
+									<path d="m13 6 6 6-6 6" />
+								</svg>
+							</a>
+						@endif
 						<a href="{{ route('career.index') }}" class="btn job-back-btn">
 							<svg class="icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
 								<path d="M19 12H5" />
@@ -94,13 +102,15 @@
 					<div class="job-section-label">How to apply</div>
 					<h3>Ready to move forward?</h3>
 					<p>Scroll to the application section below and submit your details for this role.</p>
-					<a href="#apply" class="btn default-button apply-now-btn w-100">
-						<span class="text-light">Apply for this role</span>
-						<svg class="icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-							<path d="M5 12h14" />
-							<path d="m13 6 6 6-6 6" />
-						</svg>
-					</a>
+					@if(!$jobIsExpired)
+						<a href="#apply" class="btn default-button apply-now-btn w-100">
+							<span class="text-light">Apply for this role</span>
+							<svg class="icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+								<path d="M5 12h14" />
+								<path d="m13 6 6 6-6 6" />
+							</svg>
+						</a>
+					@endif
 					<ul class="job-side-points">
 						<li>Your application stays tied to this exact posting.</li>
 						<li>Upload a PDF CV under 5MB.</li>
@@ -164,24 +174,30 @@
 								<label for="phone">Phone</label>
 								<input id="phone" name="phone" type="tel" inputmode="tel" pattern="^\+?[0-9][0-9\s().-]{6,19}$" class="job-input" placeholder="Phone e.g. +1 (555) 123-4567" title="Enter a valid phone number" value="{{ old('phone') }}">
 							</div>
-							<div class="job-field">
+							<div class="job-field job-field-cv">
 								<label for="cv">CV - PDF only *</label>
-								<input id="cv" required name="cv" type="file" class="job-input job-input-file" accept=".pdf">
+								<label for="cv" class="job-file-control">
+									<span class="job-file-button">Choose file</span>
+									<span id="cv-file-name" class="job-file-name">No file chosen</span>
+								</label>
+								<input id="cv" required name="cv" type="file" class="job-file-input" accept=".pdf">
 								<small class="job-help">Max file size: 5MB</small>
 							</div>
-							<div class="job-field">
-								<label for="type">Job Type *</label>
-								<select required name="type" id="type" class="job-input job-select">
-									<option value="Full Time" {{ old('type') === 'Full Time' ? 'selected' : '' }}>Full Time</option>
-									<option value="Part Time" {{ old('type') === 'Part Time' ? 'selected' : '' }}>Part Time</option>
-									<option value="Contract" {{ old('type') === 'Contract' ? 'selected' : '' }}>Contract</option>
-									<option value="Temporary" {{ old('type') === 'Temporary' ? 'selected' : '' }}>Temporary</option>
-								</select>
-							</div>
-							<div class="job-field">
-								<label for="position">Job Position *</label>
-								<input id="position" type="text" readonly class="job-input job-input-readonly" value="{{ $job->job_title }}" name="position">
-								<input type="hidden" name="job_id" value="{{ $job->job_id }}">
+							<div class="job-field-pair">
+								<div class="job-field">
+									<label for="type">Job Type *</label>
+									<select required name="type" id="type" class="job-input job-select">
+										<option value="Full Time" {{ old('type') === 'Full Time' ? 'selected' : '' }}>Full Time</option>
+										<option value="Part Time" {{ old('type') === 'Part Time' ? 'selected' : '' }}>Part Time</option>
+										<option value="Contract" {{ old('type') === 'Contract' ? 'selected' : '' }}>Contract</option>
+										<option value="Temporary" {{ old('type') === 'Temporary' ? 'selected' : '' }}>Temporary</option>
+									</select>
+								</div>
+								<div class="job-field">
+									<label for="position">Job Position *</label>
+									<input id="position" type="text" readonly class="job-input job-input-readonly" value="{{ $job->job_title }}" name="position">
+									<input type="hidden" name="job_id" value="{{ !empty($job->job_id) ? $job->job_id : $job->id }}">
+								</div>
 							</div>
 							<input type="text" name="website" class="honeypot" tabindex="-1" autocomplete="off" style="display:none;">
 							<div class="job-field job-field-wide">
@@ -203,6 +219,55 @@
 							</div>
 						</div>
 					</form>
+					<script>
+						const applicationForm = document.getElementById('job-application-form');
+						const applicationMessage = document.getElementById('JobSubmitMessage');
+						const applicationSubmitButton = document.getElementById('submit-btn');
+						const cvInput = document.getElementById('cv');
+
+						cvInput?.addEventListener('change', function () {
+							document.getElementById('cv-file-name').textContent = this.files[0]?.name || 'No file chosen';
+						});
+
+						applicationForm?.addEventListener('submit', async function (event) {
+							event.preventDefault();
+							applicationSubmitButton.disabled = true;
+							applicationSubmitButton.querySelector('span').textContent = 'Submitting...';
+							applicationMessage.style.display = 'none';
+
+							try {
+								const response = await fetch(applicationForm.action, {
+									method: 'POST',
+									body: new FormData(applicationForm),
+									headers: {
+										Accept: 'application/json',
+										'X-Requested-With': 'XMLHttpRequest',
+									},
+								});
+								const result = await response.json();
+
+								if (!response.ok) {
+									const validationErrors = result.errors ? Object.values(result.errors).flat().join(' ') : result.message;
+									throw new Error(validationErrors || 'Unable to submit your application. Please try again.');
+								}
+
+								applicationMessage.className = 'alert alert-success job-alert';
+								applicationMessage.textContent = result.message || 'Application submitted successfully!';
+								applicationMessage.style.display = 'block';
+								applicationForm.reset();
+								document.getElementById('cv-file-name').textContent = 'No file chosen';
+								if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
+								applicationMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+							} catch (error) {
+								applicationMessage.className = 'alert alert-danger job-alert';
+								applicationMessage.textContent = error.message || 'Unable to submit your application. Please try again.';
+								applicationMessage.style.display = 'block';
+							} finally {
+								applicationSubmitButton.disabled = false;
+								applicationSubmitButton.querySelector('span').textContent = 'Complete Application';
+							}
+						});
+					</script>
 				</div>
 
 				<div class="job-application-sidecard">

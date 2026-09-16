@@ -701,6 +701,7 @@ Route::get('/store/public/{path?}', function (?string $path = null) {
         ? redirect('/store/' . ltrim($path, '/'))
         : redirect('/store');
 })->where('path', '.*');
+Route::get('/job-board/{publicToken}', [HomeController::class, 'jobBoard'])->name('job-board.show');
 Route::get('/job-board', [HomeController::class, 'jobBoard'])->name('job-board.index');
 Route::get('/applications', [HomeController::class, 'applications'])->name('applications.index');
 Route::post('/applications', [HomeController::class, 'submitApplication'])->name('applications.submit');
@@ -842,6 +843,8 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     
     // Admin User Management
     Route::get('/profile', [ProfileController::class, 'show'])->name('admin.profile');
+    Route::get('/profile/photo', [ProfileController::class, 'photo'])->name('admin.profile.photo');
+    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('admin.profile.photo.update');
     Route::post('/profile', [ProfileController::class, 'update'])->name('admin.profile.update');
 
     Route::get('/admins', [AdminsController::class, 'index'])->name('admin.admins');

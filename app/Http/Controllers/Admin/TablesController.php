@@ -949,6 +949,10 @@ class TablesController extends Controller
             }
             
             $career = DB::table($careerTable)->where('id', $request->id)->first();
+            if ($career && empty($career->public_token) && $this->columnExists($careerTable, 'public_token')) {
+                DB::table($careerTable)->where('id', $request->id)->update(['public_token' => Str::random(48)]);
+                $career = DB::table($careerTable)->where('id', $request->id)->first();
+            }
             ActivityLogger::log('update', 'Career', $request->id, 'Updated career ' . ($career->job_title ?? $career->title ?? ''));
             return response()->json(['success' => true, 'message' => 'Career updated successfully', 'data' => $career]);
         } else {
@@ -974,6 +978,10 @@ class TablesController extends Controller
             if ($request->filled('job_deadline')) {
                 $col = $this->columnExists($careerTable, 'job_deadline') ? 'job_deadline' : 'deadline';
                 $data[$col] = $request->job_deadline;
+            }
+
+            if ($this->columnExists($careerTable, 'public_token')) {
+                $data['public_token'] = Str::random(48);
             }
             
             $id = DB::table($careerTable)->insertGetId($data);

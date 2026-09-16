@@ -50,8 +50,8 @@ class SearchController extends Controller
                 'table'        => 'career',
                 'columns'      => ['job_title', 'job_location', 'job_type'],
                 'label_column' => 'job_title',
-                'extra_select' => ['job_id'],
-                'url_builder'  => fn ($row) => url('/job-board') . '?id=' . ($row->job_id ?? ''),
+                'extra_select' => ['job_id', 'public_token'],
+                'url_builder'  => fn ($row) => route('job-board.show', ['publicToken' => $row->public_token]),
             ],
             [
                 'type'         => 'Customer Story',

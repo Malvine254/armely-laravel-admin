@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
@@ -48,6 +49,7 @@ class ProfileController extends Controller
         // Get login/logout history
         $loginHistory = DB::table('admin_activities')
             ->where('admin_id', $admin->id)
+            ->where('entity_type', 'admin')
             ->whereIn('action', ['login', 'logout'])
             ->orderBy('created_at', 'desc')
             ->limit(15)
@@ -56,72 +58,54 @@ class ProfileController extends Controller
                 return [
                     'action' => ucfirst($item->action),
                     'timestamp' => $item->created_at,
-                    'entity_type' => $item->entity_type
+                    'entity_type' => $item->entity_type,
+                    'ip_address' => $item->ip_address ?? null,
+                    'user_agent' => $item->user_agent ?? null,
+                    ...\App\Support\LoginDevice::describe($item->user_agent ?? null),
                 ];
             })
             ->toArray();
 
-        // Provide fallback/sample data if database is empty
-        if (empty($activityHistory)) {
-            $activityHistory = [
-                [
-                    'type' => 'page_visit',
-                    'entity_type' => 'admin',
-                    'description' => 'Visited: admin/dashboard',
-                    'timestamp' => now()->subMinutes(30)
-                ],
-                [
-                    'type' => 'login',
-                    'entity_type' => 'admin',
-                    'description' => 'Admin logged in successfully',
-                    'timestamp' => now()->subHours(2)
-                ],
-                [
-                    'type' => 'page_visit',
-                    'entity_type' => 'admin',
-                    'description' => 'Visited: admin/reports',
-                    'timestamp' => now()->subHours(3)
-                ]
-            ];
-        }
-
-        if (empty($pageVisits)) {
-            $pageVisits = [
-                [
-                    'page' => 'Admin Dashboard',
-                    'timestamp' => now()->subMinutes(45)
-                ],
-                [
-                    'page' => 'Reports',
-                    'timestamp' => now()->subHours(1)
-                ],
-                [
-                    'page' => 'Tables Management',
-                    'timestamp' => now()->subHours(2)
-                ],
-                [
-                    'page' => 'User Management',
-                    'timestamp' => now()->subHours(3)
-                ]
-            ];
-        }
-
-        if (empty($loginHistory)) {
-            $loginHistory = [
-                [
-                    'action' => 'Login',
-                    'timestamp' => now()->subHours(1),
-                    'entity_type' => 'admin'
-                ],
-                [
-                    'action' => 'Login',
-                    'timestamp' => now()->subDays(1),
-                    'entity_type' => 'admin'
-                ]
-            ];
-        }
-
         return view('admin.profile', compact('admin', 'loginHistory', 'activityHistory', 'pageVisits'));
+    }
+
+    public function photo()
+    {
+        $path = Auth::guard('admin')->user()->profile_photo_path;
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->response($path, null, [
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    public function updatePhoto(Request $request)
+    {
+        $request->validate([
+            'photo' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048|dimensions:max_width=4096,max_height=4096',
+        ]);
+
+        $admin = Auth::guard('admin')->user();
+        $previous = $admin->profile_photo_path;
+        $path = $request->file('photo')->store('admin-photos', 'local');
+        if (!$path) {
+            return back()->withErrors(['photo' => 'The photo could not be saved. Please try again.']);
+        }
+
+        try {
+            $admin->profile_photo_path = $path;
+            $admin->save();
+        } catch (\Throwable $exception) {
+            Storage::disk('local')->delete($path);
+            throw $exception;
+        }
+
+        if ($previous && str_starts_with($previous, 'admin-photos/')) {
+            Storage::disk('local')->delete($previous);
+        }
+
+        return redirect()->route('admin.profile')->with('success', 'Profile photo updated successfully.');
     }
 
     public function update(Request $request)

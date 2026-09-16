@@ -97,10 +97,7 @@
 					@forelse($careerListings as $job)
 						@php
 							$jobTypeClass = strtolower(str_replace(' ', '-', $job->job_type));
-							$deadlineDate = $job->job_deadline ? \DateTime::createFromFormat('Y-m-d', $job->job_deadline) : null;
-							$currentDate = new \DateTime();
-							$currentDate->setTime(0, 0);
-							$status = ($deadlineDate && $deadlineDate < $currentDate) ? 'Closed' : 'Open';
+							$status = !empty($job->job_deadline) && \Carbon\Carbon::parse($job->job_deadline)->endOfDay()->lt(now()) ? 'Closed' : 'Open';
 						@endphp
 						<div class="career-item" data-type="{{ $jobTypeClass }}">
 							<div class="card career-card">
@@ -150,9 +147,9 @@
 
 								<div class="card-footer">
 									@if($status === 'Closed')
-										<button class="btn career-closed-btn w-100" disabled>Closed</button>
+										<button class="btn career-closed-btn w-100" type="button" disabled>Closed</button>
 									@else
-										<a href="{{ route('job-board.index') }}?job-details={{ urlencode($job->job_id) }}" class="btn default-button apply-btn w-100">
+										<a href="{{ route('job-board.show', ['publicToken' => $job->public_token]) }}" class="btn default-button apply-btn w-100">
 											<span>View Details</span>
 											<svg class="icon-svg btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
 												<path d="M5 12h14" />
@@ -175,6 +172,17 @@
 							</div>
 						</div>
 					@endforelse
+
+					<div id="career-empty-state" class="careers-empty" hidden>
+						<div class="alert alert-info text-center">
+							<svg class="icon-svg alert-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+								<circle cx="12" cy="12" r="9" />
+								<path d="M12 8.5h.01" />
+								<path d="M12 11v5" />
+							</svg>
+							No positions found for this filter. Try another category.
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -188,6 +196,23 @@
 document.addEventListener('DOMContentLoaded', function() {
     const filterBtns = document.querySelectorAll('.filter-btn');
     const careerItems = document.querySelectorAll('.career-item');
+    const emptyState = document.getElementById('career-empty-state');
+
+    function applyFilter(filterValue) {
+        let visibleCount = 0;
+
+        careerItems.forEach(item => {
+            const itemType = item.getAttribute('data-type');
+            const shouldShow = filterValue === 'all' || itemType === filterValue;
+
+            item.style.display = shouldShow ? 'block' : 'none';
+            if (shouldShow) visibleCount++;
+        });
+
+        if (emptyState) {
+            emptyState.hidden = visibleCount > 0;
+        }
+    }
 
     filterBtns.forEach(btn => {
         btn.addEventListener('click', function() {
@@ -195,17 +220,11 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('active');
 
             const filterValue = this.getAttribute('data-filter');
-
-            careerItems.forEach(item => {
-                if (filterValue === 'all') {
-                    item.style.display = 'block';
-                } else {
-                    const itemType = item.getAttribute('data-type');
-                    item.style.display = itemType === filterValue ? 'block' : 'none';
-                }
-            });
+            applyFilter(filterValue);
         });
     });
+
+    applyFilter('all');
 });
 </script>
 @endpush

@@ -467,7 +467,7 @@ class HomeController extends Controller
         $dbErrorMessage = null;
         $careerListings = $this->safeDb(function () {
             return DB::table('career')
-                ->select('id', 'job_id', 'job_title as title', 'job_location as location', 'job_type', 'job_deadline')
+                ->select('id', 'job_id', 'public_token', 'job_title as title', 'job_location as location', 'job_type', 'job_deadline')
                 ->orderBy('id', 'desc')
                 ->get();
         }, $dbErrorMessage);
@@ -906,34 +906,27 @@ class HomeController extends Controller
             : back()->with('success', $successMessage);
     }
 
-    public function jobBoard(Request $request)
+    public function jobBoard(Request $request, $publicToken = null)
     {
-        $jobId = $request->query('job-details') ?? $request->query('id');
+        $publicToken = $publicToken ?? $request->query('token');
         $dbErrorMessage = null;
-        
-        if (!$jobId) {
+
+        if (!$publicToken) {
             return redirect()->route('career.index');
         }
 
-        $job = $this->safeDb(function () use ($jobId) {
+        $job = $this->safeDb(function () use ($publicToken) {
             return DB::table('career')
-                ->where('job_id', $jobId)
+                ->where('public_token', $publicToken)
                 ->first();
         }, $dbErrorMessage);
 
         if (!$job) {
-            $job = (object) [
-                'job_id' => $jobId,
-                'job_type' => 'Career Opportunity',
-                'job_title' => 'Career Opportunity',
-                'job_location' => 'See current openings',
-                'job_deadline' => null,
-                'job_description' => '<p>We are temporarily unable to load this job description. Please visit the Careers page for current openings or contact Armely for more information.</p>',
-            ];
+            abort(404);
         }
 
-        // Check if job deadline has passed
-        if ($job->job_deadline && strtotime($job->job_deadline) < time()) {
+        // Check if the job deadline has passed. Keep the posting open through the end of its deadline date.
+        if ($job->job_deadline && Carbon::parse($job->job_deadline)->endOfDay()->lt(Carbon::now())) {
             return redirect()->route('career.index')->with('error', 'This job posting has expired and is no longer accepting applications.');
         }
 
@@ -993,7 +986,10 @@ class HomeController extends Controller
         if (!$jobTitle) {
             $dbErrorMessage = null;
             $job = $this->safeDb(function () use ($jobId) {
-                return DB::table('career')->where('job_id', $jobId)->first();
+                return DB::table('career')->where(function ($query) use ($jobId) {
+                    $query->where('job_id', $jobId)
+                        ->orWhere('id', $jobId);
+                })->first();
             }, $dbErrorMessage);
 
             if (!$job) {
@@ -1002,27 +998,30 @@ class HomeController extends Controller
                 $jobTitle = $job->job_title ?? $jobTitle;
             }
             
-            // Check if job deadline has passed
-            if ($job && $job->job_deadline && strtotime($job->job_deadline) < time()) {
+            // Check if the job deadline has passed. Keep the posting open through the end of its deadline date.
+            if ($job && $job->job_deadline && Carbon::parse($job->job_deadline)->endOfDay()->lt(Carbon::now())) {
                 return redirect()->route('career.index')->with('error', 'This job posting has expired and is no longer accepting applications.');
             }
         } else {
             // If title provided but need to validate deadline
             $dbErrorMessage = null;
             $job = $this->safeDb(function () use ($jobId) {
-                return DB::table('career')->where('job_id', $jobId)->first();
+                return DB::table('career')->where(function ($query) use ($jobId) {
+                    $query->where('job_id', $jobId)
+                        ->orWhere('id', $jobId);
+                })->first();
             }, $dbErrorMessage);
 
-            if ($job && $job->job_deadline && strtotime($job->job_deadline) < time()) {
+            if ($job && $job->job_deadline && Carbon::parse($job->job_deadline)->endOfDay()->lt(Carbon::now())) {
                 return redirect()->route('career.index')->with('error', 'This job posting has expired and is no longer accepting applications.');
             }
         }
 
-        return redirect()->to(route('job-board.index', [
-            'job-details' => $jobId,
-            'application' => 'true',
-            'title' => $jobTitle,
-        ]) . '#apply');
+        if (!$job || empty($job->public_token)) {
+            return redirect()->route('career.index');
+        }
+
+        return redirect()->to(route('job-board.show', ['publicToken' => $job->public_token]) . '#apply');
     }
 
     public function submitApplication(Request $request)
@@ -1227,11 +1226,13 @@ class HomeController extends Controller
             return response()->json(['success' => true, 'message' => 'Application submitted successfully!']);
         }
 
-        return redirect()->to(route('job-board.index', [
-            'job-details' => $data['job_id'],
-            'application' => 'true',
-            'title' => $data['position'],
-        ]) . '#apply')->with('success', 'Application submitted successfully!');
+        $publicToken = DB::table('career')
+            ->where('job_id', $data['job_id'])
+            ->value('public_token');
+
+        return $publicToken
+            ? redirect()->to(route('job-board.show', ['publicToken' => $publicToken]) . '#apply')->with('success', 'Application submitted successfully!')
+            : redirect()->route('career.index')->with('success', 'Application submitted successfully!');
     }
 
     public function submitContact(Request $request)

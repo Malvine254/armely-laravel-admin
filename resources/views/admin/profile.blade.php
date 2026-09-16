@@ -16,7 +16,7 @@
     .modal-dialog {
         z-index: 10000 !important;
     }
-    
+
     /* MODERN MODAL STYLING */
     .modal-content {
         border: none;
@@ -24,48 +24,48 @@
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         overflow: hidden;
     }
-    
+
     .modal-header {
         background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%);
         color: white;
         padding: 1.75rem 2rem;
         border-bottom: none;
     }
-    
+
     .modal-header .modal-title {
         font-weight: 600;
         font-size: 1.5rem;
         color: white;
     }
-    
+
     .modal-header .btn-close {
         filter: brightness(0) invert(1);
         opacity: 0.8;
     }
-    
+
     .modal-body {
         padding: 2rem;
         background: #f8f9fa;
     }
-    
+
     .modal-body form {
         background: white;
         padding: 1.5rem;
         border-radius: 16px;
     }
-    
+
     .modal-footer {
         padding: 1.5rem 2rem;
         background: white;
         border-top: 1px solid #e9ecef;
     }
-    
+
     .modal .form-label {
         font-weight: 600;
         color: #344054;
         margin-bottom: 0.5rem;
     }
-    
+
     .modal .form-control,
     .modal .form-select {
         border: 2px solid #e5e7eb;
@@ -73,34 +73,34 @@
         padding: 0.75rem 1rem;
         transition: all 0.2s ease;
     }
-    
+
     .modal .form-control:focus {
         border-color: #2f5597;
         box-shadow: 0 0 0 4px rgba(47, 85, 151, 0.1);
     }
-    
+
     .modal textarea.form-control {
         min-height: 150px;
         resize: vertical;
     }
-    
+
     .modal .btn {
         padding: 0.75rem 1.5rem;
         border-radius: 10px;
         font-weight: 600;
         border: none;
     }
-    
+
     .modal .btn-primary {
         background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%);
         box-shadow: 0 4px 12px rgba(47, 85, 151, 0.3);
     }
-    
+
     .modal .btn-secondary {
         background: #e5e7eb;
         color: #6b7280;
     }
-    
+
     .profile-page {
         color: #1f2937;
         font-size: 0.95rem;
@@ -258,12 +258,12 @@
         padding: 0.65rem 1.25rem !important;
         font-size: 0.95rem;
     }
-    .profile-page .bg-soft-primary,
-    .profile-page .bg-soft-success,
-    .profile-page .bg-soft-info,
-    .profile-page .bg-soft-warning,
-    .profile-page .bg-primary,
-    .profile-page .bg-info {
+    .profile-page .bg-soft-primary.rounded-circle,
+    .profile-page .bg-soft-success.rounded-circle,
+    .profile-page .bg-soft-info.rounded-circle,
+    .profile-page .bg-soft-warning.rounded-circle,
+    .profile-page .bg-primary.rounded-circle,
+    .profile-page .bg-info.rounded-circle {
         width: 38px;
         height: 38px;
         min-width: 38px;
@@ -272,12 +272,12 @@
         justify-content: center;
         padding: 0 !important;
     }
-    .profile-page .bg-soft-primary i,
-    .profile-page .bg-soft-success i,
-    .profile-page .bg-soft-info i,
-    .profile-page .bg-soft-warning i,
-    .profile-page .bg-primary i,
-    .profile-page .bg-info i {
+    .profile-page .bg-soft-primary.rounded-circle i,
+    .profile-page .bg-soft-success.rounded-circle i,
+    .profile-page .bg-soft-info.rounded-circle i,
+    .profile-page .bg-soft-warning.rounded-circle i,
+    .profile-page .bg-primary.rounded-circle i,
+    .profile-page .bg-info.rounded-circle i {
         font-size: 0.92rem;
         line-height: 1;
     }
@@ -348,25 +348,36 @@
             padding: 1rem !important;
         }
     }
+    .profile-page .input-group-prepend { display: flex; }
+    .profile-page .input-group-text { height: 100%; }
+    .profile-page .input-group:focus-within { border-color: #2f5597 !important; box-shadow: 0 0 0 3px #2f559719; }
+    .profile-page .input-group .form-control:focus { box-shadow: none; }
+    .profile-page #settings .card { padding: 22px !important; border: 1px solid #e3eaf4 !important; }
+    .profile-page #settings .rounded-circle { flex-shrink: 0; }
+    .profile-page #settings code { white-space: normal; overflow-wrap: anywhere; }
+    .history-device-icon { display: grid; place-items: center; width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px; background: #edf3fc; color: #2f5597; }
+    .history-event { border-radius: 6px; background: #f0f4fa; color: #39557f; padding: 5px 9px; font-size: 12px; font-weight: 600; }
+    .history-details { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 16px; }
+    .history-details dt { color: #718096; font-size: 11px; font-weight: 500; margin-bottom: 5px; }
+    .history-details dd { font-size: 12px; margin: 0; overflow-wrap: anywhere; }
+    .history-details code { color: #334155; }
+    .history-agent { border-top: 1px solid #edf0f5; padding-top: 10px; overflow-wrap: anywhere; }
+    .history-agent summary { font-size: 12px; color: #526785; cursor: pointer; }
+    @media (max-width: 767.98px) { .history-details { grid-template-columns: 1fr; gap: 10px; } }
+    .profile-page .profile-photo-edit { position: absolute; right: -2px; bottom: 3px; display: grid; place-items: center; width: 30px; height: 30px; border: 3px solid #fff; border-radius: 50%; background: #2f5597; color: #fff; font-size: 11px; box-shadow: 0 2px 6px #1e3a6b26; cursor: pointer; }
+    .profile-page .profile-photo-edit:hover { background: #1e3a6b; }
+    .profile-page .profile-photo-edit:focus-visible { outline: 3px solid #a7bee8; outline-offset: 2px; }
+    #profilePhotoModal .modal-header { background: #fff; color: #243651; padding: 20px 24px; border-bottom: 1px solid #edf0f5; }
+    #profilePhotoModal .modal-title { color: #243651; font-size: 17px; }
+    #profilePhotoModal .btn-close { filter: none; }
+    #profilePhotoModal .modal-body { background: #fff; padding: 24px; }
+    #profilePhotoModal .modal-footer { padding: 16px 24px; }
+    #profilePhotoModal .photo-dialog-preview { width: 96px; height: 96px; object-fit: cover; border-radius: 50%; display: block; margin: 0 auto 24px; border: 4px solid #f1f5fb; }
 </style>
 @endpush
 
 @section('content')
 <div class="profile-page">
-<div class="profile-hero mb-4 shadow-sm">
-    <div class="row align-items-center px-lg-3">
-        <div class="col-md-9">
-            <h1 class="font-weight-bold text-white mb-2">Hello, {{ explode(' ', $admin->name)[0] }}!</h1>
-            <p class="text-white-50 mb-0 font-weight-light" style="font-size: 1.1rem;">Welcome to your secure administrative portal. Oversee your profile and security parameters here.</p>
-        </div>
-        <div class="col-md-3 text-md-right d-none d-md-block">
-            <div class="badge badge-light text-primary px-3 py-2 rounded-pill shadow-sm" style="font-size: 0.85rem;">
-                <i class="fas fa-calendar-alt mr-2 text-primary"></i> {{ now()->format('D, d M Y') }}
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="profile-content-wrapper">
     <div class="row">
         <!-- Sidebar -->
@@ -374,11 +385,11 @@
             <div class="card profile-sidebar-card shadow-sm border-0 sticky-sidebar">
                 <div class="card-body text-center p-4">
                     <div class="profile-avatar-container">
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode($admin->name) }}&background=2f5597&color=fff&bold=true&size=128" 
+                        <img id="profile-current-photo" src="{{ $admin->profile_photo_path ? route('admin.profile.photo') : 'https://ui-avatars.com/api/?name=' . urlencode($admin->name) . '&background=2f5597&color=fff&bold=true&size=128' }}"
                              alt="{{ $admin->name }}" class="profile-avatar-img rounded-circle border-white shadow-sm" style="border-width: 5px !important; border-style: solid;">
-                        <div class="position-absolute bg-success border border-white rounded-circle shadow-sm" style="width: 18px; height: 18px; bottom: 10px; right: 10px; border-width: 3px !important; border-style: solid;" title="Online Status"></div>
+                        <button type="button" class="profile-photo-edit" data-bs-toggle="modal" data-bs-target="#profilePhotoModal" aria-label="Change profile photo" title="Change profile photo"><i class="fas fa-camera" aria-hidden="true"></i></button>
                     </div>
-                    
+
                     <h4 class="mb-1 font-weight-bold text-dark">{{ $admin->name }}</h4>
                     <p class="text-primary font-weight-bold small mb-4">
                         <i class="fas fa-crown mr-1 text-warning"></i> {{ $admin->role ?? 'Administrator' }}
@@ -429,11 +440,7 @@
                         </div>
                     </div>
 
-                    <div class="mb-4">
-                        <a href="{{ route('admin.dashboard') }}" class="btn btn-primary btn-rounded btn-block font-weight-bold">
-                            <i class="fas fa-home mr-2"></i> Dashboard
-                        </a>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -443,7 +450,7 @@
             <div class="card shadow-sm border-0 rounded-4 mb-4">
                 <div class="card-body p-4 p-md-5">
                     <!-- Tab Navigation -->
-                    <ul class="nav nav-tabs nav-tabs-modern mb-5" id="profileTabs" role="tablist">
+                    <ul class="nav nav-tabs nav-tabs-modern mb-4" id="profileTabs" role="tablist">
                         <li class="nav-item">
                             <a class="nav-link active" id="profile-tab" data-bs-toggle="pill" href="#profile" role="tab">
                                 <i class="fas fa-id-card mr-2"></i>Profile
@@ -471,42 +478,45 @@
                         <div class="tab-pane fade show active" id="profile" role="tabpanel" aria-labelledby="profile-tab">
                             <div class="d-flex justify-content-between align-items-center mb-4">
                                 <div>
-                                    <h4 class="font-weight-bold text-dark mb-1">Account Identity</h4>
+                                    <h4 class="font-weight-bold text-dark mb-1">Profile details</h4>
                                     <p class="text-muted mb-0">Update your primary information below</p>
                                 </div>
-                                <span class="badge badge-primary px-3 py-2 rounded-pill shadow-none">Status: Verified</span>
+
                             </div>
-                            
+
                             <form method="POST" action="{{ route('admin.profile.update') }}">
                                 @csrf
-                                <div class="row mb-5">
-                                    <div class="col-md-12 mb-4">
-                                        <label class="form-label text-dark font-weight-bold">Full Professional Name</label>
+                                @if($errors->any())
+                                    <div class="alert alert-danger" role="alert"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
+                                @endif
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-4">
+                                        <label for="profile-name" class="form-label text-dark font-weight-bold">Full name</label>
                                         <div class="input-group input-group-lg border rounded overflow-hidden">
                                             <div class="input-group-prepend">
                                                 <span class="input-group-text bg-white border-0"><i class="fas fa-user-edit text-muted"></i></span>
                                             </div>
-                                            <input type="text" name="name" class="form-control border-0 bg-white" value="{{ old('name', $admin->name) }}" required>
+                                            <input id="profile-name" autocomplete="name" type="text" name="name" class="form-control border-0 bg-white" value="{{ old('name', $admin->name) }}" required>
                                         </div>
                                     </div>
 
-                                    <div class="col-md-6 mb-4">
-                                        <label class="form-label text-dark font-weight-bold">Corporate Email</label>
+                                    <div class="col-md-4">
+                                        <label for="profile-email" class="form-label text-dark font-weight-bold">Corporate email</label>
                                         <div class="input-group input-group-lg border rounded overflow-hidden">
                                             <div class="input-group-prepend">
-                                                <span class="input-group-text bg-light border-0"><i class="fas fa-envelope-shield text-muted"></i></span>
+                                                <span class="input-group-text bg-light border-0"><i class="fas fa-envelope text-muted"></i></span>
                                             </div>
-                                            <input type="email" class="form-control border-0 bg-light" value="{{ $admin->email }}" disabled>
+                                            <input id="profile-email" type="email" class="form-control border-0 bg-light" value="{{ $admin->email }}" disabled>
                                         </div>
                                     </div>
 
-                                    <div class="col-md-6 mb-4">
-                                        <label class="form-label text-dark font-weight-bold">Contact Number</label>
+                                    <div class="col-md-4">
+                                        <label for="profile-phone" class="form-label text-dark font-weight-bold">Contact number</label>
                                         <div class="input-group input-group-lg border rounded overflow-hidden">
                                             <div class="input-group-prepend">
                                                 <span class="input-group-text bg-white border-0"><i class="fas fa-mobile-alt text-muted"></i></span>
                                             </div>
-                                            <input type="text" name="phone" class="form-control border-0 bg-white" value="{{ old('phone', $admin->phone) }}" placeholder="+1 (555) 000-0000">
+                                            <input id="profile-phone" autocomplete="tel" type="tel" name="phone" class="form-control border-0 bg-white" value="{{ old('phone', $admin->phone) }}" placeholder="+1 (555) 000-0000">
                                         </div>
                                     </div>
                                 </div>
@@ -517,13 +527,13 @@
                                         <div class="flex-grow-1">
                                             <h6 class="font-weight-bold text-dark mb-1">Credential Security</h6>
                                             <p class="text-muted small mb-3">If you need to update your password, fill in the fields below. Ensure you use a strong, unique combination.</p>
-                                            
+
                                             <div class="row">
                                                 <div class="col-md-6 mb-3">
-                                                    <input type="password" name="password" class="form-control" placeholder="New Secret Password" autocomplete="new-password">
+                                                    <input type="password" name="password" class="form-control" aria-label="New password" placeholder="New password" minlength="8" autocomplete="new-password">
                                                 </div>
                                                 <div class="col-md-6 mb-3">
-                                                    <input type="password" name="password_confirmation" class="form-control" placeholder="Confirm Secret Password" autocomplete="new-password">
+                                                    <input type="password" name="password_confirmation" class="form-control" aria-label="Confirm new password" placeholder="Confirm new password" minlength="8" autocomplete="new-password">
                                                 </div>
                                             </div>
                                         </div>
@@ -532,7 +542,7 @@
 
                                 <div class="text-right mt-4">
                                     <button type="submit" class="btn btn-primary btn-lg rounded-pill px-5 shadow-sm">
-                                        <i class="fas fa-check-circle mr-2"></i> Apply Updates
+                                        <i class="fas fa-check-circle mr-2"></i> Save changes
                                     </button>
                                 </div>
                             </form>
@@ -546,7 +556,7 @@
                                     <p class="text-muted mb-0">Management of authentication and protection</p>
                                 </div>
                             </div>
-                            
+
                             <div class="row g-4">
                                 <div class="col-md-6">
                                     <div class="card border-0 bg-soft-info h-100 p-4 rounded-4">
@@ -554,9 +564,9 @@
                                             <div class="bg-info text-white p-3 rounded-circle mr-3 shadow-sm">
                                                 <i class="fas fa-shield-alt fa-lg"></i>
                                             </div>
-                                            <h5 class="font-weight-bold text-dark mb-0">Password Health</h5>
+                                            <h5 class="font-weight-bold text-dark mb-0">Password guidance</h5>
                                         </div>
-                                        <p class="text-muted small">Your password security status is being monitored.</p>
+                                        <p class="text-muted small">Use a unique password to help protect your account.</p>
                                         <ul class="list-unstyled small text-muted mb-0">
                                             <li class="mb-2"><i class="fas fa-check-circle text-success mr-2"></i> Min 8 characters</li>
                                             <li class="mb-2"><i class="fas fa-check-circle text-success mr-2"></i> Case sensitive</li>
@@ -574,7 +584,7 @@
                                         </div>
                                         <p class="text-muted small">You are currently logged in with <strong>{{ $admin->role ?? 'Primary Administrator' }}</strong> status.</p>
                                         <div class="p-2 bg-white rounded-3 border border-primary-light">
-                                            <code class="text-primary small">PERMISSIONS: FULL_READ_WRITE</code>
+                                            <code class="text-primary small">Role: {{ $admin->role ?? 'Administrator' }}</code>
                                         </div>
                                     </div>
                                 </div>
@@ -615,27 +625,32 @@
 
                         <!-- Session History Tab -->
                         <div class="tab-pane fade" id="sessions" role="tabpanel" aria-labelledby="sessions-tab">
-                            <h4 class="font-weight-bold text-dark mb-4">Login Intelligence</h4>
-                            <div class="row">
+                            <h4 class="fw-semibold text-dark mb-1">Sign-in history</h4>
+                            <p class="text-muted small mb-4">Your 15 most recent sign-in and sign-out events. Device details are based on the browser information recorded at the time.</p>
+                            <div class="history-list">
                                 @forelse($loginHistory as $login)
-                                    <div class="col-md-6 col-lg-4 mb-3">
-                                        <div class="session-card">
-                                            <div class="d-flex align-items-center mb-2">
-                                                <div class="bg-soft-primary p-2 rounded-circle mr-3">
-                                                    <i class="fas fa-laptop text-primary"></i>
-                                                </div>
-                                                <div class="overflow-hidden">
-                                                    <h6 class="font-weight-bold mb-0 text-dark">{{ is_array($login) ? $login['action'] : $login->action }}</h6>
-                                                    <small class="text-muted text-truncate d-block">{{ is_array($login) ? ($login['entity_type'] ?? 'System') : ($login->entity_type ?? 'System') }}</small>
+                                    <article class="session-card mb-3">
+                                        <div class="d-flex align-items-center justify-content-between gap-3 mb-3 flex-wrap">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <span class="history-device-icon" aria-hidden="true"><i class="fas fa-{{ $login['device_icon'] }}"></i></span>
+                                                <div>
+                                                    <h6 class="fw-semibold mb-1">{{ $login['device'] }}</h6>
+                                                    <span class="text-muted small">{{ $login['browser'] }} &middot; {{ $login['platform'] }}</span>
                                                 </div>
                                             </div>
-                                            <div class="badge badge-light text-dark mb-2 w-100 py-2 border shadow-none">
-                                                {{ \Carbon\Carbon::parse(is_array($login) ? ($login['timestamp'] ?? now()) : ($login->created_at ?? now()))->diffForHumans() }}
-                                            </div>
+                                            <span class="history-event">{{ $login['action'] === 'Login' ? 'Signed in' : 'Signed out' }}</span>
                                         </div>
-                                    </div>
+                                        <dl class="history-details mb-0">
+                                            <div><dt>IP address</dt><dd><code>{{ $login['ip_address'] ?: 'Not recorded' }}</code></dd></div>
+                                            <div><dt>Date & time ({{ config('app.timezone') }})</dt><dd>{{ \Carbon\Carbon::parse($login['timestamp'])->format('M d, Y ? g:i A') }}</dd></div>
+                                            <div><dt>When</dt><dd>{{ \Carbon\Carbon::parse($login['timestamp'])->diffForHumans() }}</dd></div>
+                                        </dl>
+                                        @if($login['user_agent'])
+                                            <details class="history-agent mt-3"><summary>Browser details</summary><p class="small text-muted mt-2 mb-0">{{ $login['user_agent'] }}</p></details>
+                                        @endif
+                                    </article>
                                 @empty
-                                    <p class="text-center text-muted col-12 py-4">No login history recorded.</p>
+                                    <div class="text-center text-muted py-5"><i class="fas fa-history mb-3" aria-hidden="true"></i><p class="mb-0">No sign-in history recorded yet.</p></div>
                                 @endforelse
                             </div>
                         </div>
@@ -772,9 +787,63 @@
 
 @endsection
 
+@push('modals')
+<div class="modal fade" id="profilePhotoModal" tabindex="-1" aria-labelledby="profilePhotoTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" action="{{ route('admin.profile.photo.update') }}" enctype="multipart/form-data" class="modal-content">
+            @csrf
+            <div class="modal-header">
+                <h5 class="modal-title" id="profilePhotoTitle">Change profile photo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <img id="profile-photo-preview" class="photo-dialog-preview" src="{{ $admin->profile_photo_path ? route('admin.profile.photo') : 'https://ui-avatars.com/api/?name=' . urlencode($admin->name) . '&background=2f5597&color=fff&bold=true&size=128' }}" alt="Profile photo preview">
+                <label for="profile-photo" class="form-label">Choose a photo</label>
+                <input id="profile-photo" type="file" name="photo" accept="image/jpeg,image/png,image/webp" class="form-control" aria-describedby="profile-photo-help" required>
+                <small id="profile-photo-help" class="d-block text-muted mt-2">JPG, PNG or WebP. Maximum 2 MB.</small>
+                @error('photo')<p class="text-danger small mt-2 mb-0" role="alert">{{ $message }}</p>@enderror
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save photo</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endpush
+
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const photoInput = document.getElementById('profile-photo');
+        const photoPreview = document.getElementById('profile-photo-preview');
+        const originalPhoto = photoPreview.src;
+        let previewUrl;
+        photoInput.addEventListener('change', function () {
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            const file = this.files[0];
+            photoPreview.src = originalPhoto;
+            this.setCustomValidity('');
+            if (!file) return;
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+                this.setCustomValidity('Choose a JPG, PNG or WebP image no larger than 2 MB.');
+                this.reportValidity();
+                return;
+            }
+            previewUrl = URL.createObjectURL(file);
+            photoPreview.src = previewUrl;
+        });
+        const photoModal = document.getElementById('profilePhotoModal');
+        photoModal.addEventListener('hidden.bs.modal', function () {
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            previewUrl = null;
+            photoPreview.src = originalPhoto;
+            photoInput.value = '';
+            photoInput.setCustomValidity('');
+        });
+        @if($errors->has('photo'))
+            bootstrap.Modal.getOrCreateInstance(photoModal).show();
+        @endif
         // Simple tab state persistence
         const lastTab = localStorage.getItem('profileActiveTab');
         if (lastTab && document.querySelector(`#${lastTab}`)) {

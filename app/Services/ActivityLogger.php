@@ -62,6 +62,8 @@ class ActivityLogger
                 'action' => $action,
                 'entity_type' => $guardType,
                 'entity_id' => $user->id,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
                 'description' => $description,
                 'created_at' => now(),
             ]);

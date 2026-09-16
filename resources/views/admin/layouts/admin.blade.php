@@ -16,6 +16,8 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <script src="{{ asset('ckeditor/ckeditor.js') }}"></script>
     
+    <link rel="stylesheet" href="{{ asset('admin/css/sidebar.css') }}">
+
     @stack('styles')
 
     <style>
@@ -272,7 +274,7 @@
 <nav class="navbar navbar-expand-lg admin-topbar py-3">
     <div class="container-fluid">
         <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-link text-white d-lg-none px-2" type="button" data-sidebar-toggle aria-label="Toggle sidebar">
+            <button class="btn btn-link text-white d-lg-none px-2" type="button" data-sidebar-toggle aria-label="Toggle sidebar" aria-controls="sidebarMenu" aria-expanded="false">
                 <i class="fas fa-bars"></i>
             </button>
         </div>
@@ -280,7 +282,7 @@
             <span class="text-white-50 small">Welcome, {{ auth('admin')->user()->name ?? 'Admin' }}</span>
             <div class="dropdown">
                 <a class="dropdown-toggle d-flex align-items-center gap-2 text-white" href="#" id="navbarDropdownMenuAvatar" role="button" aria-expanded="false" data-bs-toggle="dropdown">
-                    <img src="https://www.svgrepo.com/show/422421/account-avatar-multimedia.svg" class="rounded-circle" height="32" alt="User avatar" loading="lazy">
+                    <img src="{{ auth('admin')->user()?->profile_photo_path ? route('admin.profile.photo') : 'https://www.svgrepo.com/show/422421/account-avatar-multimedia.svg' }}" class="rounded-circle" width="32" height="32" style="object-fit: cover;" alt="User avatar" loading="lazy">
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end dropdown-menu-right" aria-labelledby="navbarDropdownMenuAvatar">
                     <li>
@@ -310,10 +312,13 @@
 </nav>
 
 <!-- Sidebar -->
-<aside id="sidebarMenu" class="admin-sidebar">
-    <div class="sidebar-brand">
-        <img src="{{ asset('images/logo/logo-replace-v2.png') }}" alt="Armely logo">
-    </div>
+<aside id="sidebarMenu" class="admin-sidebar" aria-label="Admin sidebar">
+    <a class="sidebar-brand" href="{{ route('admin.dashboard') }}" aria-label="Armely admin dashboard">
+        <img src="{{ asset('images/logo/admin-wordmark.svg') }}" alt="Armely" width="124" height="30">
+        <span class="sidebar-brand-badge">ADMIN</span>
+    </a>
+    <nav class="sidebar-navigation" aria-label="Administration">
+    <p class="sidebar-section-label">Workspace</p>
     <ul class="admin-nav">
         <li>
             <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
@@ -364,10 +369,16 @@
             </a>
         </li>
     </ul>
-    <div class="sidebar-user mt-3">
+    </nav>
+    <div class="sidebar-user">
+        <div class="sidebar-account">
+        <span class="sidebar-avatar" aria-hidden="true">{{ mb_substr(auth('admin')->user()->name ?? 'Admin', 0, 1) }}</span>
+        <div class="sidebar-account-details">
         <strong>{{ auth('admin')->user()->name ?? 'Admin' }}</strong>
         <small>Administrator</small>
-        <div class="mt-2">
+        </div>
+        </div>
+        <div class="sidebar-logout">
                 <a class="small sidebar-logout-link" href="{{ route('admin.logout.get') }}" 
                onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                 <i class="fas fa-sign-out-alt me-2"></i>Logout
@@ -415,10 +426,31 @@ document.addEventListener('DOMContentLoaded', function () {
     const toggle = document.querySelector('[data-sidebar-toggle]');
     const sidebar = document.getElementById('sidebarMenu');
     if (toggle && sidebar) {
+        const mobile = window.matchMedia('(max-width: 991.98px)');
+        function setSidebarOpen(open) {
+            sidebar.classList.toggle('is-open', open);
+            toggle.setAttribute('aria-expanded', String(open));
+            sidebar.inert = mobile.matches && !open;
+        }
+        setSidebarOpen(false);
+        mobile.addEventListener('change', () => setSidebarOpen(false));
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && sidebar.classList.contains('is-open')) {
+                setSidebarOpen(false);
+                toggle.focus();
+            }
+        });
+        document.addEventListener('click', function (event) {
+            if (mobile.matches && !sidebar.contains(event.target) && !toggle.contains(event.target)) {
+                setSidebarOpen(false);
+            }
+        });
         toggle.addEventListener('click', function () {
-            sidebar.classList.toggle('is-open');
+            setSidebarOpen(!sidebar.classList.contains('is-open'));
         });
     }
+
+    sidebar?.querySelector('.nav-link.active')?.setAttribute('aria-current', 'page');
 
     // Bootstrap handles dropdowns via data-bs-toggle; no custom handler needed
 
