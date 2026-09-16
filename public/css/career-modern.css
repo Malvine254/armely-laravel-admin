@@ -334,7 +334,8 @@
 	align-items: center;
 	justify-content: flex-end;
 	gap: 8px;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
+	min-width: 0;
 	margin-left: auto;
 	margin-top: 0;
 }
@@ -579,6 +580,7 @@
 	}
 
 	.career-card-top-copy {
+		width: 100%;
 		justify-content: flex-start;
 		margin-top: 0;
 	}
