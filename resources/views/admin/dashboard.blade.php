@@ -339,15 +339,6 @@
 @endpush
 
 @section('content')
-<!-- Dashboard Header -->
-<div class="dashboard-header">
-    <div class="container">
-        <h1 class="mb-2"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
-        <p class="mb-0">Welcome back, {{ $adminName }}! Here's your overview for today.</p>
-        <small class="text-white-50"><i class="far fa-clock me-1"></i>{{ now()->format('l, F j, Y - g:i A') }}</small>
-    </div>
-</div>
-
 <div class="container">
     <ul class="nav nav-tabs dashboard-tabs mb-3" id="dashboardTab" role="tablist">
         <li class="nav-item" role="presentation">
