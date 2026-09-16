@@ -176,6 +176,26 @@
     .analytics-page .analytics-card.bg-secondary {
         background: #fff !important;
     }
+    .analytics-tabs {
+        border-bottom: 1px solid #dbe4f0;
+        gap: 0.35rem;
+    }
+    .analytics-tabs .nav-link {
+        border: 1px solid transparent;
+        border-bottom: 2px solid transparent;
+        color: #64748b;
+        font-weight: 700;
+        padding: 0.75rem 1rem;
+    }
+    .analytics-tabs .nav-link:hover {
+        color: #2f5597;
+        background: #f8fafc;
+    }
+    .analytics-tabs .nav-link.active {
+        color: #1f3f80;
+        background: #eef4ff;
+        border-color: #dbe7ff #dbe7ff #2f5597;
+    }
     .analytics-page .bg-primary.text-white:not(.analytics-card),
     .analytics-page .bg-secondary.text-white:not(.analytics-card),
     .analytics-page .bg-dark.text-white:not(.analytics-card) {
@@ -275,6 +295,26 @@
         </div>
     </div>
 
+    <ul class="nav nav-tabs analytics-tabs mb-4" id="analyticsTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="analytics-overview-tab" data-bs-toggle="tab" data-bs-target="#analytics-overview" type="button" role="tab" aria-controls="analytics-overview" aria-selected="true">
+                <i class="fas fa-chart-line me-2"></i>Overview
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="analytics-insights-tab" data-bs-toggle="tab" data-bs-target="#analytics-insights" type="button" role="tab" aria-controls="analytics-insights" aria-selected="false">
+                <i class="fas fa-table me-2"></i>Traffic Insights
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="analytics-links-tab" data-bs-toggle="tab" data-bs-target="#analytics-links" type="button" role="tab" aria-controls="analytics-links" aria-selected="false">
+                <i class="fas fa-link me-2"></i>Quick Links
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="analyticsTabsContent">
+        <div class="tab-pane fade show active" id="analytics-overview" role="tabpanel" aria-labelledby="analytics-overview-tab">
     <!-- Executive KPI Cards -->
     <div class="row mb-4">
         <div class="col-xl-4 col-md-6 mb-4">
@@ -423,6 +463,8 @@
         </div>
     </div>
 
+        </div>
+        <div class="tab-pane fade" id="analytics-insights" role="tabpanel" aria-labelledby="analytics-insights-tab">
     <!-- Data Insights Row -->
     <div class="row mb-4">
         <div class="col-lg-4 mb-4">
@@ -610,6 +652,8 @@
         </div>
     </div>
 
+        </div>
+        <div class="tab-pane fade" id="analytics-links" role="tabpanel" aria-labelledby="analytics-links-tab">
     <!-- Quick Action Links -->
     <div class="row">
         <div class="col-lg-12">
@@ -642,6 +686,8 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
         </div>
     </div>
 </div>
