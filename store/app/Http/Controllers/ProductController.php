@@ -1394,10 +1394,6 @@ class ProductController extends Controller
 
         $this->applyCategorySegmentFilterToQuery($query, $category);
 
-        if (!$this->storefrontShowsProductsWithoutImages()) {
-            $this->applyProductImageFilter($query, true);
-        }
-
         $hasImagesQuery = $query->clone();
         $this->applyProductImageFilter($hasImagesQuery, true);
         $noImagesQuery = $query->clone();
@@ -1406,6 +1402,10 @@ class ProductController extends Controller
             'has_images' => $hasImagesQuery->count(),
             'no_images' => $noImagesQuery->count(),
         ];
+
+        if (!$this->storefrontShowsProductsWithoutImages()) {
+            $this->applyProductImageFilter($query, true);
+        }
 
         $selectedMedia = array_values(array_unique(array_filter(array_map('trim', explode(',', $media)))));
         $filterHasImages = in_array('Has Images', $selectedMedia, true);
