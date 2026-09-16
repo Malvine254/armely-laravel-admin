@@ -2664,7 +2664,23 @@ watch(
     const nextLocation = buildProductsLocation(nextQuery)
     const targetPath = router.resolve(nextLocation).fullPath
 
-    if (route.fullPath === targetPath) {
+    const currentRouteFilters = parseProductsRouteFilters(route)
+    const currentVendors = currentRouteFilters.vendors ?? currentRouteFilters.vendor
+    const currentLocation = buildProductsLocation({
+      q: currentRouteFilters.q,
+      vendors: currentVendors,
+      category: currentRouteFilters.category,
+      minPrice: currentRouteFilters.minPrice,
+      maxPrice: currentRouteFilters.maxPrice,
+      partNumber: currentRouteFilters.partNumber,
+      productType: currentRouteFilters.productType,
+      lifecycle: currentRouteFilters.lifecycle,
+      media: currentRouteFilters.media,
+      page: currentRouteFilters.page,
+    })
+    const currentCanonicalPath = router.resolve(currentLocation).fullPath
+
+    if (route.fullPath === targetPath || currentCanonicalPath === targetPath) {
       return
     }
 
