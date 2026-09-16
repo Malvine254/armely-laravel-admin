@@ -1565,7 +1565,7 @@ const isDefaultCuratedBrowse = (filters = currentFilters.value) => {
 
 
 
-const performSearch = async (resetPage = true) => {
+const performSearch = async (resetPage = true, background = false) => {
   const requestedPage = resetPage ? 1 : currentPage.value
   const requestedServerPaged = !requiresClientSideFiltering.value
   const requestedCacheKey = getCacheKey(currentFilters.value, requestedPage, requestedServerPaged)
@@ -1579,10 +1579,10 @@ const performSearch = async (resetPage = true) => {
   const requestId = ++activeSearchRequestId
   error.value = ''
   dismissSearchSuggestions()
-  if (resetPage) {
+  if (resetPage && !background) {
     currentPage.value = 1
     loading.value = true
-  } else {
+  } else if (!background) {
     if (products.value.length === 0) {
       loading.value = true
     } else {
@@ -1594,7 +1594,7 @@ const performSearch = async (resetPage = true) => {
   serverPaged.value = useServerPaged
 
   const normalizedQuery = normalizeSearchText(searchQuery.value)
-  if (resetPage && normalizedQuery) {
+  if (resetPage && normalizedQuery && !background) {
     products.value = []
     serverTotal.value = 0
     supplierLookupQueued.value = false
@@ -1822,7 +1822,7 @@ const performSearch = async (resetPage = true) => {
   try {
     await requestPromise
   } finally {
-    if (requestId === activeSearchRequestId) {
+    if (!background && requestId === activeSearchRequestId) {
       loading.value = false
       pageLoading.value = false
     }
@@ -2711,7 +2711,7 @@ watch(
   () => {
     requestCache.clear()
     pendingRequests.clear()
-    performSearch(false)
+    performSearch(false, true)
   }
 )
 
@@ -2757,7 +2757,7 @@ watch(itemsPerPage, (nextSize, previousSize) => {
   currentPage.value = 1
   requestCache.clear()
   pendingRequests.clear()
-  performSearch(true)
+  performSearch(true, true)
 })
 
 onUnmounted(() => {
