@@ -322,7 +322,7 @@ const props = defineProps({
   },
   showImageFilters: {
     type: Boolean,
-    default: true
+    default: false
   }
 })
 
