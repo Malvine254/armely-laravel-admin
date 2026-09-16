@@ -203,37 +203,25 @@
         <div class="flex flex-wrap gap-2">
           <button
             @click="setFiveStar"
-            class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
-            style="border-color: #1f6e3e; color: #1f6e3e;"
-            @mouseenter="$event.target.style.backgroundColor='#edf8f2'"
-            @mouseleave="$event.target.style.backgroundColor='transparent'"
+            class="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-[#2F5597] transition hover:border-[#2F5597] hover:bg-[#eef4ff]"
           >
             5 Stars
           </button>
           <button
             @click="setFourStarPlus"
-            class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
-            style="border-color: #1f6e3e; color: #1f6e3e;"
-            @mouseenter="$event.target.style.backgroundColor='#edf8f2'"
-            @mouseleave="$event.target.style.backgroundColor='transparent'"
+            class="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-[#2F5597] transition hover:border-[#2F5597] hover:bg-[#eef4ff]"
           >
             4+ Stars
           </button>
           <button
             @click="setHasReviews"
-            class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
-            style="border-color: #1f6e3e; color: #1f6e3e;"
-            @mouseenter="$event.target.style.backgroundColor='#edf8f2'"
-            @mouseleave="$event.target.style.backgroundColor='transparent'"
+            class="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-[#2F5597] transition hover:border-[#2F5597] hover:bg-[#eef4ff]"
           >
             Has Reviews
           </button>
           <button
             @click="clearMedia"
-            class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
-            style="border-color: #d1d5db; color: #4b5563;"
-            @mouseenter="$event.target.style.backgroundColor='#f3f4f6'"
-            @mouseleave="$event.target.style.backgroundColor='transparent'"
+            class="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-[#2F5597] transition hover:border-[#2F5597] hover:bg-[#eef4ff]"
           >
             Clear
           </button>
