@@ -279,7 +279,11 @@
             </button>
         </div>
         <div class="d-flex align-items-center gap-3">
-            <span class="text-white-50 small">Welcome, {{ auth('admin')->user()->name ?? 'Admin' }}</span>
+            @php
+                $adminDisplayName = trim((string) (auth('admin')->user()->name ?? 'Admin'));
+                $adminFirstName = preg_split('/\s+/', $adminDisplayName)[0] ?? 'Admin';
+            @endphp
+            <span class="text-white-50 small">Hi, {{ $adminFirstName }} &#128075;</span>
             <div class="dropdown">
                 <a class="dropdown-toggle d-flex align-items-center gap-2 text-white" href="#" id="navbarDropdownMenuAvatar" role="button" aria-expanded="false" data-bs-toggle="dropdown">
                     <img src="{{ auth('admin')->user()?->profile_photo_path ? route('admin.profile.photo') : 'https://www.svgrepo.com/show/422421/account-avatar-multimedia.svg' }}" class="rounded-circle" width="32" height="32" style="object-fit: cover;" alt="User avatar" loading="lazy">
