@@ -686,7 +686,8 @@ const buildProductsRouteQuery = () => {
   const query = {}
 
   if (searchQuery.value) query.q = searchQuery.value
-  if (currentFilters.value.vendors.length > 0) query.vendors = currentFilters.value.vendors.join(',')
+  if (currentFilters.value.vendors.length === 1) query.vendor = currentFilters.value.vendors[0]
+  if (currentFilters.value.vendors.length > 1) query.vendors = currentFilters.value.vendors.join(',')
   if (currentFilters.value.categories.length > 0) query.category = currentFilters.value.categories[0]
   if (currentFilters.value.priceMin > 0 && currentFilters.value.priceMin !== 100) {
     query.minPrice = String(currentFilters.value.priceMin)

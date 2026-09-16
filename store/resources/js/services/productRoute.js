@@ -19,13 +19,22 @@ const SEGMENT_FILTERS = Object.fromEntries(
 export const buildProductsLocation = (filters = {}) => {
   const filterPath = []
   const searchQuery = String(filters.q || '').trim()
+  const vendorValues = filters.vendors !== undefined
+    ? String(filters.vendors || '').split(',').map(value => value.trim()).filter(Boolean)
+    : (filters.vendor !== undefined ? [String(filters.vendor).trim()].filter(Boolean) : [])
 
   Object.entries(FILTER_SEGMENTS).forEach(([key, segment]) => {
-    if (key === 'q') return
+    if (key === 'q' || key === 'vendor' || key === 'vendors') return
     const rawValue = filters[key]
     if (rawValue === undefined || rawValue === null || String(rawValue).trim() === '') return
     filterPath.push(segment, String(rawValue))
   })
+
+  if (vendorValues.length === 1) {
+    filterPath.unshift('vendor', vendorValues[0])
+  } else if (vendorValues.length > 1) {
+    filterPath.unshift('vendors', vendorValues.join(','))
+  }
 
   const query = searchQuery ? { q: searchQuery } : undefined
 
