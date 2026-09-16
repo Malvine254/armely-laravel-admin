@@ -367,12 +367,7 @@ const resetImgErrorMap = () => {
   Object.keys(imgErrorMap).forEach((key) => { delete imgErrorMap[key] })
   Object.keys(imgFallbackMap).forEach((key) => { delete imgFallbackMap[key] })
 }
-const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1280)
-const itemsPerPage = computed(() => {
-  if (viewportWidth.value < 768) return 12
-  if (viewportWidth.value < 1200) return 18
-  return 24
-})
+const ITEMS_PER_PAGE = 10
 const paginationRow = ref(null)
 const paginationWidth = ref(0)
 const SHOW_IMAGE_FILTERS = __SHOW_IMAGE_FILTERS__
@@ -1232,7 +1227,7 @@ const totalProductsLabel = computed(() => {
   return String(totalProducts.value)
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(totalProducts.value / itemsPerPage.value)))
+const totalPages = computed(() => Math.max(1, Math.ceil(totalProducts.value / ITEMS_PER_PAGE)))
 
 const visibleProductsCount = computed(() => paginatedProducts.value.length)
 
@@ -1241,7 +1236,7 @@ const visibleProductsRangeLabel = computed(() => {
     return `0 of ${totalProductsLabel.value} products`
   }
 
-  const rangeStart = ((currentPage.value - 1) * itemsPerPage.value) + 1
+  const rangeStart = ((currentPage.value - 1) * ITEMS_PER_PAGE) + 1
   const rangeEnd = rangeStart + visibleProductsCount.value - 1
 
   if (rangeStart === rangeEnd) {
@@ -1298,8 +1293,8 @@ const paginatedProducts = computed(() => {
     return sorted
   }
 
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  const end = start + itemsPerPage.value
+  const start = (currentPage.value - 1) * ITEMS_PER_PAGE
+  const end = start + ITEMS_PER_PAGE
   return sorted.slice(start, end)
 })
 
@@ -1531,7 +1526,7 @@ const getCacheKey = (filters, page = 1, useServerPaged = false) => {
     search: searchQuery.value,
     minPrice: filters.priceMin,
     maxPrice: filters.priceMax,
-    perPage: itemsPerPage.value,
+    perPage: ITEMS_PER_PAGE,
     partNumber: filters.partNumber,
     lifecycleStatuses: filters.lifecycleStatuses,
     mediaStatuses: filters.mediaStatuses,
@@ -1723,7 +1718,7 @@ const performSearch = async (resetPage = true, background = false) => {
           params: {
             ...params,
             page: currentPage.value,
-            per_page: itemsPerPage.value,
+            per_page: ITEMS_PER_PAGE,
             hide_zero_price: true,
             catalog_clean: true,
           }
@@ -2132,7 +2127,7 @@ const prefetchPage = (page) => {
 
   // Fire-and-forget prefetch
   api.get('/products', {
-    params: { ...params, page, per_page: itemsPerPage.value, hide_zero_price: true, catalog_clean: true }
+    params: { ...params, page, per_page: ITEMS_PER_PAGE, hide_zero_price: true, catalog_clean: true }
   }).then((response) => {
     if (response.data?.success) {
       const payload = response.data.data || {}
@@ -2715,13 +2710,7 @@ watch(
   }
 )
 
-const handleViewportResize = () => {
-  viewportWidth.value = window.innerWidth
-}
-
 onMounted(async () => {
-  window.addEventListener('resize', handleViewportResize, { passive: true })
-
   paginationResizeObserver = new ResizeObserver((entries) => {
     paginationWidth.value = entries[0]?.contentRect?.width || 0
   })
@@ -2752,16 +2741,7 @@ onMounted(async () => {
 })
 
 let paginationResizeObserver = null
-watch(itemsPerPage, (nextSize, previousSize) => {
-  if (nextSize === previousSize) return
-  currentPage.value = 1
-  requestCache.clear()
-  pendingRequests.clear()
-  performSearch(true, true)
-})
-
 onUnmounted(() => {
   paginationResizeObserver?.disconnect()
-  window.removeEventListener('resize', handleViewportResize)
 })
 </script>
