@@ -1110,6 +1110,7 @@ class ProductController extends Controller
         $catalogMaxPrice  = null;
 
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
+        $cappedProductIds = null;
 
         if ($curatedItMix && empty($search)) {
             $cappedProductIds = $this->storefrontCappedProductIds();
@@ -1438,7 +1439,9 @@ class ProductController extends Controller
             $query->orderByDesc('is_storefront_pinned');
         }
 
-        $query->orderByRaw('CASE WHEN (' . $this->hasUsableProductImageSql() . ') THEN 0 ELSE 1 END');
+        if ($this->storefrontShowsProductsWithoutImages()) {
+            $query->orderByRaw('CASE WHEN (' . $this->hasUsableProductImageSql() . ') THEN 0 ELSE 1 END');
+        }
 
         if ($searchOrderExpr === null && $isDefaultBrowse) {
             $query->orderByRaw('COALESCE(storefront_rank, 4294967295) ASC');
@@ -1449,17 +1452,18 @@ class ProductController extends Controller
         if ($isDefaultBrowse) {
             // Lead the storefront with complete, commonly purchased business equipment.
             // Accessories remain available, but batteries/cables no longer dominate page one.
-            $query
-                ->orderByRaw("CASE
+            if ($this->storefrontShowsProductsWithoutImages()) {
+                $query
+                    ->orderByRaw("CASE
                     WHEN LOWER(COALESCE(product_name, '')) REGEXP '(^|[[:space:]-])(laptop|notebook|desktop|workstation|monitor|printer|server|switch|router|firewall|access point)([[:space:]-]|$)'
                         AND LOWER(COALESCE(product_name, '')) NOT REGEXP '(battery|replacement|adapter|cable|cord|charger|charging cart|cooling|backpack|carry case|briefcase|sleeve|bag|lock|stand|mount|bracket|dock|docking|keyboard|mouse|memory|drive|converter|serial port|parallel port|usb port|hub|enclosure|tray|kit|kvm console|privacy screen|laptop ps|monitor shelf|desktop set|warranty|support|paper|cartridge|toner|ink|screen protector|power supply)' THEN 0
                     WHEN category_segment IN ('01', '02', '03', '04', '05', '06') THEN 1
                     ELSE 2
-                END")
-                // Deterministic spread prevents one large segment (for example laptops)
-                // from occupying every position before another major segment appears.
-                ->orderByRaw("MOD(CRC32(CONCAT(COALESCE(category_segment, ''), '-', id)), 997)")
-                ->orderByRaw("CASE category_segment
+                    END")
+                    // Deterministic spread prevents one large segment (for example laptops)
+                    // from occupying every position before another major segment appears.
+                    ->orderByRaw("MOD(CRC32(CONCAT(COALESCE(category_segment, ''), '-', id)), 997)")
+                    ->orderByRaw("CASE category_segment
                     WHEN '01' THEN 0
                     WHEN '02' THEN 1
                     WHEN '03' THEN 2
@@ -1467,7 +1471,10 @@ class ProductController extends Controller
                     WHEN '04' THEN 4
                     WHEN '05' THEN 5
                     ELSE 6
-                END");
+                    END");
+            } else {
+                $query->orderByRaw('COALESCE(storefront_rank, 4294967295) ASC');
+            }
         }
 
         // Within relevance/assortment groups, always show the newest products first.
@@ -1505,7 +1512,9 @@ class ProductController extends Controller
             $hasMore = false;
         }
 
-        $total = $this->getFilteredTotal($countQuery, $currentPage, $perPage, $products->count(), $hasMore);
+        $total = $isDefaultBrowse && is_array($cappedProductIds)
+            ? count($cappedProductIds)
+            : $this->getFilteredTotal($countQuery, $currentPage, $perPage, $products->count(), $hasMore);
         if ($defaultBrowseMaxItems !== null) {
             $total = min($total, $defaultBrowseMaxItems);
         }
@@ -2593,9 +2602,12 @@ class ProductController extends Controller
             }
             $this->applyCatalogCleanFilterToQuery($query);
 
+            $query->orderByDesc('is_storefront_pinned');
+            if ($this->storefrontShowsProductsWithoutImages()) {
+                $query->orderByRaw('CASE WHEN (' . $this->hasUsableProductImageSql() . ') THEN 0 ELSE 1 END');
+            }
+
             return $query
-                ->orderByDesc('is_storefront_pinned')
-                ->orderByRaw('CASE WHEN (' . $this->hasUsableProductImageSql() . ') THEN 0 ELSE 1 END')
                 ->orderByRaw('COALESCE(storefront_rank, 4294967295) ASC')
                 ->orderByRaw("CASE
                     WHEN LOWER(COALESCE(product_name, '')) REGEXP '(^|[[:space:]-])(laptop|notebook|desktop|workstation|monitor|printer|server|switch|router|firewall|access point)([[:space:]-]|$)'
