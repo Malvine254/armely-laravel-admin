@@ -1394,14 +1394,17 @@ class ProductController extends Controller
 
         $this->applyCategorySegmentFilterToQuery($query, $category);
 
-        $hasImagesQuery = $query->clone();
-        $this->applyProductImageFilter($hasImagesQuery, true);
-        $noImagesQuery = $query->clone();
-        $this->applyProductImageFilter($noImagesQuery, false);
-        $mediaCounts = [
-            'has_images' => $hasImagesQuery->count(),
-            'no_images' => $noImagesQuery->count(),
-        ];
+        $mediaCounts = ['has_images' => 0, 'no_images' => 0];
+        if ($this->storefrontShowsProductsWithoutImages()) {
+            $hasImagesQuery = $query->clone();
+            $this->applyProductImageFilter($hasImagesQuery, true);
+            $noImagesQuery = $query->clone();
+            $this->applyProductImageFilter($noImagesQuery, false);
+            $mediaCounts = [
+                'has_images' => $hasImagesQuery->count(),
+                'no_images' => $noImagesQuery->count(),
+            ];
+        }
 
         if (!$this->storefrontShowsProductsWithoutImages()) {
             $this->applyProductImageFilter($query, true);
