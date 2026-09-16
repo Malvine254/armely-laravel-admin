@@ -65,7 +65,7 @@ api.interceptors.response.use(
     const isLogoutRequest = requestUrl.includes('/auth/logout')
     const context = getActiveAuthContext()
 
-    if (status === 401 && !isLogoutRequest) {
+    if (status === 401 && !isLogoutRequest && !error.config?._skipAuthRedirect) {
       // A request made before login (e.g. an app-mount fetch) can still be in flight
       // when login succeeds and stores a fresh token. If that stale request's 401
       // arrives afterward, it must not wipe out the token that was just saved.

@@ -13,7 +13,7 @@ const visitorToken = () => {
 
 const postSafe = async (url, payload) => {
   try {
-    await api.post(url, { ...payload, visitor_token: visitorToken() })
+    await api.post(url, { ...payload, visitor_token: visitorToken() }, { _skipAuthRedirect: true })
   } catch {
     // Tracking is best-effort and must never interrupt UX.
   }
