@@ -89,6 +89,12 @@
   color: #284f90;
   font-weight: 600;
 }
+.admin-sidebar .admin-nav .nav-link.active:focus,
+.admin-sidebar .admin-nav .nav-link.active:active {
+  background: #edf3ff;
+  color: #284f90;
+  box-shadow: none;
+}
 .admin-sidebar .admin-nav .nav-link.active::before {
   content: '';
   position: absolute;
@@ -99,7 +105,9 @@
   border-radius: 3px;
   background: #2f5597;
 }
-.admin-sidebar .admin-nav .nav-link.active i { color: #2f5597; }
+.admin-sidebar .admin-nav .nav-link.active i,
+.admin-sidebar .admin-nav .nav-link.active:focus i,
+.admin-sidebar .admin-nav .nav-link.active:active i { color: #2f5597; }
 .admin-sidebar a:focus-visible {
   outline: 2px solid #2f5597;
   outline-offset: -2px;
