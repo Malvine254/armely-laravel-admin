@@ -1559,6 +1559,16 @@ const isDefaultCuratedBrowse = (filters = currentFilters.value) => {
 
 
 const performSearch = async (resetPage = true) => {
+  const requestedPage = resetPage ? 1 : currentPage.value
+  const requestedServerPaged = !requiresClientSideFiltering.value
+  const requestedCacheKey = getCacheKey(currentFilters.value, requestedPage, requestedServerPaged)
+
+  // Route normalization and filter watchers can request the same page together.
+  // Reuse the in-flight request before changing loading state to avoid a visible shake.
+  if (pendingRequests.has(requestedCacheKey)) {
+    return pendingRequests.get(requestedCacheKey)
+  }
+
   const requestId = ++activeSearchRequestId
   error.value = ''
   dismissSearchSuggestions()
