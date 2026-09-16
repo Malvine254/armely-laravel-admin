@@ -13,10 +13,7 @@
       <div id="catalog-results" class="flex items-stretch gap-8 lg:gap-6">
         <!-- Filters Sidebar -->
         <aside
-          class="relative hidden flex-shrink-0 lg:block lg:w-80"
-          :class="totalPages > 1
-            ? 'lg:mb-[91px] lg:min-h-[1648px] lg:self-stretch'
-            : 'lg:min-h-[1648px] lg:self-stretch'"
+          class="hidden flex-shrink-0 self-start lg:block lg:w-80"
         >
           <FilterSidebar 
             :vendors="availableVendors" 
@@ -30,7 +27,6 @@
             :compact="false"
             @filter-change="handleFilterChange"
             @clear-all="resetFilters"
-            class="lg:absolute lg:inset-0 lg:h-full lg:min-h-0"
           />
         </aside>
 
