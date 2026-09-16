@@ -1300,8 +1300,8 @@ const paginatedProducts = computed(() => {
 const pageNumbers = computed(() => {
   const pages = []
   const rowWidth = paginationWidth.value || 360
-  const navigationWidth = rowWidth >= 640 ? 230 : 100
-  const maxPagesToShow = Math.max(3, Math.min(10, Math.floor((rowWidth - navigationWidth) / 44)))
+  const navigationWidth = rowWidth >= 900 ? 190 : rowWidth >= 640 ? 170 : 100
+  const maxPagesToShow = Math.max(3, Math.min(15, Math.floor((rowWidth - navigationWidth) / 46)))
   let startPage = Math.max(1, currentPage.value - Math.floor(maxPagesToShow / 2))
   let endPage = Math.min(totalPages.value, startPage + maxPagesToShow - 1)
 
