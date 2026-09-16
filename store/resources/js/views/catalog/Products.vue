@@ -792,11 +792,6 @@ const reviewRatingOptions = computed(() => {
     { name: 'Has Reviews', count: hasReviews },
   ]
 
-  if (SHOW_IMAGE_FILTERS) {
-    options.push({ name: 'Has Images', count: hasImages })
-    options.push({ name: 'No Images', count: noImages })
-  }
-
   return options
 })
 

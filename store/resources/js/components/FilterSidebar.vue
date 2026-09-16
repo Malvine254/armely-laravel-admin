@@ -229,26 +229,6 @@
             Has Reviews
           </button>
           <button
-            v-if="showImageFilters"
-            @click="setHasImages"
-            class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
-            style="border-color: #2F5597; color: #2F5597;"
-            @mouseenter="$event.target.style.backgroundColor='#eef4ff'"
-            @mouseleave="$event.target.style.backgroundColor='transparent'"
-          >
-            Has Images
-          </button>
-          <button
-            v-if="showImageFilters"
-            @click="setNoImages"
-            class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
-            style="border-color: #9333ea; color: #9333ea;"
-            @mouseenter="$event.target.style.backgroundColor='#f5f3ff'"
-            @mouseleave="$event.target.style.backgroundColor='transparent'"
-          >
-            No Images
-          </button>
-          <button
             @click="clearMedia"
             class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
             style="border-color: #d1d5db; color: #4b5563;"
@@ -327,9 +307,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['filter-change', 'clear-all'])
-const visibleMediaOptions = computed(() => props.showImageFilters
-  ? props.mediaOptions
-  : props.mediaOptions.filter((status) => !['Has Images', 'No Images'].includes(status.name)))
+const visibleMediaOptions = computed(() => props.mediaOptions.filter(
+  (status) => !['Has Images', 'No Images'].includes(status.name)
+))
 const DEFAULT_MIN_PRICE = Number(import.meta.env.VITE_MIN_PRICE ?? 100)
 const DEFAULT_MAX_PRICE = 0
 const POPULAR_VENDOR_LIMIT = 40
@@ -357,7 +337,7 @@ const syncFromActiveFilters = (source = {}) => {
     categories: Array.isArray(next.categories) ? [...next.categories] : [],
     lifecycleStatuses: Array.isArray(next.lifecycleStatuses) ? [...next.lifecycleStatuses] : [],
     mediaStatuses: Array.isArray(next.mediaStatuses)
-      ? next.mediaStatuses.filter((status) => props.showImageFilters || !['Has Images', 'No Images'].includes(status))
+      ? next.mediaStatuses.filter((status) => !['Has Images', 'No Images'].includes(status))
       : []
   }
 }
