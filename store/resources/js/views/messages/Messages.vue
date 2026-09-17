@@ -649,20 +649,28 @@ const cacheSessionMessages = (sessionId, messages) => {
   writeCachedJson(getChatCacheKey(`session:${sessionId}`), messages)
 }
 
-const updateSessionPreviewInstantly = (sessionId, preview, role = 'user') => {
+// The first send of a new chat creates the session server-side, so this upserts rather than
+// skipping ids the sidebar has not seen yet.
+const updateSessionPreviewInstantly = (sessionId, preview, role = 'user', title = null) => {
   if (!sessionId) return
 
   const index = chatSessions.value.findIndex((session) => Number(session.id) === Number(sessionId))
-  if (index < 0) return
+  const existing = index >= 0 ? chatSessions.value[index] : null
 
   const updated = {
-    ...chatSessions.value[index],
+    escalated_to_human: false,
+    resolved_at: null,
+    ...(existing || {}),
+    id: existing ? existing.id : Number(sessionId),
+    title: title || existing?.title || 'New chat',
     last_message_preview: String(preview || '').slice(0, 80),
     last_message_role: role,
     last_message_at: new Date().toISOString(),
   }
 
-  chatSessions.value.splice(index, 1)
+  if (index >= 0) {
+    chatSessions.value.splice(index, 1)
+  }
   chatSessions.value.unshift(updated)
   writeCachedJson(getChatCacheKey('sessions'), chatSessions.value)
 }
@@ -1475,10 +1483,36 @@ const sendChatMessage = async (prefilled = null) => {
   chatInput.value = ''
   pendingAttachments.value = []
 
+  // A brand new chat has no id yet. Create it before sending so the sidebar lists this
+  // conversation straight away instead of only once the assistant has replied.
+  const isNewSession = !activeChatSessionId.value
+  if (isNewSession) {
+    try {
+      const createResponse = await fetch(`${API_BASE_URL}/messages/chats`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify({ title: 'New chat' })
+      })
+      const created = (await createResponse.json().catch(() => null))?.data
+      if (created?.id) activeChatSessionId.value = created.id
+    } catch {
+      // Not fatal: the send itself creates a session when one is missing.
+    }
+  }
+
   // Cache the optimistic state before any network work begins.
   if (activeChatSessionId.value) {
     cacheSessionMessages(activeChatSessionId.value, chatMessages.value)
-    updateSessionPreviewInstantly(activeChatSessionId.value, outgoing || 'Sent an attachment', 'user')
+    updateSessionPreviewInstantly(
+      activeChatSessionId.value,
+      outgoing || 'Sent an attachment',
+      'user',
+      isNewSession ? (outgoing || 'Sent an attachment').slice(0, 60) : null
+    )
   }
 
   // Commit one browser frame containing the user bubble before the typing state
@@ -1578,7 +1612,8 @@ const sendChatMessage = async (prefilled = null) => {
       updateSessionPreviewInstantly(
         sessionId,
         assistantPayload.reply || outgoing,
-        assistantPayload.reply ? 'assistant' : 'user'
+        assistantPayload.reply ? 'assistant' : 'user',
+        assistantPayload.chat_session?.title || null
       )
     }
 
