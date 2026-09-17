@@ -657,6 +657,10 @@ class MessageController extends Controller
             ]);
         }
 
+        // Reaching here with Azure configured means the agent failed and the deterministic path
+        // is answering. Flag it so a stock reply is never mistaken for a real agent answer.
+        $agentUnavailable = $this->assistantService->isConfigured();
+
         $context = $this->buildAssistantContext($user, $question, $session->id);
         $context['address_by_name'] = $this->resolveNamePreference($question, $context['recent_chat_turns'] ?? []);
         $context['requested_quantity'] = $this->resolveRequestedQuantity($question, $context['recent_chat_turns'] ?? []);
@@ -776,6 +780,7 @@ class MessageController extends Controller
         }
 
         $degraded = (bool) ($agentResult['degraded'] ?? false)
+            || $agentUnavailable
             || in_array($source, ['local_fallback', 'assistant_error_fallback'], true);
 
         ChatMessage::create([

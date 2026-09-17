@@ -1146,6 +1146,56 @@ class AssistantChatHardeningTest extends TestCase
         ], ['Accept' => 'application/json'])->assertStatus(422);
     }
 
+    public function test_every_tool_schema_is_valid_json_for_the_api(): void
+    {
+        $user = $this->createCustomer('Schema User', 'schema@example.com');
+        $toolkit = new \App\Services\Assistant\AssistantToolkit($user, static fn () => []);
+
+        $definitions = $toolkit->definitions();
+        $this->assertNotEmpty($definitions);
+
+        foreach ($definitions as $tool) {
+            $name = $tool['function']['name'];
+            $parameters = $tool['function']['parameters'];
+
+            $this->assertSame('object', $parameters['type'], $name);
+            // A parameterless tool must still encode properties as {}; [] is rejected outright
+            // and makes the API refuse the entire request.
+            $this->assertStringStartsWith(
+                '{',
+                json_encode($parameters['properties']),
+                "{$name} must encode properties as a JSON object"
+            );
+        }
+    }
+
+    public function test_agent_sends_a_schema_the_api_accepts_for_parameterless_tools(): void
+    {
+        config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
+        config()->set('services.azure_openai.api_key', 'test-key');
+        config()->set('services.azure_openai.deployment', 'test-deployment');
+
+        $sentTools = null;
+
+        Http::fake(function ($request) use (&$sentTools) {
+            $sentTools = data_get($request->data(), 'tools');
+
+            return Http::response([
+                'choices' => [['message' => ['content' => 'Hello.']]],
+            ]);
+        });
+
+        $user = $this->createCustomer('Schema Wire User', 'schema-wire@example.com');
+
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Hi',
+        ])->assertOk()->assertJsonPath('data.source', 'tool_agent');
+
+        $viewCart = collect($sentTools)->firstWhere('function.name', 'view_cart');
+        $this->assertNotNull($viewCart);
+        $this->assertStringContainsString('"properties":{}', json_encode($viewCart['function']['parameters']));
+    }
+
     public function test_tool_agent_cart_action_requires_a_real_catalog_product(): void
     {
         config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');

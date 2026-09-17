@@ -597,8 +597,10 @@ class AssistantToolkit
                 'description' => $description,
                 'parameters' => [
                     'type' => 'object',
-                    'properties' => $properties,
-                    'required' => $required,
+                    // Must encode as a JSON object: an empty PHP array would become [] and the
+                    // API rejects the whole request with invalid_function_parameters.
+                    'properties' => (object) $properties,
+                    'required' => array_values($required),
                 ],
             ],
         ];
