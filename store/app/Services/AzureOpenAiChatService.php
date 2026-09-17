@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Services\Assistant\AssistantToolkit;
 use App\Support\ChatIntentSignals;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -260,6 +261,9 @@ class AzureOpenAiChatService
         $name = trim((string) ($profile['name'] ?? ''));
         $firstName = $name !== '' ? explode(' ', $name)[0] : '';
 
+        $recentProducts = (array) ($profile['recent_products'] ?? []);
+        $stagedProductId = trim((string) ($profile['staged_product_id'] ?? ''));
+
         return implode("\n", array_filter([
             'You are Mela AI, the assistant inside the Armely B2B IT procurement store. You are talking directly to a signed-in customer.',
             $firstName !== '' ? "The customer's name is {$firstName}. Use it only when it sounds natural, not in every message." : null,
@@ -273,13 +277,21 @@ class AzureOpenAiChatService
             'Never state or imply that you added something to the cart, staged a quote, or changed the account unless the matching tool returned ok: true in this turn.',
             'When the customer refers to something from earlier ("that one", "the cheaper model", "those quotes"), resolve it from the conversation and act on it. Ask a clarifying question only when the reference is genuinely ambiguous.',
             'Ask for a detail only when you cannot act without it. If the customer gave a quantity, a brand or a budget earlier in this conversation, reuse it instead of asking again.',
+            'To change how many units are in the cart, call update_cart_quantity with the final number. Only call add_to_cart when the customer wants an additional product in the cart.',
+            $recentProducts !== [] ? '' : null,
+            $recentProducts !== [] ? '# Already shown in this conversation' : null,
+            $recentProducts !== [] ? 'Reuse these product_id values for follow-ups instead of searching again:' : null,
+            $recentProducts !== [] ? json_encode(array_slice($recentProducts, 0, 8), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
+            $stagedProductId !== ''
+                ? "The customer's cart currently holds product_id {$stagedProductId} at quantity " . (int) ($profile['staged_quantity'] ?? 1) . ' from earlier in this chat.'
+                : null,
             '',
             '# Writing the reply',
             'Keep it to a short paragraph or a few tight lines. Plain conversational prose, not headings or long bullet dumps.',
             'Catalogue results appear as product cards directly beneath your message, so highlight the trade-offs and your recommendation rather than restating every card.',
             'Prices are USD. Quote exact figures from tool results; never round, estimate or average them yourself.',
             'Match the language the customer writes in.',
-        ]));
+        ], static fn ($line) => $line !== null));
     }
 
     private function agentHistoryMessages(array $chatHistory): array
@@ -311,17 +323,47 @@ class AzureOpenAiChatService
             $payload['tool_choice'] = $forceFinalAnswer ? 'none' : 'auto';
         }
 
-        try {
-            $response = Http::timeout(self::AGENT_TIMEOUT_SECONDS)
-                ->withHeaders([
-                    'api-key' => $this->apiKey,
-                    'Content-Type' => 'application/json',
-                ])
-                ->post($this->chatCompletionsUrl(), $payload);
+        $body = $this->postChatCompletion($payload, self::AGENT_TIMEOUT_SECONDS, 'agent');
+        $message = data_get($body, 'choices.0.message');
 
-            if (!$response->ok()) {
+        return is_array($message) ? $message : null;
+    }
+
+    /**
+     * Deployments disagree about parameter names: newer reasoning-style models reject
+     * `max_tokens` and a custom `temperature`, while older ones require `max_tokens`. Learn the
+     * shape a deployment accepts from its first rejection instead of failing every request.
+     */
+    private function postChatCompletion(array $payload, int $timeout, string $label): ?array
+    {
+        $payload = $this->applyParameterProfile($payload);
+
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            try {
+                $response = Http::timeout($timeout)
+                    ->withHeaders([
+                        'api-key' => $this->apiKey,
+                        'Content-Type' => 'application/json',
+                    ])
+                    ->post($this->chatCompletionsUrl(), $payload);
+            } catch (\Throwable $e) {
                 $this->lastRequestDegraded = true;
-                Log::warning('Azure OpenAI agent response not OK', [
+                Log::warning("Azure OpenAI {$label} request failed", ['message' => $e->getMessage()]);
+
+                return null;
+            }
+
+            if ($response->ok()) {
+                return (array) $response->json();
+            }
+
+            $adjusted = $response->status() === 400
+                ? $this->retryWithoutUnsupportedParameter($payload, $response->json())
+                : null;
+
+            if ($adjusted === null) {
+                $this->lastRequestDegraded = true;
+                Log::warning("Azure OpenAI {$label} response not OK", [
                     'status' => $response->status(),
                     'body' => substr($response->body(), 0, 500),
                 ]);
@@ -329,15 +371,78 @@ class AzureOpenAiChatService
                 return null;
             }
 
-            $message = data_get($response->json(), 'choices.0.message');
+            $payload = $adjusted;
+        }
 
-            return is_array($message) ? $message : null;
-        } catch (\Throwable $e) {
-            $this->lastRequestDegraded = true;
-            Log::warning('Azure OpenAI agent request failed', ['message' => $e->getMessage()]);
+        return null;
+    }
 
+    private function retryWithoutUnsupportedParameter(array $payload, mixed $error): ?array
+    {
+        $param = (string) data_get($error, 'error.param', '');
+        $code = (string) data_get($error, 'error.code', '');
+        $message = (string) data_get($error, 'error.message', '');
+
+        if ($param === '' || !array_key_exists($param, $payload)) {
             return null;
         }
+
+        $rejectsParameter = in_array($code, ['unsupported_parameter', 'unsupported_value'], true)
+            || str_contains(strtolower($message), 'not supported');
+
+        if (!$rejectsParameter) {
+            return null;
+        }
+
+        if ($param === 'max_tokens' && str_contains($message, 'max_completion_tokens')) {
+            $payload['max_completion_tokens'] = $payload['max_tokens'];
+            unset($payload['max_tokens']);
+            $this->rememberParameterProfile('max_completion_tokens', true);
+
+            return $payload;
+        }
+
+        unset($payload[$param]);
+        $this->rememberParameterProfile($param, false);
+
+        return $payload;
+    }
+
+    private function applyParameterProfile(array $payload): array
+    {
+        $profile = (array) Cache::get($this->parameterProfileKey(), []);
+
+        if (!empty($profile['renames_max_tokens']) && isset($payload['max_tokens'])) {
+            $payload['max_completion_tokens'] = $payload['max_tokens'];
+            unset($payload['max_tokens']);
+        }
+
+        foreach ((array) ($profile['unsupported'] ?? []) as $param) {
+            unset($payload[$param]);
+        }
+
+        return $payload;
+    }
+
+    private function rememberParameterProfile(string $param, bool $isMaxTokensRename): void
+    {
+        $profile = (array) Cache::get($this->parameterProfileKey(), []);
+
+        if ($isMaxTokensRename) {
+            $profile['renames_max_tokens'] = true;
+        } else {
+            $profile['unsupported'] = array_values(array_unique([
+                ...(array) ($profile['unsupported'] ?? []),
+                $param,
+            ]));
+        }
+
+        Cache::put($this->parameterProfileKey(), $profile, now()->addDay());
+    }
+
+    private function parameterProfileKey(): string
+    {
+        return 'azure_openai_parameter_profile:' . md5($this->endpoint . '|' . $this->deployment . '|' . $this->apiVersion);
     }
 
     private function chatCompletionsUrl(): string
@@ -1187,54 +1292,27 @@ class AzureOpenAiChatService
             return null;
         }
 
-        $url = sprintf(
-            '%s/openai/deployments/%s/chat/completions?api-version=%s',
-            $this->endpoint,
-            rawurlencode($this->deployment),
-            rawurlencode($this->apiVersion)
-        );
+        $body = $this->postChatCompletion([
+            'messages'    => $messages,
+            'temperature' => $temperature,
+            'max_tokens'  => $maxTokens,
+        ], 8, 'completion');
 
-        try {
-            $response = Http::timeout(6) // 6s — fail fast; context-aware fallbacks handle the rest
-                ->withHeaders([
-                    'api-key'      => $this->apiKey,
-                    'Content-Type' => 'application/json',
-                ])
-                ->post($url, [
-                    'messages'    => $messages,
-                    'temperature' => $temperature,
-                    'max_tokens'  => $maxTokens,
-                ]);
+        $content = data_get($body, 'choices.0.message.content');
+        if (is_array($content)) {
+            $content = implode("\n", array_map(
+                static fn ($chunk) => is_array($chunk) ? (string) ($chunk['text'] ?? '') : (string) $chunk,
+                $content
+            ));
+        }
 
-            if (!$response->ok()) {
-                $this->lastRequestDegraded = true;
-                Log::warning('Azure OpenAI response not OK', [
-                    'status' => $response->status(),
-                    'body'   => substr($response->body(), 0, 500),
-                ]);
-                return null;
-            }
-
-            $content = data_get($response->json(), 'choices.0.message.content');
-            if (is_array($content)) {
-                $content = implode("\n", array_map(
-                    static fn ($chunk) => is_array($chunk) ? (string) ($chunk['text'] ?? '') : (string) $chunk,
-                    $content
-                ));
-            }
-
-            $content = trim((string) $content);
-            if ($content === '') {
-                $this->lastRequestDegraded = true;
-                return null;
-            }
-
-            return $content;
-        } catch (\Throwable $e) {
+        $content = trim((string) $content);
+        if ($content === '') {
             $this->lastRequestDegraded = true;
-            Log::warning('Azure OpenAI request failed', ['message' => $e->getMessage()]);
             return null;
         }
+
+        return $content;
     }
 
     private function firstName(array $context): string

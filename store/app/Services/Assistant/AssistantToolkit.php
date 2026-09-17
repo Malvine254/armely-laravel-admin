@@ -25,10 +25,13 @@ class AssistantToolkit
 
     /**
      * @param callable(string, array, int): array $catalogSearch
+     * @param array{staged_product_id?: string, products?: array} $recentContext products the
+     *        customer has already been shown or had staged earlier in this conversation
      */
     public function __construct(
         private User $user,
-        private $catalogSearch
+        private $catalogSearch,
+        private array $recentContext = []
     ) {
     }
 
@@ -75,6 +78,12 @@ class AssistantToolkit
                 'mode' => ['type' => 'string', 'enum' => ['cart', 'quote'], 'description' => 'Use "quote" when the customer asked for a quote, otherwise "cart".'],
             ]),
 
+            $this->tool('update_cart_quantity', 'Set the quantity of a product the customer already has in their cart to an exact number. Use this when they say to make it N units or change the quantity, rather than adding more on top.', [
+                'product_id' => ['type' => 'string', 'description' => 'The product_id of the item already in the cart.'],
+                'sku' => ['type' => 'string', 'description' => 'The product SKU, if you do not have the product_id.'],
+                'quantity' => ['type' => 'integer', 'description' => 'The exact number of units the cart should end up with.'],
+            ], ['quantity']),
+
             $this->tool('escalate_to_human', 'Hand the conversation to a human agent. Use only when the customer asks for a person or the request is outside what these tools can resolve.', [
                 'reason' => ['type' => 'string', 'description' => 'Short summary of what the customer needs from the human agent.'],
             ], ['reason']),
@@ -86,13 +95,14 @@ class AssistantToolkit
         $this->calls[] = $name;
 
         return match ($name) {
-            'search_catalog'     => $this->searchCatalog($arguments),
-            'list_orders'        => $this->listOrders($arguments),
-            'list_quotes'        => $this->listQuotes($arguments),
-            'list_invoices'      => $this->listInvoices($arguments),
-            'add_to_cart'        => $this->addToCart($arguments),
-            'escalate_to_human'  => $this->escalate($arguments),
-            default              => ['error' => "Unknown tool: {$name}."],
+            'search_catalog'      => $this->searchCatalog($arguments),
+            'list_orders'         => $this->listOrders($arguments),
+            'list_quotes'         => $this->listQuotes($arguments),
+            'list_invoices'       => $this->listInvoices($arguments),
+            'add_to_cart'         => $this->addToCart($arguments),
+            'update_cart_quantity' => $this->addToCart($arguments + ['mode' => 'set_quantity']),
+            'escalate_to_human'   => $this->escalate($arguments),
+            default               => ['error' => "Unknown tool: {$name}."],
         };
     }
 
@@ -325,6 +335,12 @@ class AssistantToolkit
     {
         $productId = trim((string) ($arguments['product_id'] ?? ''));
         $sku = trim((string) ($arguments['sku'] ?? ''));
+
+        // "Make it five" carries no identifier; it means the item staged earlier in this chat.
+        if ($productId === '' && $sku === '') {
+            $productId = trim((string) ($this->recentContext['staged_product_id'] ?? ''));
+        }
+
         if ($productId === '' && $sku === '') {
             return ['ok' => false, 'error' => 'Identify the product first with search_catalog, then pass its product_id.'];
         }
@@ -342,7 +358,11 @@ class AssistantToolkit
             ];
         }
 
-        $mode = strtolower((string) ($arguments['mode'] ?? 'cart')) === 'quote' ? 'prepare_quote' : 'add_to_cart';
+        $mode = match (strtolower((string) ($arguments['mode'] ?? 'cart'))) {
+            'quote' => 'prepare_quote',
+            'set_quantity' => 'set_cart_quantity',
+            default => 'add_to_cart',
+        };
 
         $this->cartOperation = [
             'type' => $mode,
@@ -361,7 +381,11 @@ class AssistantToolkit
 
         return [
             'ok' => true,
-            'action' => $mode === 'prepare_quote' ? 'staged_for_quote' : 'added_to_cart',
+            'action' => match ($mode) {
+                'prepare_quote' => 'staged_for_quote',
+                'set_cart_quantity' => 'cart_quantity_set',
+                default => 'added_to_cart',
+            },
             'product_name' => $product['name'],
             'sku' => $product['sku'],
             'quantity' => $quantity,

@@ -593,6 +593,7 @@ class MessageController extends Controller
                     'degraded' => false,
                     'tool_calls' => $agentResult['tool_calls'],
                     'catalog_search_query' => $agentResult['catalog_search_query'],
+                    'cart_operation' => $agentResult['cart_operation'],
                     'product_suggestions' => $agentResult['product_suggestions'],
                 ],
             ]);
@@ -1133,15 +1134,24 @@ class MessageController extends Controller
             return null;
         }
 
+        $recentContext = $this->loadRecentProductContext($session->id);
+
         $toolkit = new AssistantToolkit(
             $user,
-            fn (string $query, array $searchContext, int $limit): array => $this->searchProductsForAssistant($query, [], $limit, $searchContext)
+            fn (string $query, array $searchContext, int $limit): array => $this->searchProductsForAssistant($query, [], $limit, $searchContext),
+            $recentContext
         );
 
         try {
             $outcome = $this->assistantService->runAgent(
                 $question,
-                ['name' => (string) ($user->name ?? ''), 'email' => (string) ($user->email ?? '')],
+                [
+                    'name' => (string) ($user->name ?? ''),
+                    'email' => (string) ($user->email ?? ''),
+                    'recent_products' => $recentContext['products'] ?? [],
+                    'staged_product_id' => $recentContext['staged_product_id'] ?? null,
+                    'staged_quantity' => $recentContext['staged_quantity'] ?? null,
+                ],
                 $this->loadRecentChatTurns($session->id, $question),
                 $toolkit
             );
@@ -1238,6 +1248,55 @@ class MessageController extends Controller
         }
 
         return 'general_support';
+    }
+
+    /**
+     * Products the customer has already been shown, plus anything staged into their cart, so a
+     * follow-up like "make it five" resolves without asking them to name the product again.
+     */
+    private function loadRecentProductContext(int $chatSessionId): array
+    {
+        if (!Schema::hasTable('chat_messages')) {
+            return [];
+        }
+
+        $messages = ChatMessage::where('chat_session_id', $chatSessionId)
+            ->where('role', 'assistant')
+            ->orderByDesc('id')
+            ->limit(6)
+            ->get(['metadata']);
+
+        $products = [];
+        $stagedProductId = null;
+        $stagedQuantity = null;
+
+        foreach ($messages as $message) {
+            $cartItem = data_get($message->metadata, 'cart_operation.items.0');
+            if ($stagedProductId === null && is_array($cartItem) && !empty($cartItem['productId'])) {
+                $stagedProductId = (string) $cartItem['productId'];
+                $stagedQuantity = (int) ($cartItem['quantity'] ?? 1);
+            }
+
+            foreach ((array) data_get($message->metadata, 'product_suggestions', []) as $product) {
+                $id = (string) ($product['product_id'] ?? '');
+                if ($id === '' || isset($products[$id]) || count($products) >= 8) {
+                    continue;
+                }
+
+                $products[$id] = [
+                    'product_id' => $id,
+                    'name' => (string) ($product['name'] ?? ''),
+                    'sku' => (string) ($product['sku'] ?? ''),
+                    'price_usd' => round((float) ($product['price'] ?? 0), 2),
+                ];
+            }
+        }
+
+        return array_filter([
+            'products' => array_values($products),
+            'staged_product_id' => $stagedProductId,
+            'staged_quantity' => $stagedQuantity,
+        ]);
     }
 
     /**

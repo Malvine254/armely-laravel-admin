@@ -785,6 +785,115 @@ class AssistantChatHardeningTest extends TestCase
         ));
     }
 
+    public function test_agent_negotiates_parameters_a_deployment_rejects(): void
+    {
+        config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
+        config()->set('services.azure_openai.api_key', 'test-key');
+        config()->set('services.azure_openai.deployment', 'test-deployment');
+
+        $payloads = [];
+
+        Http::fake(function ($request) use (&$payloads) {
+            $payload = $request->data();
+            $payloads[] = $payload;
+
+            if (array_key_exists('max_tokens', $payload)) {
+                return Http::response([
+                    'error' => [
+                        'message' => "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.",
+                        'code' => 'unsupported_parameter',
+                        'param' => 'max_tokens',
+                    ],
+                ], 400);
+            }
+
+            if (array_key_exists('temperature', $payload)) {
+                return Http::response([
+                    'error' => [
+                        'message' => "Unsupported value: 'temperature' does not support 0.5 with this model.",
+                        'code' => 'unsupported_value',
+                        'param' => 'temperature',
+                    ],
+                ], 400);
+            }
+
+            return Http::response([
+                'choices' => [['message' => ['content' => 'All set — what would you like to look at?']]],
+            ]);
+        });
+
+        $user = $this->createCustomer('Parameter Profile User', 'parameter-profile@example.com');
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Hi',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.source', 'tool_agent');
+        $response->assertJsonPath('data.degraded', false);
+        $response->assertJsonPath('data.reply', 'All set — what would you like to look at?');
+
+        $accepted = end($payloads);
+        $this->assertArrayNotHasKey('max_tokens', $accepted);
+        $this->assertArrayNotHasKey('temperature', $accepted);
+        $this->assertSame(700, $accepted['max_completion_tokens']);
+
+        // The learned shape is reused, so later turns cost no extra round trips.
+        $payloads = [];
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Thanks',
+            'chat_session_id' => (int) $response->json('data.chat_session.id'),
+        ])->assertOk();
+        $this->assertCount(1, $payloads);
+    }
+
+    public function test_quantity_follow_up_resolves_the_product_staged_earlier(): void
+    {
+        config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
+        config()->set('services.azure_openai.api_key', 'test-key');
+        config()->set('services.azure_openai.deployment', 'test-deployment');
+
+        $systemPrompts = [];
+        $round = 0;
+
+        Http::fake(function ($request) use (&$round, &$systemPrompts) {
+            $systemPrompts[] = (string) data_get($request->data(), 'messages.0.content', '');
+            $round++;
+
+            if ($round === 1) {
+                return $this->fakeToolCall('call_add', 'add_to_cart', ['product_id' => 'DOCK-1', 'quantity' => 1]);
+            }
+
+            if ($round === 3) {
+                // The follow-up carries no identifier, exactly as a customer would phrase it.
+                return $this->fakeToolCall('call_qty', 'update_cart_quantity', ['quantity' => 5]);
+            }
+
+            return Http::response([
+                'choices' => [['message' => ['content' => 'Done.']]],
+            ]);
+        });
+
+        $user = $this->createCustomer('Quantity Follow Up User', 'quantity-followup@example.com');
+        $this->insertCatalogProduct('DOCK-1', 'Contoso Thunderbolt Dock', 'Thunderbolt docking station.', 249, 'Docking Stations');
+
+        $first = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Add that dock to my cart.',
+        ])->assertOk();
+
+        $second = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'update the quantity to 5',
+            'chat_session_id' => (int) $first->json('data.chat_session.id'),
+        ])->assertOk();
+
+        $second->assertJsonPath('data.cart_operation.type', 'set_cart_quantity');
+        $second->assertJsonPath('data.cart_operation.items.0.productId', 'DOCK-1');
+        $second->assertJsonPath('data.cart_operation.items.0.quantity', 5);
+
+        // The staged item is carried into the prompt so the model can reference it directly.
+        $this->assertStringContainsString('DOCK-1', end($systemPrompts));
+    }
+
     public function test_tool_agent_cart_action_requires_a_real_catalog_product(): void
     {
         config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');

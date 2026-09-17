@@ -534,6 +534,9 @@ onMounted(async () => {
   const importedFromPublic = await importSharedCartFromPublicToken()
   if (importedFromPublic) return
   await importSharedCartFromMessage()
+  if (route.query.assistant_quote === '1') {
+    await requestQuote()
+  }
 })
 
 const getProductImageUrl = (item) => {

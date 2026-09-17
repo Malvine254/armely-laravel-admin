@@ -222,7 +222,7 @@
                       <button
                         v-for="action in product.actions || []"
                         :key="`prod-action-${product.product_id}-${action.label}`"
-                        @click="openActionLink(action.link)"
+                        @click="handleProductAction(product, action)"
                         class="px-2 py-1 rounded-md text-[11px] font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20"
                       >
                         {{ action.label }}
@@ -300,6 +300,8 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToastStore } from '../../stores/toastStore'
 import { useAuthStore } from '../../stores/authStore'
+import { useCartStore } from '../../stores/cartStore'
+import { applyAssistantCartOperation } from '../../services/assistantCart'
 import { getAuthStorageKeys } from '../../services/authContext'
 import { API_BASE_URL, resolveProductImageUrl } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
@@ -308,6 +310,29 @@ import { usePricingSettings } from '../../composables/usePricingSettings'
 const toastStore = useToastStore()
 const router = useRouter()
 const authStore = useAuthStore()
+const cartStore = useCartStore()
+
+const loadCartProduct = async (productId) => {
+  const response = await fetch(`${API_BASE_URL}/products/${encodeURIComponent(productId)}`, {
+    headers: { Authorization: `Bearer ${getAuthToken()}`, Accept: 'application/json' },
+  })
+  if (!response.ok) throw new Error('Unable to check product availability')
+  const payload = await response.json()
+  return payload.data
+}
+
+const handleProductAction = async (product, action) => {
+  if (action.label !== 'Request quote') return openActionLink(action.link)
+  try {
+    const applied = await applyAssistantCartOperation(cartStore, {
+      type: 'prepare_quote', items: [{ productId: product.product_id, quantity: 1 }],
+    }, loadCartProduct)
+    if (!applied) throw new Error('Product cannot be added')
+    await router.push('/cart?assistant_quote=1')
+  } catch {
+    toastStore.addToast('Unable to prepare this quote. Check your account and product availability.', 'error')
+  }
+}
 const { loadPricingSettings, formatUsdUsingCurrentCurrency } = usePricingSettings()
 
 const chatMessages = ref([])
@@ -1108,6 +1133,28 @@ const sendChatMessage = async (prefilled = null) => {
 
     const payload = await response.json()
     const assistantPayload = payload?.data || {}
+    // Execute only the operation returned for this send, never while loading chat history.
+    const operation = assistantPayload.cart_operation
+    if (operation && ['add_to_cart', 'prepare_quote', 'set_cart_quantity'].includes(operation.type)) {
+      let applied = false
+      try {
+        applied = await applyAssistantCartOperation(cartStore, operation, loadCartProduct)
+      } catch {
+        // Keep the conversation visible even if refreshing the product fails.
+      }
+      if (applied) {
+        const toastMessage = {
+          prepare_quote: 'Quote ready for review',
+          set_cart_quantity: 'Cart quantity updated'
+        }[operation.type] || 'Products added to cart'
+        toastStore.addToast(toastMessage, 'success')
+      } else {
+        assistantPayload.reply = 'The products could not be added to your cart. Please check your account and product availability.'
+      }
+      if (applied && operation.type === 'prepare_quote') {
+        assistantPayload.actions = [{ label: 'Review and submit quote', link: '/cart?assistant_quote=1' }]
+      }
+    }
 
     if (assistantPayload?.chat_session?.id) {
       activeChatSessionId.value = assistantPayload.chat_session.id
