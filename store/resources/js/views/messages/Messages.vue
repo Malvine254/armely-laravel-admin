@@ -1,36 +1,41 @@
 <template>
-  <div class="h-dvh overflow-hidden bg-gray-50 text-gray-900 flex flex-col">
+  <div class="h-dvh overflow-hidden bg-[#eef2f9] text-gray-900 flex flex-col">
     <Navbar />
 
     <div class="max-w-7xl w-full mx-auto px-3 sm:px-4 lg:px-5 py-3 sm:py-4 flex-1 min-h-0 flex flex-col overflow-hidden">
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 flex-1 min-h-0 overflow-hidden relative">
         <section
-          class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden min-h-0 flex flex-col xl:col-span-4 transition-transform duration-300 ease-out xl:static xl:translate-x-0 xl:top-auto xl:bottom-auto xl:left-auto xl:z-auto"
+          class="rounded-3xl bg-white shadow-[0_4px_24px_rgba(16,36,71,0.06)] overflow-hidden min-h-0 flex flex-col xl:col-span-4 transition-transform duration-300 ease-out xl:static xl:translate-x-0 xl:top-auto xl:bottom-auto xl:left-auto xl:z-auto"
           :class="isHistoryOpenMobile
             ? 'fixed xl:static z-[70] top-[8.75rem] bottom-3 left-3 w-[84vw] max-w-sm translate-x-0 xl:w-auto xl:max-w-none'
             : 'fixed xl:static z-[70] top-[8.75rem] bottom-3 left-3 w-[84vw] max-w-sm -translate-x-[110%] xl:w-auto xl:max-w-none'"
         >
-          <div class="px-4 py-4 border-b border-gray-200 bg-gray-50">
-            <div class="flex items-center justify-between mb-2">
-              <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Chat History</h2>
+          <div class="px-5 pt-5 pb-4 border-b border-gray-100">
+            <div class="flex items-center gap-2.5 mb-5">
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-lg" style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);">M</div>
+              <span class="text-xl font-extrabold tracking-tight text-gray-900">Mela</span>
+            </div>
+
+            <div class="flex items-center justify-between mb-1.5">
+              <h2 class="text-[11px] font-bold text-gray-500 uppercase tracking-[0.08em]">Chat History</h2>
               <div class="flex items-center gap-2">
                 <button
                   v-if="chatSessions.length"
                   @click="toggleManageHistory"
-                  class="px-2.5 py-1.5 text-[11px] font-semibold rounded-md border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20"
+                  class="px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
                 >
                   {{ manageHistoryMode ? 'Done' : 'Manage' }}
                 </button>
                 <button
                   @click="createNewChatSession"
                   :disabled="manageHistoryMode"
-                  class="px-2.5 py-1.5 text-[11px] font-semibold rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="px-3 py-1.5 text-[11px] font-semibold rounded-lg text-white shadow-sm transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
                   style="background-color: #2F5597;"
                 >
                   + New Chat
                 </button>
                 <button
-                  class="xl:hidden w-8 h-8 rounded-md border border-gray-200 text-gray-500 hover:bg-gray-100"
+                  class="xl:hidden w-8 h-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100"
                   @click="closeHistoryPanel"
                   aria-label="Close chat history"
                 >
@@ -40,7 +45,20 @@
                 </button>
               </div>
             </div>
-            <p class="text-[11px] text-gray-500">Choose a conversation or start a new one.</p>
+            <p class="text-[11px] text-gray-400">Choose a conversation or start a new one.</p>
+
+            <div class="relative mt-4">
+              <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+              </svg>
+              <input
+                v-model="historySearch"
+                type="search"
+                placeholder="Search conversations..."
+                aria-label="Search conversations"
+                class="w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-3 py-2.5 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2F5597]/30 focus:border-[#2F5597]/40 focus:bg-white transition"
+              >
+            </div>
 
             <div v-if="manageHistoryMode" class="mt-3 flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
               <p class="text-[11px] font-semibold text-gray-700">
@@ -65,66 +83,77 @@
             </div>
           </div>
 
-          <div class="flex-1 min-h-0 overflow-y-auto themed-scrollbar p-3">
-            <button
-              v-for="session in chatSessions"
-              :key="`chat-session-${session.id}`"
-              @click="handleSessionCardClick(session.id)"
-              class="w-full text-left rounded-xl border mb-2 p-2.5 transition"
-              :class="manageHistoryMode && selectedHistoryIds.includes(session.id)
-                ? 'border-rose-500/30 bg-rose-500/10 ring-1 ring-rose-500/20'
-                : activeChatSessionId === session.id
-                ? 'border-[#2F5597]/30 bg-[#2F5597]/10 ring-1 ring-[#2F5597]/20'
-                : 'border-gray-200 bg-white hover:bg-gray-50'"
-            >
-              <div class="flex items-start gap-2">
-                <div
-                  v-if="manageHistoryMode"
-                  class="mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0"
-                  :class="selectedHistoryIds.includes(session.id) ? 'bg-rose-600 border-rose-600 text-white' : 'border-gray-300 bg-white text-transparent'"
-                >
-                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <div
-                  class="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center"
-                  :class="session.resolved_at ? 'bg-emerald-500/20 text-emerald-600' : session.escalated_to_human ? 'bg-amber-500/20 text-amber-600' : 'bg-[#2F5597]/20 text-[#2F5597]'"
-                >
-                  <svg v-if="session.resolved_at" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <svg v-else-if="session.escalated_to_human" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V10a8 8 0 10-16 0v10h5m6 0v-3a3 3 0 00-3-3h-2a3 3 0 00-3 3v3m8 0H9" />
-                  </svg>
-                  <svg v-else-if="session.last_message_role === 'user'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A9.003 9.003 0 0112 15a9.003 9.003 0 016.879 2.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 21l-3-2-3 2 .75-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
+          <div class="flex-1 min-h-0 overflow-y-auto themed-scrollbar px-3 py-3">
+            <template v-for="group in groupedSessions" :key="`group-${group.label}`">
+              <p class="px-2 pt-1 pb-2 text-[11px] font-bold text-gray-400">{{ group.label }}</p>
 
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center justify-between gap-2">
-                    <p class="text-xs font-semibold text-gray-900 truncate">{{ session.title || 'New chat' }}</p>
-                    <span v-if="session.resolved_at" class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 font-semibold">Resolved</span>
-                    <span v-else-if="session.escalated_to_human" class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-600 font-semibold">Human</span>
+              <button
+                v-for="session in group.sessions"
+                :key="`chat-session-${session.id}`"
+                @click="handleSessionCardClick(session.id)"
+                class="w-full text-left rounded-xl mb-1.5 p-3 transition relative"
+                :class="manageHistoryMode && selectedHistoryIds.includes(session.id)
+                  ? 'bg-rose-50 ring-1 ring-rose-200'
+                  : activeChatSessionId === session.id
+                  ? 'bg-[#2F5597]/[0.07]'
+                  : 'hover:bg-gray-50'"
+              >
+                <span
+                  v-if="activeChatSessionId === session.id && !manageHistoryMode"
+                  class="absolute left-0 top-2 bottom-2 w-1 rounded-r-full"
+                  style="background-color: #2F5597;"
+                ></span>
+
+                <div class="flex items-start gap-2.5">
+                  <div
+                    v-if="manageHistoryMode"
+                    class="mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0"
+                    :class="selectedHistoryIds.includes(session.id) ? 'bg-rose-600 border-rose-600 text-white' : 'border-gray-300 bg-white text-transparent'"
+                  >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                    </svg>
                   </div>
-                  <p class="text-[11px] text-gray-500 truncate mt-0.5">{{ session.last_message_preview || 'No messages yet' }}</p>
-                </div>
-              </div>
-            </button>
+                  <div
+                    class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                    :class="session.resolved_at ? 'bg-emerald-500/15 text-emerald-600' : session.escalated_to_human ? 'bg-amber-500/15 text-amber-600' : 'bg-[#2F5597]/10 text-[#2F5597]'"
+                  >
+                    <svg v-if="session.resolved_at" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <svg v-else-if="session.escalated_to_human" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V10a8 8 0 10-16 0v10h5m6 0v-3a3 3 0 00-3-3h-2a3 3 0 00-3 3v3m8 0H9" />
+                    </svg>
+                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.9 9.9 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
 
-            <p v-if="!chatSessions.length && !loadingSessions" class="text-[11px] text-gray-500 px-1 py-1">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-2">
+                      <p class="text-[13px] font-bold text-gray-900 truncate">{{ session.title || 'New chat' }}</p>
+                      <span class="text-[10px] text-gray-400 flex-shrink-0 font-medium">{{ sessionTimeLabel(session) }}</span>
+                    </div>
+                    <p class="text-[11px] text-gray-500 truncate mt-0.5">{{ session.last_message_preview || 'No messages yet' }}</p>
+                    <span v-if="session.resolved_at" class="inline-block mt-1.5 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 font-semibold">Resolved</span>
+                    <span v-else-if="session.escalated_to_human" class="inline-block mt-1.5 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 font-semibold">Human</span>
+                  </div>
+                </div>
+              </button>
+            </template>
+
+            <p v-if="!chatSessions.length && !loadingSessions" class="text-[11px] text-gray-400 px-2 py-1">
               No chat sessions yet.
+            </p>
+            <p v-else-if="chatSessions.length && !groupedSessions.length" class="text-[11px] text-gray-400 px-2 py-1">
+              No conversations match "{{ historySearch }}".
             </p>
 
             <!-- Loading skeleton -->
             <template v-if="loadingSessions && !chatSessions.length">
-              <div v-for="i in 4" :key="`skeleton-${i}`" class="w-full rounded-xl border border-gray-200 bg-white mb-2 p-2.5 animate-pulse">
-                <div class="flex items-start gap-2">
-                  <div class="mt-0.5 w-7 h-7 rounded-full bg-gray-200"></div>
+              <div v-for="i in 4" :key="`skeleton-${i}`" class="w-full rounded-xl bg-white mb-1.5 p-3 animate-pulse">
+                <div class="flex items-start gap-2.5">
+                  <div class="w-8 h-8 rounded-full bg-gray-200"></div>
                   <div class="min-w-0 flex-1 space-y-2">
                     <div class="h-3 bg-gray-200 rounded w-3/4"></div>
                     <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
@@ -133,57 +162,96 @@
               </div>
             </template>
           </div>
+
+          <div class="shrink-0 px-4 py-3.5 border-t border-gray-100 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0" style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);">
+              {{ userInitials }}
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13px] font-bold text-gray-900 truncate">{{ userDisplayName }}</p>
+              <p class="text-[11px] text-gray-400 truncate">{{ userEmail }}</p>
+            </div>
+            <button
+              @click="openAccountSettings"
+              class="w-8 h-8 rounded-lg text-gray-400 hover:text-[#2F5597] hover:bg-gray-100 transition flex items-center justify-center flex-shrink-0"
+              aria-label="Account settings"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
         </section>
 
-        <section class="xl:col-span-8 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col min-h-0">
-          <div class="px-5 py-4 border-b border-gray-200 bg-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+        <section class="xl:col-span-8 rounded-3xl bg-white shadow-[0_4px_24px_rgba(16,36,71,0.06)] overflow-hidden flex flex-col min-h-0">
+          <div class="px-5 py-4 border-b border-gray-100 bg-white flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-3 min-w-0">
               <button
-                class="xl:hidden inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20 mb-2"
+                class="xl:hidden w-9 h-9 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 flex items-center justify-center flex-shrink-0"
                 @click="toggleHistoryPanel"
                 aria-label="Toggle chat history"
               >
                 <svg class="w-4 h-4 transition-transform duration-300" :class="isHistoryOpenMobile ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-                <span class="text-xs font-semibold">Chat History</span>
               </button>
-              <h2 class="text-lg font-bold text-gray-900">Mela AI Assistant</h2>
-              <p class="text-xs text-gray-500">
-                {{ activeSessionLabel }}
-                <span v-if="activeSession?.escalated_to_human" class="font-semibold text-amber-600"> · Escalated to human</span>
-                <span v-if="activeSession?.resolved_at" class="font-semibold text-emerald-600"> · Resolved</span>
-              </p>
+
+              <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-black text-xl flex-shrink-0" style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);">M</div>
+
+              <div class="min-w-0">
+                <h2 class="text-lg font-extrabold text-gray-900 leading-tight truncate">Mela AI Assistant</h2>
+                <p class="text-xs text-gray-500 truncate">
+                  Your intelligent partner for products, orders, and support.
+                  <span v-if="activeSession?.escalated_to_human" class="font-semibold text-amber-600"> · Escalated to human</span>
+                  <span v-if="activeSession?.resolved_at" class="font-semibold text-emerald-600"> · Resolved</span>
+                </p>
+              </div>
             </div>
-            <div class="flex flex-wrap gap-2">
-              <button
-                @click="escalateActiveChat"
-                :disabled="!activeChatSessionId || escalating || (activeSession?.escalated_to_human && !activeSession?.resolved_at)"
-                class="px-3 py-1.5 rounded-full text-xs font-semibold border border-amber-500/30 text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {{ activeSession?.resolved_at ? (escalating ? 'Reopening...' : 'Reopen to Human') : activeSession?.escalated_to_human ? 'Escalated' : (escalating ? 'Escalating...' : 'Escalate to Human') }}
-              </button>
-            </div>
+
+            <button
+              @click="escalateActiveChat"
+              :disabled="!activeChatSessionId || escalating || (activeSession?.escalated_to_human && !activeSession?.resolved_at)"
+              class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-[13px] font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 self-start sm:self-auto"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              {{ activeSession?.resolved_at ? (escalating ? 'Reopening...' : 'Reopen to Human') : activeSession?.escalated_to_human ? 'Escalated' : (escalating ? 'Escalating...' : 'Escalate to Human') }}
+            </button>
           </div>
 
-          <div ref="chatScrollRef" class="flex-1 min-h-0 overflow-y-auto themed-scrollbar p-4 sm:p-5 space-y-4 bg-gray-50">
+          <div ref="chatScrollRef" class="flex-1 min-h-0 overflow-y-auto themed-scrollbar px-4 sm:px-6 py-5 space-y-5 bg-[#fafbfd]">
             <!-- Persistent welcome banner — always shown at the top of every chat -->
-            <div class="flex justify-start">
-              <div class="max-w-[90%] sm:max-w-[78%] rounded-2xl rounded-bl-md px-4 py-3 shadow-sm bg-white border border-gray-200 text-gray-900">
+            <div class="flex justify-start items-end gap-2.5">
+              <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0" style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);">M</div>
+              <div class="max-w-[88%] sm:max-w-[74%] rounded-2xl rounded-bl-md px-4 py-3 bg-white shadow-[0_1px_3px_rgba(16,36,71,0.08)] text-gray-900">
                 <p class="text-sm whitespace-pre-wrap leading-relaxed">I'm Mela AI, your Armely assistant. Ask me about products, quotes, orders, invoices, or anything else you're working on.</p>
               </div>
             </div>
+
             <div
               v-for="chat in chatMessages"
               :key="chat.id"
-              class="flex"
+              class="flex items-end gap-2.5"
               :class="chat.role === 'user' ? 'justify-end' : 'justify-start'"
             >
               <div
-                class="max-w-[90%] sm:max-w-[78%] rounded-2xl px-4 py-3 shadow-sm"
+                v-if="chat.role !== 'user'"
+                class="w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0"
+                :style="chat.role === 'admin'
+                  ? 'background: linear-gradient(135deg, #f0a33c 0%, #d97706 100%);'
+                  : 'background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);'"
+              >
+                {{ chat.role === 'admin' ? 'S' : 'M' }}
+              </div>
+
+              <div
+                class="max-w-[88%] sm:max-w-[74%] rounded-2xl px-4 py-3"
                 :class="chat.role === 'user'
-                  ? 'bg-[#2F5597] text-white rounded-br-md'
-                  : 'bg-white border border-gray-200 text-gray-900 rounded-bl-md'"
+                  ? 'text-white rounded-br-md shadow-[0_2px_8px_rgba(47,85,151,0.25)]'
+                  : 'bg-white text-gray-900 rounded-bl-md shadow-[0_1px_3px_rgba(16,36,71,0.08)]'"
+                :style="chat.role === 'user' ? 'background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);' : ''"
               >
                 <p class="text-sm whitespace-pre-wrap leading-relaxed" v-html="renderMessageHtml(chat.text)"></p>
                 <p v-if="chat.degraded" class="mt-2 text-xs font-semibold text-amber-700">
@@ -194,10 +262,10 @@
                   <article
                     v-for="product in chat.productSuggestions"
                     :key="`suggestion-${chat.id}-${product.product_id}`"
-                    class="rounded-xl border border-gray-200 bg-gray-50 p-2.5"
+                    class="rounded-xl border border-gray-100 bg-gray-50 p-2.5"
                   >
                     <div class="flex gap-2">
-                      <div class="w-14 h-14 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                      <div class="w-14 h-14 rounded-lg bg-white border border-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
                         <img
                           v-if="product.image_url && !product._imgError"
                           :src="product.image_url"
@@ -212,7 +280,7 @@
                       <div class="min-w-0">
                         <p class="text-xs font-bold text-gray-900 truncate">{{ product.name }}</p>
                         <p class="text-[11px] text-gray-500 truncate" v-if="product.vendor">{{ product.vendor }} · {{ product.sku || 'SKU N/A' }}</p>
-                        <p class="text-xs font-semibold text-[#2F5597] mt-0.5">{{ formatCurrency(product.price) }}</p>
+                        <p class="text-xs font-bold text-[#2F5597] mt-0.5">{{ formatCurrency(product.price) }}</p>
                       </div>
                     </div>
 
@@ -223,7 +291,7 @@
                         v-for="action in product.actions || []"
                         :key="`prod-action-${product.product_id}-${action.label}`"
                         @click="handleProductAction(product, action)"
-                        class="px-2 py-1 rounded-md text-[11px] font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20"
+                        class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20 transition"
                       >
                         {{ action.label }}
                       </button>
@@ -236,57 +304,127 @@
                     v-for="action in chat.actions"
                     :key="`${chat.id}-${action.label}-${action.link}`"
                     @click="openActionLink(action.link)"
-                    class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20"
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                    :class="chat.role === 'user'
+                      ? 'bg-white/20 text-white hover:bg-white/30'
+                      : 'text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20'"
                   >
                     {{ action.label }}
                   </button>
                 </div>
-                <p class="mt-2 text-[10px] uppercase tracking-wide" :class="chat.role === 'user' ? 'text-blue-100' : 'text-gray-500'">
+                <p class="mt-2 text-[10px] uppercase tracking-wide font-semibold" :class="chat.role === 'user' ? 'text-blue-100' : 'text-gray-400'">
                   {{ getMessageSenderLabel(chat) }} · {{ formatMessageTimestamp(chat.createdAt) }}
                 </p>
+              </div>
+
+              <div
+                v-if="chat.role === 'user'"
+                class="w-9 h-9 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+              >
+                {{ userInitials }}
               </div>
             </div>
 
             <!-- Always reserve this row so the typing indicator never shifts messages. -->
-            <div class="h-12 flex justify-start items-start" aria-live="polite" aria-atomic="true">
-              <div
-                v-show="sendingChat"
-                class="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm pointer-events-none select-none"
-                role="status"
-                aria-label="Mela AI is typing"
-              >
-                <div class="flex items-center gap-1">
-                  <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce [animation-delay:-0.2s]"></span>
-                  <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce [animation-delay:-0.1s]"></span>
-                  <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce"></span>
+            <div class="h-12 flex justify-start items-start gap-2.5" aria-live="polite" aria-atomic="true">
+              <template v-if="sendingChat">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0" style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);">M</div>
+                <div
+                  class="bg-white rounded-2xl rounded-bl-md px-4 py-3 shadow-[0_1px_3px_rgba(16,36,71,0.08)] pointer-events-none select-none"
+                  role="status"
+                  aria-label="Mela AI is typing"
+                >
+                  <div class="flex items-center gap-1">
+                    <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce [animation-delay:-0.2s]"></span>
+                    <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce [animation-delay:-0.1s]"></span>
+                    <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce"></span>
+                  </div>
                 </div>
-              </div>
+              </template>
             </div>
           </div>
 
           <form
-            class="shrink-0 p-3 sm:p-4 border-t border-gray-200 bg-white"
+            class="shrink-0 px-4 sm:px-6 pt-4 border-t border-gray-100 bg-white"
             style="padding-bottom: calc(1rem + env(safe-area-inset-bottom));"
             @submit.prevent="sendChatMessage()"
           >
-            <div class="flex gap-2 items-stretch">
-              <textarea
-                v-model="chatInput"
-                rows="2"
-                :placeholder="isWaitingForHuman
-                  ? 'This chat is escalated. Your message will be sent to a human support agent.'
-                  : 'Ask Mela AI about products, invoices, payments, quotes, and tracking...'"
-                class="flex-1 resize-none rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 min-h-[84px] focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-                @keydown.enter.exact.prevent="sendChatMessage()"
-              ></textarea>
+            <div class="flex gap-2.5 items-end">
+              <div class="flex-1 flex items-end gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 focus-within:bg-white focus-within:border-[#2F5597]/40 focus-within:ring-2 focus-within:ring-[#2F5597]/20 transition">
+                <button
+                  type="button"
+                  disabled
+                  title="Attachments aren't supported in chat yet"
+                  class="w-8 h-8 rounded-lg text-gray-300 flex items-center justify-center flex-shrink-0 cursor-not-allowed"
+                  aria-label="Attach a file (not available)"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                </button>
+
+                <textarea
+                  v-model="chatInput"
+                  rows="1"
+                  :placeholder="isWaitingForHuman
+                    ? 'This chat is escalated. Your message will be sent to a human support agent.'
+                    : 'Ask Mela AI about products, invoices, payments, quotes, and tracking...'"
+                  class="flex-1 resize-none bg-transparent border-0 py-1.5 text-sm text-gray-900 placeholder-gray-400 max-h-40 focus:outline-none focus:ring-0"
+                  @input="autoGrowComposer"
+                  @keydown.enter.exact.prevent="sendChatMessage()"
+                ></textarea>
+
+                <div class="relative flex-shrink-0" data-emoji-menu>
+                  <button
+                    type="button"
+                    @click="showEmojiPicker = !showEmojiPicker"
+                    class="w-8 h-8 rounded-lg text-gray-400 hover:text-[#2F5597] hover:bg-gray-100 flex items-center justify-center transition"
+                    aria-label="Insert emoji"
+                    :aria-expanded="showEmojiPicker"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+
+                  <div
+                    v-if="showEmojiPicker"
+                    class="absolute bottom-11 right-0 z-20 w-56 rounded-xl border border-gray-200 bg-white p-2 shadow-lg grid grid-cols-7 gap-1"
+                  >
+                    <button
+                      v-for="emoji in quickEmojis"
+                      :key="`emoji-${emoji}`"
+                      type="button"
+                      @click="insertEmoji(emoji)"
+                      class="w-7 h-7 rounded-md text-base leading-none hover:bg-gray-100 transition"
+                    >
+                      {{ emoji }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 :disabled="chatRequestInFlight || !chatInput.trim()"
-                class="px-4 rounded-xl text-white font-semibold transition min-h-[84px] disabled:opacity-50 disabled:cursor-not-allowed"
-                style="background-color: #2F5597;"
+                class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-white text-sm font-bold shadow-[0_2px_8px_rgba(47,85,151,0.3)] transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex-shrink-0"
+                style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);"
               >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
                 Send
               </button>
+            </div>
+
+            <div class="mt-2.5 flex items-center justify-between gap-3 text-[11px] text-gray-400">
+              <p class="inline-flex items-center gap-1.5 min-w-0">
+                <svg class="w-3.5 h-3.5 flex-shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 21h6M10 17h4a4 4 0 002-3.5A6 6 0 106 13.5 4 4 0 008 17z" />
+                </svg>
+                <span class="truncate">Try asking about product availability, order status, invoices, or getting a quote.</span>
+              </p>
+              <p class="hidden sm:block flex-shrink-0">Press Enter to send · Shift + Enter for new line</p>
             </div>
           </form>
         </section>
@@ -349,6 +487,9 @@ const manageHistoryMode = ref(false)
 const selectedHistoryIds = ref([])
 const deletingHistory = ref(false)
 const loadingSessions = ref(true)
+const historySearch = ref('')
+const showEmojiPicker = ref(false)
+const quickEmojis = ['👍', '🙏', '👌', '🎉', '✅', '❓', '🙂', '😀', '😅', '🤔', '🔥', '💡', '⚠️', '❤️']
 let previousBodyOverflow = ''
 let previousHtmlOverflow = ''
 let pollingFailureCount = 0
@@ -594,14 +735,85 @@ const chatWelcomeName = computed(() => {
   return name.split(' ')[0]
 })
 
-const activeSessionLabel = computed(() => {
-  if (!activeSession.value) {
-    return 'Start a conversation with Mela AI'
+const userDisplayName = computed(() => (authStore.user?.name || '').trim() || 'Your account')
+const userEmail = computed(() => (authStore.user?.email || '').trim() || '')
+
+const userInitials = computed(() => {
+  const parts = (authStore.user?.name || '').trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return 'ME'
+  return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase()
+})
+
+const openAccountSettings = () => router.push('/account')
+
+const filteredSessions = computed(() => {
+  const term = historySearch.value.trim().toLowerCase()
+  if (!term) return chatSessions.value
+
+  return chatSessions.value.filter((session) => {
+    const title = String(session.title || '').toLowerCase()
+    const preview = String(session.last_message_preview || '').toLowerCase()
+    return title.includes(term) || preview.includes(term)
+  })
+})
+
+const sessionDateGroup = (session) => {
+  const raw = session.last_message_at || session.updated_at
+  const date = raw ? new Date(raw) : null
+  if (!date || Number.isNaN(date.getTime())) return 'Earlier'
+
+  const now = new Date()
+  if (date.toDateString() === now.toDateString()) return 'Today'
+
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday'
+
+  return (now - date) / 86400000 < 7 ? 'This week' : 'Earlier'
+}
+
+const groupedSessions = computed(() => {
+  const order = ['Today', 'Yesterday', 'This week', 'Earlier']
+  const buckets = new Map(order.map((label) => [label, []]))
+
+  filteredSessions.value.forEach((session) => {
+    buckets.get(sessionDateGroup(session)).push(session)
+  })
+
+  return order
+    .map((label) => ({ label, sessions: buckets.get(label) }))
+    .filter((group) => group.sessions.length)
+})
+
+const sessionTimeLabel = (session) => {
+  const raw = session.last_message_at || session.updated_at
+  const date = raw ? new Date(raw) : null
+  if (!date || Number.isNaN(date.getTime())) return ''
+
+  const now = new Date()
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
   }
 
-  const title = activeSession.value.title || ''
-  return title && title !== 'New chat' ? title : `Chat #${activeSession.value.id}`
-})
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+}
+
+const insertEmoji = (emoji) => {
+  chatInput.value = `${chatInput.value}${emoji}`
+  showEmojiPicker.value = false
+}
+
+const handleDocumentClick = (event) => {
+  if (showEmojiPicker.value && !event.target.closest('[data-emoji-menu]')) {
+    showEmojiPicker.value = false
+  }
+}
+
+const autoGrowComposer = (event) => {
+  const el = event.target
+  el.style.height = 'auto'
+  el.style.height = `${Math.min(el.scrollHeight, 160)}px`
+}
 
 // Welcome message is now a static banner in the template \u2014 always visible, never needs to be injected.
 const ensureChatWelcome = () => {}
@@ -1138,28 +1350,39 @@ const sendChatMessage = async (prefilled = null) => {
 
     const payload = await response.json()
     const assistantPayload = payload?.data || {}
-    // Execute only the operation returned for this send, never while loading chat history.
-    const operation = assistantPayload.cart_operation
-    if (operation && ['add_to_cart', 'prepare_quote', 'set_cart_quantity', 'remove_from_cart'].includes(operation.type)) {
-      let applied = false
-      try {
-        applied = await applyAssistantCartOperation(cartStore, operation, loadCartProduct)
-      } catch {
-        // Keep the conversation visible even if refreshing the product fails.
+    // Execute only the operations returned for this send, never while loading chat history.
+    const operations = (assistantPayload.cart_operations?.length
+      ? assistantPayload.cart_operations
+      : [assistantPayload.cart_operation].filter(Boolean)
+    ).filter(op => ['add_to_cart', 'prepare_quote', 'set_cart_quantity', 'remove_from_cart'].includes(op?.type))
+
+    if (operations.length) {
+      let appliedCount = 0
+      for (const operation of operations) {
+        try {
+          if (await applyAssistantCartOperation(cartStore, operation, loadCartProduct)) appliedCount++
+        } catch {
+          // Keep the conversation visible even if refreshing the product fails.
+        }
       }
-      if (applied) {
+
+      if (appliedCount) {
         const toastMessage = {
           prepare_quote: 'Quote ready for review',
           set_cart_quantity: 'Cart quantity updated',
-          remove_from_cart: 'Removed from cart'
-        }[operation.type] || 'Products added to cart'
+          remove_from_cart: 'Cart updated'
+        }[operations[operations.length - 1].type] || 'Products added to cart'
         toastStore.addToast(toastMessage, 'success')
-      } else {
-        assistantPayload.reply = operation.type === 'remove_from_cart'
-          ? 'That item could not be removed from your cart. Please check the cart and try again.'
-          : 'The products could not be added to your cart. Please check your account and product availability.'
       }
-      if (applied && operation.type === 'prepare_quote') {
+
+      // The assistant already wrote its reply, so correct it rather than let it overstate.
+      if (appliedCount < operations.length) {
+        assistantPayload.reply = appliedCount === 0
+          ? 'I could not apply that cart change. Please open the cart and check the items and their availability.'
+          : `${assistantPayload.reply}\n\n_Note: only ${appliedCount} of ${operations.length} cart changes were applied. Please review your cart._`
+      }
+
+      if (appliedCount && operations.some(op => op.type === 'prepare_quote')) {
         assistantPayload.actions = [{ label: 'Review and submit quote', link: '/cart?assistant_quote=1' }]
       }
     }
@@ -1222,6 +1445,7 @@ const sendChatMessage = async (prefilled = null) => {
 onMounted(async () => {
   clearLegacyPersistentChatCache()
   document.addEventListener('visibilitychange', handleDocumentVisibilityChange)
+  document.addEventListener('click', handleDocumentClick)
   previousBodyOverflow = document.body.style.overflow || ''
   previousHtmlOverflow = document.documentElement.style.overflow || ''
   document.body.style.overflow = 'hidden'
@@ -1254,6 +1478,7 @@ onMounted(async () => {
 onUnmounted(() => {
   stopMessagePolling()
   document.removeEventListener('visibilitychange', handleDocumentVisibilityChange)
+  document.removeEventListener('click', handleDocumentClick)
   document.body.style.overflow = previousBodyOverflow
   document.documentElement.style.overflow = previousHtmlOverflow
 })

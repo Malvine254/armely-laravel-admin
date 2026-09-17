@@ -18,7 +18,9 @@ use Illuminate\Support\Str;
 class AssistantToolkit
 {
     private array $productSuggestions = [];
-    private ?array $cartOperation = null;
+    private array $cartOperations = [];
+    /** Working copy of the cart, mutated as tools run so later calls see earlier ones. */
+    private ?array $cartLines = null;
     private array $calls = [];
     private ?string $escalationReason = null;
     private string $lastCatalogQuery = '';
@@ -120,9 +122,9 @@ class AssistantToolkit
         return array_values($this->productSuggestions);
     }
 
-    public function cartOperation(): ?array
+    public function cartOperations(): array
     {
-        return $this->cartOperation;
+        return $this->cartOperations;
     }
 
     public function calls(): array
@@ -347,12 +349,11 @@ class AssistantToolkit
      */
     private function viewCart(): array
     {
-        $lines = collect((array) ($this->recentContext['cart'] ?? []))
-            ->map(static fn ($line) => [
-                'product_id' => (string) ($line['productId'] ?? ''),
-                'quantity' => max(1, (int) ($line['quantity'] ?? 1)),
+        $lines = collect($this->cartLines())
+            ->map(static fn (int $quantity, string $productId) => [
+                'product_id' => $productId,
+                'quantity' => $quantity,
             ])
-            ->filter(static fn (array $line) => $line['product_id'] !== '')
             ->values();
 
         if ($lines->isEmpty()) {
@@ -404,7 +405,7 @@ class AssistantToolkit
         $productId = trim((string) ($arguments['product_id'] ?? ''));
         $sku = trim((string) ($arguments['sku'] ?? ''));
 
-        $cartIds = $this->cartProductIds();
+        $cartIds = collect(array_keys($this->cartLines()));
 
         if ($productId === '' && $sku === '' && $cartIds->count() === 1) {
             $productId = (string) $cartIds->first();
@@ -426,12 +427,19 @@ class AssistantToolkit
             return ['ok' => false, 'error' => 'That product is not in the cart, so nothing was removed.'];
         }
 
-        $this->cartOperation = [
+        unset($this->cartLines[$productId]);
+
+        $this->cartOperations[] = [
             'type' => 'remove_from_cart',
             'items' => [['productId' => $productId, 'quantity' => 1]],
         ];
 
-        return ['ok' => true, 'action' => 'removed_from_cart', 'product_id' => $productId];
+        return [
+            'ok' => true,
+            'action' => 'removed_from_cart',
+            'product_id' => $productId,
+            'cart_lines_remaining' => count($this->cartLines),
+        ];
     }
 
     private function addToCart(array $arguments): array
@@ -441,9 +449,9 @@ class AssistantToolkit
 
         // "Make it five" carries no identifier; it means the line already in the cart.
         if ($productId === '' && $sku === '') {
-            $cartIds = $this->cartProductIds();
-            $productId = $cartIds->count() === 1
-                ? (string) $cartIds->first()
+            $cartIds = array_keys($this->cartLines());
+            $productId = count($cartIds) === 1
+                ? (string) $cartIds[0]
                 : trim((string) ($this->recentContext['staged_product_id'] ?? ''));
         }
 
@@ -470,10 +478,16 @@ class AssistantToolkit
             default => 'add_to_cart',
         };
 
-        $this->cartOperation = [
+        $identifier = (string) $product['product_id'];
+        $this->cartLines();
+        $this->cartLines[$identifier] = $mode === 'add_to_cart'
+            ? ($this->cartLines[$identifier] ?? 0) + $quantity
+            : $quantity;
+
+        $this->cartOperations[] = [
             'type' => $mode,
             'items' => [[
-                'productId' => (string) $product['product_id'],
+                'productId' => $identifier,
                 'productName' => (string) $product['name'],
                 'mfgPartNo' => (string) $product['sku'],
                 'vendorId' => (string) $product['vendor'],
@@ -483,7 +497,7 @@ class AssistantToolkit
             ]],
         ];
 
-        $this->productSuggestions[(string) $product['product_id']] = $product;
+        $this->productSuggestions[$identifier] = $product;
 
         return [
             'ok' => true,
@@ -497,6 +511,7 @@ class AssistantToolkit
             'quantity' => $quantity,
             'unit_price_usd' => round((float) $product['price'], 2),
             'line_total_usd' => round((float) $product['price'] * $quantity, 2),
+            'cart_quantity_now' => $this->cartLines[$identifier],
             'next_step' => $mode === 'prepare_quote'
                 ? 'The customer must open the cart and confirm their shipping address to submit the quote.'
                 : 'The customer can open the cart to review and check out.',
@@ -556,12 +571,21 @@ class AssistantToolkit
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 
-    private function cartProductIds(): \Illuminate\Support\Collection
+    /**
+     * @return array<string, int> productId => quantity
+     */
+    private function cartLines(): array
     {
-        return collect((array) ($this->recentContext['cart'] ?? []))
-            ->map(static fn ($line) => (string) ($line['productId'] ?? ''))
-            ->filter()
-            ->values();
+        if ($this->cartLines === null) {
+            $this->cartLines = collect((array) ($this->recentContext['cart'] ?? []))
+                ->mapWithKeys(static fn ($line) => [
+                    (string) ($line['productId'] ?? '') => max(1, (int) ($line['quantity'] ?? 1)),
+                ])
+                ->filter(static fn (int $quantity, string $productId) => $productId !== '')
+                ->all();
+        }
+
+        return $this->cartLines;
     }
 
     private function tool(string $name, string $description, array $properties, array $required = []): array

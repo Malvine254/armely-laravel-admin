@@ -596,7 +596,7 @@ class MessageController extends Controller
                     'degraded' => false,
                     'tool_calls' => $agentResult['tool_calls'],
                     'catalog_search_query' => $agentResult['catalog_search_query'],
-                    'cart_operation' => $agentResult['cart_operation'],
+                    'cart_operations' => $agentResult['cart_operations'],
                     'product_suggestions' => $agentResult['product_suggestions'],
                 ],
             ]);
@@ -616,7 +616,8 @@ class MessageController extends Controller
                         'id' => $session->id,
                         'title' => $session->title,
                     ],
-                    'cart_operation' => $agentResult['cart_operation'],
+                    'cart_operation' => $agentResult['cart_operations'][0] ?? null,
+                    'cart_operations' => $agentResult['cart_operations'],
                 ],
             ]);
         }
@@ -1174,10 +1175,10 @@ class MessageController extends Controller
             return null;
         }
 
-        $cartOperation = $toolkit->cartOperation();
+        $cartOperations = $toolkit->cartOperations();
         // Product cards are only rendered when the model actually searched the catalogue, so an
         // account answer can never inherit leftover cards from an earlier turn.
-        $productSuggestions = $toolkit->used('search_catalog') || $cartOperation !== null
+        $productSuggestions = $toolkit->used('search_catalog') || $cartOperations !== []
             ? $toolkit->productSuggestions()
             : [];
 
@@ -1185,7 +1186,7 @@ class MessageController extends Controller
             'reply' => $outcome['reply'],
             'actions' => $this->buildToolAgentActions($toolkit),
             'product_suggestions' => $productSuggestions,
-            'cart_operation' => $cartOperation,
+            'cart_operations' => $cartOperations,
             'catalog_search_query' => $toolkit->lastCatalogQuery() ?: null,
             'tool_calls' => $outcome['tool_calls'],
             'intent' => $this->toolAgentIntent($toolkit),
@@ -1199,14 +1200,11 @@ class MessageController extends Controller
     private function buildToolAgentActions(AssistantToolkit $toolkit): array
     {
         $actions = [];
-        $cartOperation = $toolkit->cartOperation();
+        $cartOperations = collect($toolkit->cartOperations());
 
-        if ($cartOperation !== null) {
-            $actions[] = match ($cartOperation['type']) {
-                'prepare_quote' => ['label' => 'Review and submit quote', 'link' => '/cart?assistant_quote=1'],
-                default => ['label' => 'Review cart', 'link' => '/cart'],
-            };
-        } elseif ($toolkit->used('view_cart')) {
+        if ($cartOperations->contains(static fn (array $operation) => $operation['type'] === 'prepare_quote')) {
+            $actions[] = ['label' => 'Review and submit quote', 'link' => '/cart?assistant_quote=1'];
+        } elseif ($cartOperations->isNotEmpty() || $toolkit->used('view_cart')) {
             $actions[] = ['label' => 'Review cart', 'link' => '/cart'];
         }
 
@@ -1279,7 +1277,8 @@ class MessageController extends Controller
         $stagedQuantity = null;
 
         foreach ($messages as $message) {
-            $cartItem = data_get($message->metadata, 'cart_operation.items.0');
+            $cartItem = data_get($message->metadata, 'cart_operations.0.items.0')
+                ?? data_get($message->metadata, 'cart_operation.items.0');
             if ($stagedProductId === null && is_array($cartItem) && !empty($cartItem['productId'])) {
                 $stagedProductId = (string) $cartItem['productId'];
                 $stagedQuantity = (int) ($cartItem['quantity'] ?? 1);

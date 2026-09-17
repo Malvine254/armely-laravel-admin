@@ -886,9 +886,9 @@ class AssistantChatHardeningTest extends TestCase
             'chat_session_id' => (int) $first->json('data.chat_session.id'),
         ])->assertOk();
 
-        $second->assertJsonPath('data.cart_operation.type', 'set_cart_quantity');
-        $second->assertJsonPath('data.cart_operation.items.0.productId', 'DOCK-1');
-        $second->assertJsonPath('data.cart_operation.items.0.quantity', 5);
+        $second->assertJsonPath('data.cart_operations.0.type', 'set_cart_quantity');
+        $second->assertJsonPath('data.cart_operations.0.items.0.productId', 'DOCK-1');
+        $second->assertJsonPath('data.cart_operations.0.items.0.quantity', 5);
 
         // The staged item is carried into the prompt so the model can reference it directly.
         $this->assertStringContainsString('DOCK-1', end($systemPrompts));
@@ -982,9 +982,71 @@ class AssistantChatHardeningTest extends TestCase
         ]);
 
         $response->assertOk();
-        $response->assertJsonPath('data.cart_operation.type', 'remove_from_cart');
-        $response->assertJsonPath('data.cart_operation.items.0.productId', 'LAP-1');
+        $response->assertJsonPath('data.cart_operations.0.type', 'remove_from_cart');
+        $response->assertJsonPath('data.cart_operations.0.items.0.productId', 'LAP-1');
         $this->assertStringContainsString('not in the cart', $toolResults[0] ?? '');
+    }
+
+    public function test_clearing_several_cart_lines_returns_every_removal(): void
+    {
+        config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
+        config()->set('services.azure_openai.api_key', 'test-key');
+        config()->set('services.azure_openai.deployment', 'test-deployment');
+
+        $round = 0;
+        $toolResults = [];
+
+        Http::fake(function ($request) use (&$round, &$toolResults) {
+            // Each request replays every prior tool result, so keep only the latest snapshot.
+            $toolResults = collect((array) data_get($request->data(), 'messages', []))
+                ->where('role', 'tool')
+                ->map(static fn (array $message) => json_decode((string) $message['content'], true))
+                ->values()
+                ->all();
+
+            $round++;
+
+            if ($round === 1) {
+                return $this->fakeToolCall('remove_a', 'remove_from_cart', ['product_id' => 'LAP-1']);
+            }
+
+            if ($round === 2) {
+                return $this->fakeToolCall('remove_b', 'remove_from_cart', ['product_id' => 'MON-27']);
+            }
+
+            if ($round === 3) {
+                // A third removal must fail: the working cart is already empty.
+                return $this->fakeToolCall('remove_c', 'remove_from_cart', ['product_id' => 'LAP-1']);
+            }
+
+            return Http::response([
+                'choices' => [['message' => ['content' => 'Your cart is now empty.']]],
+            ]);
+        });
+
+        $user = $this->createCustomer('Cart Clear User', 'cart-clear@example.com');
+        $this->insertCatalogProduct('LAP-1', 'Lenovo ThinkPad E14 Gen 7', 'Business laptop.', 1175, 'Laptops');
+        $this->insertCatalogProduct('MON-27', 'ViewSonic VG2755 27 inch Monitor', '27 inch business monitor.', 253.82, 'Monitors');
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'clear the cart',
+            'cart' => [
+                ['productId' => 'LAP-1', 'quantity' => 5],
+                ['productId' => 'MON-27', 'quantity' => 5],
+            ],
+        ]);
+
+        $response->assertOk();
+
+        // Both removals must reach the browser; the old single-slot payload dropped the first.
+        $this->assertCount(2, $response->json('data.cart_operations'));
+        $this->assertSame(
+            ['LAP-1', 'MON-27'],
+            collect($response->json('data.cart_operations'))->pluck('items.0.productId')->all()
+        );
+        $this->assertTrue($toolResults[0]['ok']);
+        $this->assertTrue($toolResults[1]['ok']);
+        $this->assertFalse($toolResults[2]['ok']);
     }
 
     public function test_tool_agent_cart_action_requires_a_real_catalog_product(): void
@@ -1029,9 +1091,9 @@ class AssistantChatHardeningTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('data.source', 'tool_agent');
-        $response->assertJsonPath('data.cart_operation.type', 'add_to_cart');
-        $response->assertJsonPath('data.cart_operation.items.0.productId', 'DOCK-1');
-        $response->assertJsonPath('data.cart_operation.items.0.quantity', 2);
+        $response->assertJsonPath('data.cart_operations.0.type', 'add_to_cart');
+        $response->assertJsonPath('data.cart_operations.0.items.0.productId', 'DOCK-1');
+        $response->assertJsonPath('data.cart_operations.0.items.0.quantity', 2);
 
         // The unknown SKU must be reported back as a failure so the model cannot claim success.
         $this->assertStringContainsString('"ok":false', $toolResults[0] ?? '');
