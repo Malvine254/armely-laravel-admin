@@ -52,13 +52,16 @@
         </div>
 
         <div v-else class="flex-1 overflow-y-auto themed-scrollbar px-3 py-3">
-          <button
-            v-for="session in displayedSessions"
-            :key="session.id"
-            @click="selectSession(session)"
-            class="w-full text-left rounded-xl mb-1.5 p-3 transition relative"
-            :class="activeSession?.id === session.id ? 'bg-[#2F5597]/[0.07]' : 'hover:bg-gray-50'"
-          >
+          <template v-for="group in groupedSessions" :key="`admin-group-${group.label}`">
+            <p class="px-2 pt-1 pb-2 text-[11px] font-bold text-gray-400">{{ group.label }}</p>
+
+            <button
+              v-for="session in group.sessions"
+              :key="session.id"
+              @click="selectSession(session)"
+              class="w-full text-left rounded-xl mb-1.5 p-3 transition relative"
+              :class="activeSession?.id === session.id ? 'bg-[#2F5597]/[0.07]' : 'hover:bg-gray-50'"
+            >
             <span
               v-if="activeSession?.id === session.id"
               class="absolute left-0 top-2 bottom-2 w-1 rounded-r-full"
@@ -89,10 +92,28 @@
               </div>
             </div>
           </button>
+          </template>
 
           <p v-if="!displayedSessions.length" class="text-[11px] text-gray-400 px-2 py-8 text-center">
             {{ sessionSearch.trim() ? `No conversations match "${sessionSearch}".` : (tab === 'open' ? 'No open escalations' : 'No chat history yet') }}
           </p>
+        </div>
+
+        <div class="shrink-0 px-4 py-3.5 border-t border-gray-100 flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 overflow-hidden" style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);">
+            <img
+              v-if="adminAvatarUrl && !failedAvatars.includes('self')"
+              :src="adminAvatarUrl"
+              :alt="adminName"
+              class="w-full h-full object-cover"
+              @error="failedAvatars.push('self')"
+            >
+            <span v-else>{{ initialsOf(adminName) }}</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-[13px] font-bold text-gray-900 truncate">{{ adminName }}</p>
+            <p class="text-[11px] text-gray-400 truncate">{{ adminEmail }}</p>
+          </div>
         </div>
       </div>
 
@@ -163,12 +184,19 @@
               >
                 <div
                   v-if="msg.role !== 'user'"
-                  class="w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0"
+                  class="w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0 overflow-hidden"
                   :style="msg.role === 'admin'
                     ? 'background: linear-gradient(135deg, #f0a33c 0%, #d97706 100%);'
                     : 'background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);'"
                 >
-                  {{ msg.role === 'admin' ? 'A' : 'M' }}
+                  <img
+                    v-if="msg.role === 'admin' && agentAvatar(msg) && !failedAvatars.includes(`msg-${msg.id}`)"
+                    :src="agentAvatar(msg)"
+                    :alt="msg.sender_name || 'Support'"
+                    class="w-full h-full object-cover"
+                    @error="failedAvatars.push(`msg-${msg.id}`)"
+                  >
+                  <span v-else>{{ msg.role === 'admin' ? initialsOf(msg.sender_name || adminName) : 'M' }}</span>
                 </div>
 
                 <div
@@ -221,7 +249,16 @@
 
               <!-- Typing indicator while sending -->
               <div v-if="sending" class="flex justify-start items-end gap-2.5">
-                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0" style="background: linear-gradient(135deg, #f0a33c 0%, #d97706 100%);">A</div>
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0 overflow-hidden" style="background: linear-gradient(135deg, #f0a33c 0%, #d97706 100%);">
+                  <img
+                    v-if="adminAvatarUrl && !failedAvatars.includes('self')"
+                    :src="adminAvatarUrl"
+                    :alt="adminName"
+                    class="w-full h-full object-cover"
+                    @error="failedAvatars.push('self')"
+                  >
+                  <span v-else>{{ initialsOf(adminName) }}</span>
+                </div>
                 <div class="bg-white rounded-2xl rounded-bl-md px-4 py-3 shadow-[0_1px_3px_rgba(16,36,71,0.08)]">
                   <div class="flex items-center gap-1">
                     <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce [animation-delay:-0.2s]"></span>
@@ -280,6 +317,7 @@ import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import AdminLayout from '../components/AdminLayout.vue'
 import api from '../services/api.js'
 import { resolveProfilePictureUrl } from '../services/runtimeConfig'
+import { useAuthStore } from '../stores/authStore'
 
 const tab = ref('open')
 const listLoading = ref(true)
@@ -320,7 +358,45 @@ const initialsOf = (name) => {
   return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase()
 }
 
+const groupedSessions = computed(() => {
+  const order = ['Today', 'Yesterday', 'This week', 'Earlier']
+  const buckets = new Map(order.map((label) => [label, []]))
+
+  displayedSessions.value.forEach((session) => {
+    const raw = session.last_message_at || session.escalated_at || session.updated_at
+    const date = raw ? new Date(raw) : null
+    let label = 'Earlier'
+
+    if (date && !Number.isNaN(date.getTime())) {
+      const now = new Date()
+      const yesterday = new Date(now)
+      yesterday.setDate(now.getDate() - 1)
+
+      if (date.toDateString() === now.toDateString()) label = 'Today'
+      else if (date.toDateString() === yesterday.toDateString()) label = 'Yesterday'
+      else if ((now - date) / 86400000 < 7) label = 'This week'
+    }
+
+    buckets.get(label).push(session)
+  })
+
+  return order
+    .map((label) => ({ label, sessions: buckets.get(label) }))
+    .filter((group) => group.sessions.length)
+})
+
 const customerAvatar = (user) => resolveProfilePictureUrl(user?.profile_picture_url, user?.profile_picture)
+
+const authStore = useAuthStore()
+const adminName = computed(() => (authStore.user?.name || '').trim() || 'Support')
+const adminEmail = computed(() => (authStore.user?.email || '').trim() || '')
+const adminAvatarUrl = computed(() => resolveProfilePictureUrl(
+  authStore.user?.profile_picture_url,
+  authStore.user?.profile_picture
+))
+
+// Replies from other agents carry their own avatar; fall back to the signed-in admin's.
+const agentAvatar = (msg) => msg?.sender_avatar_url || adminAvatarUrl.value
 
 const autoGrowReply = (event) => {
   const el = event.target

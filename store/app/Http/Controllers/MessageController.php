@@ -3811,6 +3811,7 @@ class MessageController extends Controller
                         'name' => $session->user->name,
                         'email' => $session->user->email,
                         'profile_picture' => $session->user->profile_picture,
+                        'profile_picture_url' => $session->user->profilePictureUrl(),
                     ] : null,
                     'escalated_at' => $session->escalated_at,
                     'resolved_at' => $session->resolved_at ?? null,
@@ -3844,6 +3845,7 @@ class MessageController extends Controller
             ->findOrFail($chatSessionId);
 
         $messages = ChatMessage::where('chat_session_id', $session->id)
+            ->with('user:id,name,profile_picture')
             ->orderBy('id')
             ->get()
             ->map(fn (ChatMessage $msg) => [
@@ -3852,6 +3854,10 @@ class MessageController extends Controller
                 'text' => $msg->content,
                 'actions' => $msg->actions ?? [],
                 'attachments' => $this->presentStoredAttachments($msg->attachments),
+                'sender_name' => $msg->role === 'admin'
+                    ? (string) data_get($msg->metadata, 'admin_name', $msg->user?->name ?? 'Support Team')
+                    : null,
+                'sender_avatar_url' => $msg->role === 'admin' ? $msg->user?->profilePictureUrl() : null,
                 'created_at' => $msg->created_at,
             ]);
 
@@ -3870,6 +3876,7 @@ class MessageController extends Controller
                         'name' => $session->user->name,
                         'email' => $session->user->email,
                         'profile_picture' => $session->user->profile_picture,
+                        'profile_picture_url' => $session->user->profilePictureUrl(),
                     ] : null,
                 ],
                 'messages' => $messages,
