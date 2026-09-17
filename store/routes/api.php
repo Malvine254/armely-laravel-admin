@@ -62,6 +62,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/profile-pictures/{path}', [AuthController::class, 'profilePicture'])
         ->where('path', 'profile-pictures/.*')
         ->middleware('throttle:120,1');
+    // Signed rather than bearer-authenticated: an <img> tag cannot send an Authorization header.
+    Route::get('/messages/assistant/attachments/{attachmentId}', [MessageController::class, 'showAssistantAttachment'])
+        ->name('assistant.attachment')
+        ->middleware(['signed', 'throttle:120,1']);
     Route::get('/auth/me', [AuthController::class, 'me'])->middleware(['auth:sanctum', 'active.user']);
     Route::match(['put', 'post'], '/auth/update-profile', [AuthController::class, 'updateProfile'])->middleware(['auth:sanctum', 'active.user']);
     Route::delete('/auth/account', [AuthController::class, 'deleteAccount'])->middleware(['auth:sanctum', 'active.user']);
@@ -170,7 +174,6 @@ Route::prefix('v1')->group(function () {
         Route::post('/messages/chats/{chatSessionId}/escalate', [MessageController::class, 'escalateChatSession']);
         Route::post('/messages/assistant/chat', [MessageController::class, 'assistantChat'])->middleware('throttle:30,1');
         Route::post('/messages/assistant/attachments', [MessageController::class, 'uploadAssistantAttachment'])->middleware('throttle:20,1');
-        Route::get('/messages/assistant/attachments/{attachmentId}', [MessageController::class, 'showAssistantAttachment']);
         Route::get('/messages/unread-count', [MessageController::class, 'getUnreadCount']);
         Route::post('/messages/{id}/read', [MessageController::class, 'markAsRead']);
         Route::post('/messages/mark-all-read', [MessageController::class, 'markAllAsRead']);

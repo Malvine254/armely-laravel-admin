@@ -1118,9 +1118,13 @@ class AssistantChatHardeningTest extends TestCase
         ]);
         $uploaded->assertOk();
         $attachmentId = (int) $uploaded->json('data.id');
+        $signedUrl = (string) $uploaded->json('data.url');
 
-        $this->actingAs($stranger, 'sanctum')->get("/api/v1/messages/assistant/attachments/{$attachmentId}")->assertNotFound();
-        $this->actingAs($owner, 'sanctum')->get("/api/v1/messages/assistant/attachments/{$attachmentId}")->assertOk();
+        // The link is signed, so it loads in an <img> tag, but cannot be forged or guessed.
+        $this->assertStringContainsString('signature=', $signedUrl);
+        $this->get($signedUrl)->assertOk();
+        $this->get("/api/v1/messages/assistant/attachments/{$attachmentId}")->assertForbidden();
+        $this->get("/api/v1/messages/assistant/attachments/{$attachmentId}?signature=deadbeef&expires=9999999999")->assertForbidden();
 
         // A stranger also cannot attach someone else's upload to their own message.
         config()->set('services.azure_openai.endpoint', '');

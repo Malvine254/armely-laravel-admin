@@ -22,6 +22,7 @@ use App\Support\ChatIntentSignals;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class MessageController extends Controller
@@ -299,7 +300,7 @@ class MessageController extends Controller
                     'role' => $message->role,
                     'text' => $message->content,
                     'actions' => $message->actions ?? [],
-                    'attachments' => $message->attachments ?? [],
+                    'attachments' => $this->presentStoredAttachments($message->attachments),
                     'product_suggestions' => (array) data_get($message->metadata, 'product_suggestions', []),
                     'degraded' => (bool) data_get($message->metadata, 'degraded', false),
                     'sender_name' => $senderName,
@@ -959,13 +960,12 @@ class MessageController extends Controller
     }
 
     /**
-     * Stream an attachment back to its owner. Ownership is checked on every read.
+     * Serve an attachment. The signed URL is the authorisation here: it is issued only to the
+     * owner, cannot be forged, and expires, which lets an <img> tag load it without a token.
      */
     public function showAssistantAttachment(Request $request, int $attachmentId)
     {
-        $attachment = ChatAttachment::where('id', $attachmentId)
-            ->where('user_id', $request->user()->id)
-            ->first();
+        $attachment = ChatAttachment::find($attachmentId);
 
         if (!$attachment || !Storage::disk($attachment->disk)->exists($attachment->path)) {
             abort(404);
@@ -992,8 +992,36 @@ class MessageController extends Controller
             'mime_type' => $attachment->mime_type,
             'size_bytes' => $attachment->size_bytes,
             'is_image' => $attachment->isImage(),
-            'url' => '/api/v1/messages/assistant/attachments/' . $attachment->id,
+            'url' => $this->attachmentUrl($attachment->id),
         ];
+    }
+
+    /**
+     * Stored message JSON keeps an expired link, so the URL is re-signed on every read.
+     */
+    private function presentStoredAttachments(mixed $stored): array
+    {
+        return collect(is_array($stored) ? $stored : [])
+            ->filter(static fn ($item) => is_array($item) && !empty($item['id']))
+            ->map(fn (array $item) => [
+                'id' => (int) $item['id'],
+                'name' => (string) ($item['name'] ?? 'attachment'),
+                'mime_type' => (string) ($item['mime_type'] ?? ''),
+                'size_bytes' => (int) ($item['size_bytes'] ?? 0),
+                'is_image' => (bool) ($item['is_image'] ?? false),
+                'url' => $this->attachmentUrl((int) $item['id']),
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function attachmentUrl(int $attachmentId): string
+    {
+        return URL::temporarySignedRoute(
+            'assistant.attachment',
+            now()->addDays(7),
+            ['attachmentId' => $attachmentId]
+        );
     }
 
     /**
@@ -3820,7 +3848,7 @@ class MessageController extends Controller
                 'role' => $msg->role,
                 'text' => $msg->content,
                 'actions' => $msg->actions ?? [],
-                'attachments' => $msg->attachments ?? [],
+                'attachments' => $this->presentStoredAttachments($msg->attachments),
                 'created_at' => $msg->created_at,
             ]);
 
