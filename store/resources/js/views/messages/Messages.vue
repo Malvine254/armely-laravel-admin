@@ -387,7 +387,13 @@
                 :key="`pending-${file.id ?? file.tempId}`"
                 class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 pl-2 pr-1.5 py-1.5 max-w-[220px]"
               >
-                <img v-if="file.is_image && file.url" :src="file.url" alt="" class="w-8 h-8 rounded-lg object-cover flex-shrink-0">
+                <img
+                  v-if="file.is_image && file.url && !file.previewFailed"
+                  :src="file.url"
+                  :alt="file.name"
+                  class="w-8 h-8 rounded-lg object-cover flex-shrink-0"
+                  @error="file.previewFailed = true"
+                >
                 <svg v-else class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
@@ -479,7 +485,7 @@
                 style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                 </svg>
                 Send
               </button>
@@ -907,20 +913,27 @@ const formatFileSize = (bytes) => {
 }
 
 const removePendingAttachment = (file) => {
-  pendingAttachments.value = pendingAttachments.value.filter((item) => item !== file)
+  const key = file?.tempId
+  const target = pendingAttachments.value.find((item) => item.tempId === key)
+  if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl)
+  pendingAttachments.value = pendingAttachments.value.filter((item) => item.tempId !== key)
 }
 
 const uploadAttachment = async (file) => {
-  const entry = {
-    tempId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  const tempId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const isImage = file.type.startsWith('image/')
+  const previewUrl = isImage ? URL.createObjectURL(file) : null
+
+  pendingAttachments.value.push({
+    tempId,
     name: file.name,
     size_bytes: file.size,
-    is_image: file.type.startsWith('image/'),
-    url: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+    is_image: isImage,
+    url: previewUrl,
+    previewUrl,
     uploading: true,
     id: null,
-  }
-  pendingAttachments.value.push(entry)
+  })
 
   try {
     const body = new FormData()
@@ -937,9 +950,20 @@ const uploadAttachment = async (file) => {
       throw new Error(payload?.message || 'Upload failed')
     }
 
-    Object.assign(entry, payload.data, { uploading: false, url: entry.url || payload.data.url })
+    // Replace the entry rather than mutating it: the pushed object is the raw target, and
+    // mutating a raw target behind a reactive proxy does not trigger an update.
+    const index = pendingAttachments.value.findIndex((item) => item.tempId === tempId)
+    if (index >= 0) {
+      pendingAttachments.value[index] = {
+        ...pendingAttachments.value[index],
+        ...payload.data,
+        name: pendingAttachments.value[index].name || payload.data.name,
+        url: previewUrl || payload.data.url,
+        uploading: false,
+      }
+    }
   } catch (error) {
-    removePendingAttachment(entry)
+    removePendingAttachment({ tempId })
     toastStore.addToast(`Could not attach ${file.name}`, 'error')
   }
 }
