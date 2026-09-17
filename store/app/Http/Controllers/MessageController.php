@@ -3954,7 +3954,7 @@ class MessageController extends Controller
     private function requireAdminRole(Request $request): void
     {
         $user = $request->user();
-        if (!$user || !in_array($user->role ?? '', ['admin', 'owner', 'manager'], true)) {
+        if (!$user || !in_array($user->role ?? '', ['admin', 'super_admin', 'owner', 'manager'], true)) {
             abort(403, 'Admin access required');
         }
     }

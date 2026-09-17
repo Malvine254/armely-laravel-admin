@@ -1203,6 +1203,43 @@ class AssistantChatHardeningTest extends TestCase
         $this->assertStringContainsString('"properties":{}', json_encode($viewCart['function']['parameters']));
     }
 
+    public function test_super_admins_can_see_escalated_chats(): void
+    {
+        $customer = $this->createCustomer('Escalating Customer', 'escalating@example.com');
+
+        $sessionId = \Illuminate\Support\Facades\DB::table('chat_sessions')->insertGetId([
+            'user_id' => $customer->id,
+            'title' => 'Needs a human',
+            'escalated_to_human' => true,
+            'escalated_at' => now(),
+            'resolved_at' => null,
+            'last_message_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        foreach (['super_admin', 'admin'] as $role) {
+            $admin = $this->createCustomer("Chat {$role}", "chat-{$role}@example.com");
+            \Illuminate\Support\Facades\DB::table('users')->where('id', $admin->id)->update(['role' => $role]);
+            $admin->refresh();
+
+            $response = $this->actingAs($admin, 'sanctum')->getJson('/api/v1/admin/chats?resolved=false');
+            $response->assertOk();
+            $this->assertContains(
+                $sessionId,
+                collect($response->json('data'))->pluck('id')->all(),
+                "{$role} could not see the escalated chat"
+            );
+
+            $this->actingAs($admin, 'sanctum')->getJson('/api/v1/admin/chats/unread-count')
+                ->assertOk()
+                ->assertJsonPath('count', 1);
+        }
+
+        // A normal customer must still be refused.
+        $this->actingAs($customer, 'sanctum')->getJson('/api/v1/admin/chats?resolved=false')->assertForbidden();
+    }
+
     public function test_tool_agent_cart_action_requires_a_real_catalog_product(): void
     {
         config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
