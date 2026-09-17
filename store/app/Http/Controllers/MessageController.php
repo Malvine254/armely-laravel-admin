@@ -13,6 +13,7 @@ use App\Models\Quote;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\AppSetting;
+use App\Services\Assistant\AssistantToolkit;
 use App\Services\AzureOpenAiChatService;
 use App\Services\NotificationService;
 use App\Services\TDSynnexService;
@@ -567,7 +568,58 @@ class MessageController extends Controller
             ]);
         }
 
+        $agentResult = $this->runAssistantAgent($user, $question, $session);
+
+        if ($agentResult !== null) {
+            if ($agentResult['escalation_reason'] !== null && !(bool) $session->escalated_to_human) {
+                $session->forceFill([
+                    'escalated_to_human' => true,
+                    'escalated_at' => now(),
+                    'resolved_at' => null,
+                ])->save();
+
+                $this->notifyEscalationAdmins($session, $user, null, false, 'assistant_tool_escalation');
+            }
+
+            ChatMessage::create([
+                'chat_session_id' => $session->id,
+                'user_id' => $user->id,
+                'role' => 'assistant',
+                'content' => $agentResult['reply'],
+                'actions' => $agentResult['actions'],
+                'metadata' => [
+                    'source' => 'tool_agent',
+                    'intent' => $agentResult['intent'],
+                    'degraded' => false,
+                    'tool_calls' => $agentResult['tool_calls'],
+                    'catalog_search_query' => $agentResult['catalog_search_query'],
+                    'product_suggestions' => $agentResult['product_suggestions'],
+                ],
+            ]);
+
+            $session->forceFill(['last_message_at' => now()])->save();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'reply' => $agentResult['reply'],
+                    'actions' => $agentResult['actions'],
+                    'product_suggestions' => $agentResult['product_suggestions'],
+                    'source' => 'tool_agent',
+                    'status' => 'ok',
+                    'degraded' => false,
+                    'chat_session' => [
+                        'id' => $session->id,
+                        'title' => $session->title,
+                    ],
+                    'cart_operation' => $agentResult['cart_operation'],
+                ],
+            ]);
+        }
+
         $context = $this->buildAssistantContext($user, $question, $session->id);
+        $context['address_by_name'] = $this->resolveNamePreference($question, $context['recent_chat_turns'] ?? []);
+        $context['requested_quantity'] = $this->resolveRequestedQuantity($question, $context['recent_chat_turns'] ?? []);
         $queryAuditHandled = $this->handleCatalogQueryAudit($question, $context);
 
         if ($queryAuditHandled !== null) {
@@ -648,6 +700,7 @@ class MessageController extends Controller
                 'product_suggestions' => (array) ($localProductHandled['product_suggestions'] ?? []),
                 'source'              => $localProductHandled['source'],
                 'intent'              => 'product_search',
+                'cart_operation'      => $localProductHandled['cart_operation'] ?? null,
             ];
         } else {
             $agentResult = $this->assistantService->orchestrate($question, $context, $chatHistory);
@@ -663,7 +716,7 @@ class MessageController extends Controller
             }
         }
 
-        $assistantReply     = (string) ($agentResult['reply'] ?? '');
+        $assistantReply     = $this->personalizeAssistantReply((string) ($agentResult['reply'] ?? ''), $context);
         $actions            = (array) ($agentResult['actions'] ?? []);
         $productSuggestions = (array) ($agentResult['product_suggestions'] ?? []);
         $source             = (string) ($agentResult['source'] ?? 'azure_openai');
@@ -695,6 +748,8 @@ class MessageController extends Controller
                 'source'              => $source,
                 'intent'              => $intent,
                 'degraded'            => $degraded,
+                'address_by_name'     => $context['address_by_name'] ?? false,
+                'requested_quantity'  => $context['requested_quantity'] ?? 1,
                 'catalog_search_query' => $context['catalog_search_query'] ?? null,
                 'product_suggestions' => $productSuggestions,
             ],
@@ -717,6 +772,7 @@ class MessageController extends Controller
                     'id'    => $session->id,
                     'title' => $session->title,
                 ],
+                'cart_operation' => $agentResult['cart_operation'] ?? null,
             ],
         ]);
         } catch (\Throwable $e) {
@@ -1066,6 +1122,156 @@ class MessageController extends Controller
         ]);
     }
 
+    /**
+     * Primary conversational path. The model reasons over the conversation and calls tools for
+     * every catalogue, account and cart fact. Returns null when Azure OpenAI is unavailable, so
+     * the deterministic local path below can still answer.
+     */
+    private function runAssistantAgent(User $user, string $question, ChatSession $session): ?array
+    {
+        if (!$this->assistantService->isConfigured()) {
+            return null;
+        }
+
+        $toolkit = new AssistantToolkit(
+            $user,
+            fn (string $query, array $searchContext, int $limit): array => $this->searchProductsForAssistant($query, [], $limit, $searchContext)
+        );
+
+        try {
+            $outcome = $this->assistantService->runAgent(
+                $question,
+                ['name' => (string) ($user->name ?? ''), 'email' => (string) ($user->email ?? '')],
+                $this->loadRecentChatTurns($session->id, $question),
+                $toolkit
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Mela AI tool agent failed', [
+                'user_id' => $user->id,
+                'chat_session_id' => $session->id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        if ($outcome === null) {
+            return null;
+        }
+
+        $cartOperation = $toolkit->cartOperation();
+        // Product cards are only rendered when the model actually searched the catalogue, so an
+        // account answer can never inherit leftover cards from an earlier turn.
+        $productSuggestions = $toolkit->used('search_catalog') || $cartOperation !== null
+            ? $toolkit->productSuggestions()
+            : [];
+
+        return [
+            'reply' => $outcome['reply'],
+            'actions' => $this->buildToolAgentActions($toolkit),
+            'product_suggestions' => $productSuggestions,
+            'cart_operation' => $cartOperation,
+            'catalog_search_query' => $toolkit->lastCatalogQuery() ?: null,
+            'tool_calls' => $outcome['tool_calls'],
+            'intent' => $this->toolAgentIntent($toolkit),
+            'escalation_reason' => $toolkit->escalationReason(),
+        ];
+    }
+
+    /**
+     * Actions follow what the agent did, not what the customer's wording happened to contain.
+     */
+    private function buildToolAgentActions(AssistantToolkit $toolkit): array
+    {
+        $actions = [];
+        $cartOperation = $toolkit->cartOperation();
+
+        if ($cartOperation !== null) {
+            $actions[] = $cartOperation['type'] === 'prepare_quote'
+                ? ['label' => 'Review and submit quote', 'link' => '/cart?assistant_quote=1']
+                : ['label' => 'Review cart', 'link' => '/cart'];
+        }
+
+        if ($toolkit->used('search_catalog') && $toolkit->productSuggestions() !== []) {
+            $query = $toolkit->lastCatalogQuery();
+            $actions[] = [
+                'label' => 'Open product search',
+                'link' => $query !== '' ? '/products?q=' . urlencode($query) : '/products',
+            ];
+        }
+
+        if ($toolkit->used('list_orders')) {
+            $actions[] = ['label' => 'Open orders', 'link' => '/orders'];
+        }
+
+        if ($toolkit->used('list_quotes')) {
+            $actions[] = ['label' => 'Open quotes', 'link' => '/quotes'];
+        }
+
+        if ($toolkit->used('list_invoices')) {
+            $actions[] = ['label' => 'See all invoices', 'link' => '/invoices'];
+        }
+
+        if ($toolkit->escalationReason() !== null) {
+            $actions[] = ['label' => 'Open support messages', 'link' => '/messages'];
+        }
+
+        return collect($actions)
+            ->unique(static fn (array $action) => $action['label'] . '|' . $action['link'])
+            ->take(3)
+            ->values()
+            ->all();
+    }
+
+    private function toolAgentIntent(AssistantToolkit $toolkit): string
+    {
+        foreach ([
+            'search_catalog' => 'product_search',
+            'add_to_cart' => 'product_search',
+            'list_orders' => 'order_status',
+            'list_quotes' => 'quote_management',
+            'list_invoices' => 'invoice_payment',
+        ] as $tool => $intent) {
+            if ($toolkit->used($tool)) {
+                return $intent;
+            }
+        }
+
+        return 'general_support';
+    }
+
+    /**
+     * @return array<int, array{role: string, content: string}>
+     */
+    private function loadRecentChatTurns(int $chatSessionId, string $currentQuestion): array
+    {
+        if (!Schema::hasTable('chat_messages')) {
+            return [];
+        }
+
+        $turns = ChatMessage::where('chat_session_id', $chatSessionId)
+            ->orderByDesc('id')
+            ->limit(12)
+            ->get(['role', 'content'])
+            ->reverse()
+            ->map(static fn (ChatMessage $message) => [
+                'role' => (string) $message->role,
+                'content' => (string) $message->content,
+            ])
+            ->values()
+            ->all();
+
+        // The turn being answered was persisted a moment ago; it is supplied separately.
+        $latest = end($turns);
+        if (is_array($latest)
+            && strtolower($latest['role']) === 'user'
+            && ChatIntentSignals::normalizeQuestion($latest['content']) === ChatIntentSignals::normalizeQuestion($currentQuestion)) {
+            array_pop($turns);
+        }
+
+        return $turns;
+    }
+
     private function buildAssistantContext($user, string $question, ?int $chatSessionId = null): array
     {
         $hasInvoicesTable = Schema::hasTable('invoices');
@@ -1090,10 +1296,8 @@ class MessageController extends Controller
 
         $completedPaidQuotes = $hasQuotesTable
             ? Quote::where('user_id', $user->id)
-                ->whereIn('status', ['pending', 'approved', 'completed', 'submitted'])
                 ->with('order:id,quote_id,order_number,payment_status,status')
                 ->orderByDesc('created_at')
-                ->limit(10)
                 ->get(['quote_id', 'status', 'total_amount', 'created_at'])
                 ->map(function (Quote $quote) {
                     return [
@@ -1158,6 +1362,8 @@ class MessageController extends Controller
                     'content' => $item->content,
                     'intent' => (string) data_get($item->metadata, 'intent', ''),
                     'source' => (string) data_get($item->metadata, 'source', ''),
+                    'address_by_name' => data_get($item->metadata, 'address_by_name'),
+                    'requested_quantity' => data_get($item->metadata, 'requested_quantity'),
                     'catalog_search_query' => (string) data_get($item->metadata, 'catalog_search_query', ''),
                     'product_suggestions' => array_values(array_filter((array) data_get($item->metadata, 'product_suggestions', []))),
                     'has_product_suggestions' => !empty((array) data_get($item->metadata, 'product_suggestions', [])),
@@ -1744,6 +1950,85 @@ class MessageController extends Controller
         return $preferEarliest ? $items[array_key_last($items)] : $items[0];
     }
 
+    private function resolveNamePreference(string $question, array $history): bool
+    {
+        $enabled = false;
+        foreach ([...$history, ['role' => 'user', 'content' => $question]] as $turn) {
+            if (($turn['role'] ?? '') === 'assistant') {
+                $enabled = (bool) ($turn['address_by_name'] ?? $enabled);
+                continue;
+            }
+            $text = strtolower((string) ($turn['content'] ?? ''));
+            if (preg_match('/\b(?:address|call|use|using)\b.*\b(?:my name|me by.*name)\b/', $text)) {
+                $enabled = !preg_match('/\b(?:stop|never|don.t|do not)\b/', $text);
+            }
+        }
+        return $enabled;
+    }
+
+    private function personalizeAssistantReply(string $reply, array $context): string
+    {
+        $name = trim((string) ($context['customer']['name'] ?? ''));
+        if (empty($context['address_by_name']) || $name === '' || $reply === '') {
+            return $reply;
+        }
+        $firstName = explode(' ', $name)[0];
+        return preg_match('/\b' . preg_quote($firstName, '/') . '\b/iu', $reply)
+            ? $reply : "{$name}, {$reply}";
+    }
+
+    private function resolveRequestedQuantity(string $question, array $history): int
+    {
+        foreach ([['role' => 'user', 'content' => $question], ...array_reverse($history)] as $turn) {
+            if (in_array($turn['intent'] ?? '', ['quote_management', 'order_status', 'invoice_payment'], true)) {
+                break;
+            }
+            if (isset($turn['requested_quantity'])) {
+                return (int) $turn['requested_quantity'];
+            }
+            if (($turn['role'] ?? '') === 'user' && preg_match('/\b(?:add|put|place|need|want|quantity)\s+(\d+)\b/i', (string) ($turn['content'] ?? ''), $match)) {
+                return (int) $match[1];
+            }
+        }
+        return 1;
+    }
+
+    private function resolveProductCartOperation(string $question, array $context): ?array
+    {
+        $q = ChatIntentSignals::normalizeQuestion($question);
+        $cart = preg_match('/\b(?:add|put|place)\b.*\b(?:cart|basket)\b/u', $q);
+        $quote = preg_match('/\b(?:create|make|prepare|generate|request)\b.*\bquote\b/u', $q);
+        if ((!$cart && !$quote) || preg_match('/\b(?:not|never|don.t|how|explain)\b/u', $q)) {
+            return null;
+        }
+        $products = array_values((array) ($context['product_suggestions'] ?? []));
+        $quantity = $this->resolveRequestedQuantity($question, $context['recent_chat_turns'] ?? []);
+        if ($quantity < 1 || $quantity > 10000) {
+            return ['items' => [], 'reply' => 'Please specify a quantity between 1 and 10,000.'];
+        }
+        if (count($products) !== 1) {
+            return ['items' => [], 'reply' => $products === []
+                ? 'I could not find an available product to add. Tell me the model or SKU you want.'
+                : "Which product should I use for the {$quantity} units? Please specify its model or SKU; I have not changed your cart."];
+        }
+        $product = $products[0];
+        return [
+            'type' => $quote ? 'prepare_quote' : 'add_to_cart',
+            'items' => [[
+                'productId' => (string) $product['product_id'],
+                'productName' => (string) $product['name'],
+                'mfgPartNo' => (string) ($product['sku'] ?? ''),
+                'vendorId' => (string) ($product['vendor'] ?? ''),
+                'productPrice' => [['rsPrice' => (float) ($product['price'] ?? 0)]],
+                'images' => !empty($product['image_url']) ? [$product['image_url']] : [],
+                'quantity' => $quantity,
+            ]],
+            'reply' => $quote
+                ? "Your quote selection is **{$quantity} × {$product['name']}**. Review the cart and confirm your shipping address to submit the quote."
+                : "Your cart selection is **{$quantity} × {$product['name']}**. Use **Review cart** to check it.",
+        ];
+    }
+
     private function handleLocalProductDiscoveryReply(string $question, array $context): ?array
     {
         $isProductIntent = (bool) ($context['product_intent'] ?? false);
@@ -1757,6 +2042,20 @@ class MessageController extends Controller
         $firstName = $customerName !== '' ? explode(' ', $customerName)[0] : '';
         $greet = $firstName !== '' ? "{$firstName}, " : '';
         $questionLower = ChatIntentSignals::normalizeQuestion($question);
+
+        $operation = $this->resolveProductCartOperation($question, $context);
+        if ($operation !== null) {
+            return [
+                'reply' => $operation['reply'],
+                'actions' => $operation['items'] !== [] ? [[
+                    'label' => $operation['type'] === 'prepare_quote' ? 'Review and submit quote' : 'Review cart',
+                    'link' => $operation['type'] === 'prepare_quote' ? '/cart?assistant_quote=1' : '/cart',
+                ]] : [],
+                'product_suggestions' => $productSuggestions,
+                'source' => 'local_product_cart',
+                'cart_operation' => $operation['items'] !== [] ? $operation : null,
+            ];
+        }
 
         if (!empty($productSuggestions) && ChatIntentSignals::isProductContextFollowUp(
             $question,
@@ -1808,7 +2107,7 @@ class MessageController extends Controller
                     ->values()
                     ->all();
             } else {
-                $reply = 'I kept the current product options and applied your latest instruction. The updated product cards are below.';
+                $reply = 'Here are the current product options. Tell me which product you want and what you would like to do with it.';
             }
 
             return [
@@ -2923,7 +3222,12 @@ class MessageController extends Controller
             'low profile lock', 'holder', 'stylus', 'earbud', 'card reader', 'memory card reader',
             'connect a usb', 'usb type-a device', 'pass-through port', 'kvm', 'console', 'power cord',
             'usb connection', 'usb connectivity',
+            'usb multip', 'port replicator',
         ];
+
+        if (preg_match('/\badd\b.*\busb\b.*\bports?\b.*\b(?:laptop|notebook)\b/i', $identity)) {
+            return true;
+        }
 
         foreach ($accessoryTerms as $term) {
             if (str_contains($identity, $term)) {

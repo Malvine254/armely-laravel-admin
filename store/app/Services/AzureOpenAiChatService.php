@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Assistant\AssistantToolkit;
 use App\Support\ChatIntentSignals;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -9,6 +10,9 @@ use Illuminate\Support\Str;
 
 class AzureOpenAiChatService
 {
+    private const MAX_TOOL_ROUNDS = 5;
+    private const AGENT_TIMEOUT_SECONDS = 25;
+
     private string $endpoint;
     private string $apiKey;
     private string $deployment;
@@ -182,6 +186,168 @@ class AzureOpenAiChatService
         $result['degraded'] = (bool) ($result['degraded'] ?? false) || $this->lastRequestDegraded;
 
         return $result;
+    }
+
+    /**
+     * Conversational agent loop. The model decides what it needs to know, calls the toolkit to
+     * find out, and only then writes a reply. Nothing it says about the catalogue, the account
+     * or the cart exists outside a tool result it received in this same turn.
+     *
+     * @return array{reply: string, tool_calls: array<int, string>}|null
+     */
+    public function runAgent(string $question, array $profile, array $chatHistory, AssistantToolkit $toolkit): ?array
+    {
+        if (!$this->configured) {
+            return null;
+        }
+
+        $this->lastRequestDegraded = false;
+
+        $messages = [
+            ['role' => 'system', 'content' => $this->agentSystemPrompt($profile)],
+            ...$this->agentHistoryMessages($chatHistory),
+            ['role' => 'user', 'content' => $question],
+        ];
+
+        $tools = $toolkit->definitions();
+
+        for ($round = 0; $round < self::MAX_TOOL_ROUNDS; $round++) {
+            $message = $this->callChatApi($messages, $tools, $round === self::MAX_TOOL_ROUNDS - 1);
+            if ($message === null) {
+                return null;
+            }
+
+            $toolCalls = array_values(array_filter(
+                (array) ($message['tool_calls'] ?? []),
+                static fn ($call) => is_array($call) && !empty($call['function']['name'])
+            ));
+
+            if ($toolCalls === []) {
+                $reply = trim((string) ($message['content'] ?? ''));
+
+                return $reply === '' ? null : ['reply' => $reply, 'tool_calls' => $toolkit->calls()];
+            }
+
+            $messages[] = [
+                'role' => 'assistant',
+                'content' => $message['content'] ?? null,
+                'tool_calls' => $toolCalls,
+            ];
+
+            foreach ($toolCalls as $call) {
+                $name = (string) $call['function']['name'];
+                $arguments = json_decode((string) ($call['function']['arguments'] ?? '{}'), true);
+                $result = $toolkit->execute($name, is_array($arguments) ? $arguments : []);
+
+                Log::info('Mela AI tool call', [
+                    'tool' => $name,
+                    'arguments' => is_array($arguments) ? $arguments : [],
+                ]);
+
+                $messages[] = [
+                    'role' => 'tool',
+                    'tool_call_id' => (string) ($call['id'] ?? $name),
+                    'content' => json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    private function agentSystemPrompt(array $profile): string
+    {
+        $name = trim((string) ($profile['name'] ?? ''));
+        $firstName = $name !== '' ? explode(' ', $name)[0] : '';
+
+        return implode("\n", array_filter([
+            'You are Mela AI, the assistant inside the Armely B2B IT procurement store. You are talking directly to a signed-in customer.',
+            $firstName !== '' ? "The customer's name is {$firstName}. Use it only when it sounds natural, not in every message." : null,
+            'Today is ' . now()->toFormattedDateString() . '.',
+            '',
+            '# How to work',
+            'Talk like a knowledgeable colleague: warm, direct, and specific. Vary your wording naturally; never fall back on a stock opening or a fixed template.',
+            'You have no product, order, quote, invoice or cart knowledge of your own. Every such fact must come from a tool result you received in this turn.',
+            'Call the tools you need before answering, and call several if the question spans more than one area. Never announce that you are about to look something up — just do it and answer.',
+            'If a tool returns nothing, say so plainly and ask the one question that would let you search again. Do not fill the gap with a plausible-sounding product or number.',
+            'Never state or imply that you added something to the cart, staged a quote, or changed the account unless the matching tool returned ok: true in this turn.',
+            'When the customer refers to something from earlier ("that one", "the cheaper model", "those quotes"), resolve it from the conversation and act on it. Ask a clarifying question only when the reference is genuinely ambiguous.',
+            'Ask for a detail only when you cannot act without it. If the customer gave a quantity, a brand or a budget earlier in this conversation, reuse it instead of asking again.',
+            '',
+            '# Writing the reply',
+            'Keep it to a short paragraph or a few tight lines. Plain conversational prose, not headings or long bullet dumps.',
+            'Catalogue results appear as product cards directly beneath your message, so highlight the trade-offs and your recommendation rather than restating every card.',
+            'Prices are USD. Quote exact figures from tool results; never round, estimate or average them yourself.',
+            'Match the language the customer writes in.',
+        ]));
+    }
+
+    private function agentHistoryMessages(array $chatHistory): array
+    {
+        return collect($chatHistory)
+            ->take(-10)
+            ->filter(static fn ($turn) => trim((string) ($turn['content'] ?? '')) !== '')
+            ->map(static fn ($turn) => [
+                'role' => strtolower((string) ($turn['role'] ?? 'user')) === 'assistant' ? 'assistant' : 'user',
+                'content' => Str::limit((string) $turn['content'], 1200, ''),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Chat completion that preserves the full message object so tool calls survive.
+     */
+    private function callChatApi(array $messages, array $tools, bool $forceFinalAnswer): ?array
+    {
+        $payload = [
+            'messages' => $messages,
+            'temperature' => 0.5,
+            'max_tokens' => 700,
+        ];
+
+        if ($tools !== []) {
+            $payload['tools'] = $tools;
+            $payload['tool_choice'] = $forceFinalAnswer ? 'none' : 'auto';
+        }
+
+        try {
+            $response = Http::timeout(self::AGENT_TIMEOUT_SECONDS)
+                ->withHeaders([
+                    'api-key' => $this->apiKey,
+                    'Content-Type' => 'application/json',
+                ])
+                ->post($this->chatCompletionsUrl(), $payload);
+
+            if (!$response->ok()) {
+                $this->lastRequestDegraded = true;
+                Log::warning('Azure OpenAI agent response not OK', [
+                    'status' => $response->status(),
+                    'body' => substr($response->body(), 0, 500),
+                ]);
+
+                return null;
+            }
+
+            $message = data_get($response->json(), 'choices.0.message');
+
+            return is_array($message) ? $message : null;
+        } catch (\Throwable $e) {
+            $this->lastRequestDegraded = true;
+            Log::warning('Azure OpenAI agent request failed', ['message' => $e->getMessage()]);
+
+            return null;
+        }
+    }
+
+    private function chatCompletionsUrl(): string
+    {
+        return sprintf(
+            '%s/openai/deployments/%s/chat/completions?api-version=%s',
+            $this->endpoint,
+            rawurlencode($this->deployment),
+            rawurlencode($this->apiVersion)
+        );
     }
 
     /**
@@ -552,13 +718,31 @@ class AzureOpenAiChatService
         $requestedCount = null;
         $matches = [];
 
+        // Delivery belongs to the linked order, not the quote approval status.
+        $orderStatuses = preg_match('/\b(delivered|complete|completed|shipped|processing|order)\b/i', $question)
+            ? $this->requestedOrderStatuses($question) : [];
+        $statusFilter = null;
+        if ($orderStatuses !== []) {
+            $statusFilter = implode('/', $orderStatuses);
+            $quotes = array_values(array_filter($quotes, static fn (array $quote) =>
+                in_array(strtolower((string) ($quote['order_status'] ?? '')), $orderStatuses, true)
+            ));
+        } elseif (preg_match('/\b(pending_review|pending|approved|rejected|cancelled|expired|submitted)\b/i', $question, $statusMatch)) {
+            $statusFilter = strtolower($statusMatch[1]);
+            $quotes = array_values(array_filter($quotes, static fn (array $quote) =>
+                strtolower((string) ($quote['status'] ?? '')) === $statusFilter
+            ));
+        }
+
         if (preg_match('/\b(?:last|latest|most recent|newest)\s*(\d+)\b/', $questionLower, $matches) || preg_match('/\b(\d+)\s*(?:last|latest|most recent|newest)\b/', $questionLower, $matches)) {
             $requestedCount = max(1, min(10, (int) ($matches[1] ?? 0)));
         }
         $preferEarliest = (bool) preg_match('/\b(first|earliest|oldest)\b/', $questionLower);
 
         if (empty($quotes)) {
-            $reply = "I don't see any quotes on your account yet. Browse the product catalog, add items to your cart, and submit a quote request to get started.";
+            $reply = $statusFilter !== null
+                ? "I don't see any quotes matching **{$statusFilter}** on your account."
+                : "I don't see any quotes on your account yet. Browse the product catalog, add items to your cart, and submit a quote request to get started.";
         } else {
             $selectedQuotes = $quotes;
             if ($requestedCount !== null) {
@@ -587,6 +771,9 @@ class AzureOpenAiChatService
                 : "You have **{$count}** quote(s) on record:";
             $reply .= "\n\n" . implode("\n", $lines)
                 . "\n\nClick **View my quotes** below to manage, duplicate for reorder, or check approval status.";
+            if ($statusFilter !== null) {
+                $reply = "I found **{$shownCount}** quote(s) matching **{$statusFilter}**:\n\n" . implode("\n", $lines);
+            }
         }
 
         return [
@@ -691,6 +878,16 @@ class AzureOpenAiChatService
         $invoices           = (array) ($context['recent_invoices'] ?? []);
         $openCount          = (int) ($context['summary']['open_invoice_count'] ?? 0);
         $openTotal          = (float) ($context['summary']['open_invoice_total'] ?? 0);
+
+        if (ChatIntentSignals::isCapabilityQuestion($question)) {
+            return [
+                'reply' => "I can help you:\n\n- Find catalog products by brand, specifications, and budget.\n- Add a selected product and quantity to your cart.\n- Prepare a quote for review and submission.\n- Check your quotes and their linked order delivery status.\n- Check orders, tracking, invoices, and balances.\n- Connect you with the support team.",
+                'actions' => [],
+                'product_suggestions' => [],
+                'source' => 'capabilities',
+                'intent' => 'general_support',
+            ];
+        }
 
         // Casual conversation must never be sent with account context or allowed to
         // fall through to catalog/account summaries. Besides avoiding irrelevant replies,

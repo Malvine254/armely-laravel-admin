@@ -259,35 +259,47 @@ class AssistantChatHardeningTest extends TestCase
         ));
     }
 
-    public function test_structured_planner_handles_novel_product_wording_but_catalog_owns_facts(): void
+    public function test_tool_agent_handles_novel_product_wording_but_catalog_owns_facts(): void
     {
         config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
         config()->set('services.azure_openai.api_key', 'test-key');
         config()->set('services.azure_openai.deployment', 'test-deployment');
 
-        Http::fake(function ($request) {
-            $body = $request->data();
-            $system = (string) data_get($body, 'messages.0.content', '');
+        $toolCallIssued = false;
 
-            if (str_contains($system, 'catalog search plan')) {
+        Http::fake(function ($request) use (&$toolCallIssued) {
+            if (!$toolCallIssued) {
+                $toolCallIssued = true;
+
                 return Http::response([
                     'choices' => [[
-                        'message' => ['content' => json_encode([
-                            'is_product_request' => true,
-                            'query' => 'wireless collaboration bar',
-                            'product_type' => 'video conferencing device',
-                            'constraints' => ['wireless', 'video conferencing'],
-                            'operation' => 'search',
-                            'selection' => 'many',
-                            'is_follow_up' => false,
-                        ])],
+                        'message' => [
+                            'content' => null,
+                            'tool_calls' => [[
+                                'id' => 'call_1',
+                                'type' => 'function',
+                                'function' => [
+                                    'name' => 'search_catalog',
+                                    'arguments' => json_encode([
+                                        'query' => 'wireless collaboration bar',
+                                        'category' => 'video conferencing',
+                                    ]),
+                                ],
+                            ]],
+                        ],
                     ]],
                 ]);
             }
 
+            // The catalogue result must be present before the model is allowed to answer.
+            $toolResult = collect((array) data_get($request->data(), 'messages', []))
+                ->firstWhere('role', 'tool');
+            $this->assertNotNull($toolResult);
+            $this->assertStringContainsString('CONF-BAR', (string) $toolResult['content']);
+
             return Http::response([
                 'choices' => [[
-                    'message' => ['content' => 'Here is the catalog match.'],
+                    'message' => ['content' => 'The Contoso Wireless Collaboration Bar fits a meeting room like that.'],
                 ]],
             ]);
         });
@@ -300,6 +312,7 @@ class AssistantChatHardeningTest extends TestCase
         ]);
 
         $response->assertOk();
+        $response->assertJsonPath('data.source', 'tool_agent');
         $response->assertJsonPath('data.product_suggestions.0.product_id', 'CONF-BAR');
         $response->assertJsonPath('data.product_suggestions.0.name', 'Contoso Wireless Collaboration Bar');
         $this->assertSame(899.0, (float) $response->json('data.product_suggestions.0.price'));
@@ -345,7 +358,8 @@ class AssistantChatHardeningTest extends TestCase
             'message' => 'can you add it to cart',
             'chat_session_id' => $sessionId,
         ])->assertOk();
-        $this->assertSame('local_product_context_follow_up', $cart->json('data.source'));
+        $this->assertSame('local_product_cart', $cart->json('data.source'));
+        $this->assertSame('add_to_cart', $cart->json('data.cart_operation.type'));
         $this->assertNotEmpty($cart->json('data.product_suggestions'));
 
         $recommendation = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
@@ -378,7 +392,9 @@ class AssistantChatHardeningTest extends TestCase
             'message' => 'Generate the quote for the item.',
             'chat_session_id' => $sessionId,
         ])->assertOk();
-        $this->assertSame('local_product_context_follow_up', $quote->json('data.source'));
+        $this->assertSame('local_product_cart', $quote->json('data.source'));
+        $this->assertSame('prepare_quote', $quote->json('data.cart_operation.type'));
+        $this->assertSame('MONITOR-CONTEXT', $quote->json('data.cart_operation.items.0.productId'));
         $this->assertSame('MONITOR-CONTEXT', $quote->json('data.product_suggestions.0.product_id'));
         $this->assertFalse(str_contains(strtolower((string) $quote->json('data.reply')), 'quote(s) on record'));
 
@@ -767,6 +783,75 @@ class AssistantChatHardeningTest extends TestCase
         $this->assertFalse(collect($quote->json('data.actions', []))->contains(
             static fn (array $action) => ($action['label'] ?? '') === 'Open quotes'
         ));
+    }
+
+    public function test_tool_agent_cart_action_requires_a_real_catalog_product(): void
+    {
+        config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
+        config()->set('services.azure_openai.api_key', 'test-key');
+        config()->set('services.azure_openai.deployment', 'test-deployment');
+
+        $round = 0;
+        $toolResults = [];
+
+        Http::fake(function ($request) use (&$round, &$toolResults) {
+            foreach ((array) data_get($request->data(), 'messages', []) as $message) {
+                if (($message['role'] ?? '') === 'tool') {
+                    $toolResults[] = (string) $message['content'];
+                }
+            }
+
+            $round++;
+
+            if ($round === 1) {
+                return $this->fakeToolCall('call_missing', 'add_to_cart', ['sku' => 'DOES-NOT-EXIST', 'quantity' => 2]);
+            }
+
+            if ($round === 2) {
+                return $this->fakeToolCall('call_real', 'add_to_cart', ['product_id' => 'DOCK-1', 'quantity' => 2, 'mode' => 'cart']);
+            }
+
+            return Http::response([
+                'choices' => [[
+                    'message' => ['content' => 'Two Contoso Thunderbolt Docks are in your cart.'],
+                ]],
+            ]);
+        });
+
+        $user = $this->createCustomer('Cart Tool User', 'cart-tool@example.com');
+        $this->insertCatalogProduct('DOCK-1', 'Contoso Thunderbolt Dock', 'Thunderbolt docking station.', 249, 'Docking Stations');
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Add two of those docks to my cart.',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.source', 'tool_agent');
+        $response->assertJsonPath('data.cart_operation.type', 'add_to_cart');
+        $response->assertJsonPath('data.cart_operation.items.0.productId', 'DOCK-1');
+        $response->assertJsonPath('data.cart_operation.items.0.quantity', 2);
+
+        // The unknown SKU must be reported back as a failure so the model cannot claim success.
+        $this->assertStringContainsString('"ok":false', $toolResults[0] ?? '');
+        $this->assertTrue(collect($response->json('data.actions', []))->contains(
+            static fn (array $action) => ($action['link'] ?? '') === '/cart'
+        ));
+    }
+
+    private function fakeToolCall(string $id, string $name, array $arguments): \GuzzleHttp\Promise\PromiseInterface
+    {
+        return Http::response([
+            'choices' => [[
+                'message' => [
+                    'content' => null,
+                    'tool_calls' => [[
+                        'id' => $id,
+                        'type' => 'function',
+                        'function' => ['name' => $name, 'arguments' => json_encode($arguments)],
+                    ]],
+                ],
+            ]],
+        ]);
     }
 
     private function createCustomer(string $name, string $email): User
