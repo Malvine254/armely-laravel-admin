@@ -272,7 +272,13 @@
                     class="inline-flex items-center gap-2 rounded-xl px-2 py-1.5 max-w-[200px] transition"
                     :class="chat.role === 'user' ? 'bg-white/15 hover:bg-white/25' : 'bg-gray-50 hover:bg-gray-100 border border-gray-100'"
                   >
-                    <img v-if="file.is_image" :src="file.url" :alt="file.name" class="w-9 h-9 rounded-lg object-cover flex-shrink-0">
+                    <img
+                      v-if="file.is_image && file.url && !file.previewFailed"
+                      :src="file.url"
+                      :alt="file.name"
+                      class="w-9 h-9 rounded-lg object-cover flex-shrink-0"
+                      @error="file.previewFailed = true"
+                    >
                     <svg v-else class="w-5 h-5 flex-shrink-0" :class="chat.role === 'user' ? 'text-blue-100' : 'text-gray-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
@@ -913,24 +919,20 @@ const formatFileSize = (bytes) => {
 }
 
 const removePendingAttachment = (file) => {
-  const key = file?.tempId
-  const target = pendingAttachments.value.find((item) => item.tempId === key)
-  if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl)
-  pendingAttachments.value = pendingAttachments.value.filter((item) => item.tempId !== key)
+  pendingAttachments.value = pendingAttachments.value.filter((item) => item.tempId !== file?.tempId)
 }
 
 const uploadAttachment = async (file) => {
   const tempId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-  const isImage = file.type.startsWith('image/')
-  const previewUrl = isImage ? URL.createObjectURL(file) : null
 
   pendingAttachments.value.push({
     tempId,
     name: file.name,
     size_bytes: file.size,
-    is_image: isImage,
-    url: previewUrl,
-    previewUrl,
+    is_image: file.type.startsWith('image/'),
+    // No blob: preview here — the page CSP allows img-src 'self' only, so the thumbnail uses
+    // the server URL once the upload returns.
+    url: null,
     uploading: true,
     id: null,
   })
@@ -958,7 +960,6 @@ const uploadAttachment = async (file) => {
         ...pendingAttachments.value[index],
         ...payload.data,
         name: pendingAttachments.value[index].name || payload.data.name,
-        url: previewUrl || payload.data.url,
         uploading: false,
       }
     }

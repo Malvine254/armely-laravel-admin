@@ -65,7 +65,7 @@ Route::prefix('v1')->group(function () {
     // Signed rather than bearer-authenticated: an <img> tag cannot send an Authorization header.
     Route::get('/messages/assistant/attachments/{attachmentId}', [MessageController::class, 'showAssistantAttachment'])
         ->name('assistant.attachment')
-        ->middleware(['signed', 'throttle:120,1']);
+        ->middleware(['signed:relative', 'throttle:120,1']);
     Route::get('/auth/me', [AuthController::class, 'me'])->middleware(['auth:sanctum', 'active.user']);
     Route::match(['put', 'post'], '/auth/update-profile', [AuthController::class, 'updateProfile'])->middleware(['auth:sanctum', 'active.user']);
     Route::delete('/auth/account', [AuthController::class, 'deleteAccount'])->middleware(['auth:sanctum', 'active.user']);

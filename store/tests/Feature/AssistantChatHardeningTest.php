@@ -1121,6 +1121,9 @@ class AssistantChatHardeningTest extends TestCase
         $signedUrl = (string) $uploaded->json('data.url');
 
         // The link is signed, so it loads in an <img> tag, but cannot be forged or guessed.
+        // It must also be relative: APP_URL may point at a different host than the SPA, and the
+        // page CSP only allows same-origin images.
+        $this->assertStringStartsWith('/api/v1/messages/assistant/attachments/', $signedUrl);
         $this->assertStringContainsString('signature=', $signedUrl);
         $this->get($signedUrl)->assertOk();
         $this->get("/api/v1/messages/assistant/attachments/{$attachmentId}")->assertForbidden();

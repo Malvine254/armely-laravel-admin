@@ -1017,10 +1017,13 @@ class MessageController extends Controller
 
     private function attachmentUrl(int $attachmentId): string
     {
+        // Relative on purpose: APP_URL may not match the host the SPA is served from, and an
+        // absolute URL to another origin is blocked by the page's img-src CSP.
         return URL::temporarySignedRoute(
             'assistant.attachment',
             now()->addDays(7),
-            ['attachmentId' => $attachmentId]
+            ['attachmentId' => $attachmentId],
+            false
         );
     }
 
