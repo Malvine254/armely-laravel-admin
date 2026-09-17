@@ -2797,7 +2797,7 @@ class MessageController extends Controller
                 'description' => (string) ($product->description ?? ''),
                 'category' => (string) ($product->category_segment ?? ''),
                 'specifications' => (array) ($product->specifications ?? []),
-                'image_url' => $this->extractProductImageUrl($product->images),
+                'image_url' => $this->extractProductImageUrl($product->images, $product),
                 'is_discontinued' => (bool) $product->is_discontinued,
             ];
         })->values();
@@ -3097,7 +3097,13 @@ class MessageController extends Controller
                     }
                 }
 
-                return ((float) ($b['score'] ?? 0)) <=> ((float) ($a['score'] ?? 0));
+                $scoreComparison = ((float) ($b['score'] ?? 0)) <=> ((float) ($a['score'] ?? 0));
+                if ($scoreComparison !== 0) {
+                    return $scoreComparison;
+                }
+
+                // Equally relevant: show the one the customer can actually see.
+                return (empty($a['image_url']) ? 1 : 0) <=> (empty($b['image_url']) ? 1 : 0);
             })
             ->values()
             ->take($limit)
@@ -3627,8 +3633,20 @@ class MessageController extends Controller
         return preg_match('/(?<![a-z0-9])' . preg_quote($term, '/') . '(?![a-z0-9])/i', strtolower($haystack)) === 1;
     }
 
-    private function extractProductImageUrl(mixed $images): ?string
+    private function extractProductImageUrl(mixed $images, ?Product $product = null): ?string
     {
+        // A file named after the product id is the storefront's primary image, and it is
+        // present even when the stored URL list is stale.
+        $productId = trim((string) ($product?->tdsynnex_product_id ?? ''));
+        if ($productId !== '') {
+            foreach (['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'] as $extension) {
+                $relative = 'images/products/' . $productId . '.' . $extension;
+                if (is_file(public_path($relative))) {
+                    return $this->resolveImageUrl('/' . $relative);
+                }
+            }
+        }
+
         $candidates = [];
 
         if (is_string($images) && trim($images) !== '') {
@@ -3650,7 +3668,20 @@ class MessageController extends Controller
 
         foreach ($candidates as $candidate) {
             $url = $this->normalizeProductImagePath($candidate);
-            if ($this->isValidImageUrl($url)) {
+            if (!$this->isValidImageUrl($url)) {
+                continue;
+            }
+
+            // Supplier images go through the proxy so the browser never makes a cross-origin
+            // image request the page CSP would block.
+            if (preg_match('/^https?:\/\//i', $url) === 1) {
+                return '/api/v1/img-proxy?url=' . base64_encode($url);
+            }
+
+            // A stored path whose file no longer exists would hit the SPA catch-all and return
+            // HTML to an <img>, showing a broken image instead of the card placeholder.
+            $path = (string) parse_url($url, PHP_URL_PATH);
+            if ($path !== '' && is_file(public_path(ltrim($path, '/')))) {
                 return $this->resolveImageUrl($url);
             }
         }
