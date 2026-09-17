@@ -84,6 +84,13 @@ class AssistantToolkit
                 'quantity' => ['type' => 'integer', 'description' => 'The exact number of units the cart should end up with.'],
             ], ['quantity']),
 
+            $this->tool('view_cart', 'Read what is currently in the customer\'s cart: every line, its quantity, unit price, line total, and the cart subtotal. Call this before answering any question about the cart contents, totals, or what has been added so far.', []),
+
+            $this->tool('remove_from_cart', 'Remove a product from the customer\'s cart entirely. Use this when they ask to remove, delete or take something out, rather than setting its quantity to zero.', [
+                'product_id' => ['type' => 'string', 'description' => 'The product_id of the cart line to remove.'],
+                'sku' => ['type' => 'string', 'description' => 'The product SKU, if you do not have the product_id.'],
+            ]),
+
             $this->tool('escalate_to_human', 'Hand the conversation to a human agent. Use only when the customer asks for a person or the request is outside what these tools can resolve.', [
                 'reason' => ['type' => 'string', 'description' => 'Short summary of what the customer needs from the human agent.'],
             ], ['reason']),
@@ -99,8 +106,10 @@ class AssistantToolkit
             'list_orders'         => $this->listOrders($arguments),
             'list_quotes'         => $this->listQuotes($arguments),
             'list_invoices'       => $this->listInvoices($arguments),
+            'view_cart'           => $this->viewCart(),
             'add_to_cart'         => $this->addToCart($arguments),
             'update_cart_quantity' => $this->addToCart($arguments + ['mode' => 'set_quantity']),
+            'remove_from_cart'    => $this->removeFromCart($arguments),
             'escalate_to_human'   => $this->escalate($arguments),
             default               => ['error' => "Unknown tool: {$name}."],
         };
@@ -331,14 +340,111 @@ class AssistantToolkit
 
     // ── Cart ───────────────────────────────────────────────────────────────────
 
+    /**
+     * The cart lives in the customer's browser, so the client sends its lines with the request.
+     * Only the identifiers and quantities are trusted; names and prices are re-read from the
+     * catalogue so a tampered payload cannot change what the assistant quotes.
+     */
+    private function viewCart(): array
+    {
+        $lines = collect((array) ($this->recentContext['cart'] ?? []))
+            ->map(static fn ($line) => [
+                'product_id' => (string) ($line['productId'] ?? ''),
+                'quantity' => max(1, (int) ($line['quantity'] ?? 1)),
+            ])
+            ->filter(static fn (array $line) => $line['product_id'] !== '')
+            ->values();
+
+        if ($lines->isEmpty()) {
+            return ['line_count' => 0, 'total_units' => 0, 'subtotal_usd' => 0.0, 'lines' => [], 'note' => 'The cart is empty.'];
+        }
+
+        $catalog = Product::query()
+            ->whereIn('tdsynnex_product_id', $lines->pluck('product_id'))
+            ->orWhereIn('tdsynnex_sku_no', $lines->pluck('product_id'))
+            ->get(['tdsynnex_product_id', 'tdsynnex_sku_no', 'product_name', 'description', 'manufacturer', 'vendor_id', 'base_price', 'sale_price', 'is_on_sale', 'offer_source'])
+            ->keyBy(static fn (Product $product) => (string) ($product->tdsynnex_product_id ?: $product->tdsynnex_sku_no));
+
+        $resolved = $lines->map(function (array $line) use ($catalog) {
+            $product = $catalog->get($line['product_id']);
+            if ($product === null) {
+                return $line + ['name' => null, 'unresolved' => true];
+            }
+
+            $activeOffer = (bool) $product->is_on_sale
+                && in_array((string) $product->offer_source, ['manual', 'verified_tdsynnex_special', 'tdsynnex_price_drop'], true)
+                && (float) $product->sale_price > 0;
+            $unitPrice = $activeOffer ? (float) $product->sale_price : (float) $product->base_price;
+
+            return [
+                'product_id' => $line['product_id'],
+                'name' => (string) $product->product_name,
+                'sku' => (string) $product->tdsynnex_sku_no,
+                'vendor' => (string) ($product->manufacturer ?: $product->vendor_id ?: 'TD SYNNEX'),
+                'description' => Str::limit((string) $product->description, 220),
+                'quantity' => $line['quantity'],
+                'unit_price_usd' => round($unitPrice, 2),
+                'line_total_usd' => round($unitPrice * $line['quantity'], 2),
+            ];
+        });
+
+        $priced = $resolved->reject(static fn (array $line) => !empty($line['unresolved']));
+
+        return [
+            'line_count' => $resolved->count(),
+            'total_units' => (int) $resolved->sum('quantity'),
+            'subtotal_usd' => round((float) $priced->sum('line_total_usd'), 2),
+            'lines' => $resolved->values()->all(),
+            'note' => 'Subtotal excludes tax and shipping. Any line marked unresolved is no longer in the catalogue and is not priced into the subtotal.',
+        ];
+    }
+
+    private function removeFromCart(array $arguments): array
+    {
+        $productId = trim((string) ($arguments['product_id'] ?? ''));
+        $sku = trim((string) ($arguments['sku'] ?? ''));
+
+        $cartIds = $this->cartProductIds();
+
+        if ($productId === '' && $sku === '' && $cartIds->count() === 1) {
+            $productId = (string) $cartIds->first();
+        }
+
+        if ($productId === '' && $sku !== '') {
+            $match = Product::query()
+                ->where('tdsynnex_sku_no', $sku)
+                ->orWhere('mfg_part_no', $sku)
+                ->first(['tdsynnex_product_id', 'tdsynnex_sku_no']);
+            $productId = (string) ($match?->tdsynnex_product_id ?: $match?->tdsynnex_sku_no ?: '');
+        }
+
+        if ($productId === '') {
+            return ['ok' => false, 'error' => 'Say which cart line to remove. Call view_cart first to see the options.'];
+        }
+
+        if (!$cartIds->contains($productId)) {
+            return ['ok' => false, 'error' => 'That product is not in the cart, so nothing was removed.'];
+        }
+
+        $this->cartOperation = [
+            'type' => 'remove_from_cart',
+            'items' => [['productId' => $productId, 'quantity' => 1]],
+        ];
+
+        return ['ok' => true, 'action' => 'removed_from_cart', 'product_id' => $productId];
+    }
+
     private function addToCart(array $arguments): array
     {
         $productId = trim((string) ($arguments['product_id'] ?? ''));
         $sku = trim((string) ($arguments['sku'] ?? ''));
 
-        // "Make it five" carries no identifier; it means the item staged earlier in this chat.
+        // "Make it five" carries no identifier; it means the line already in the cart.
         if ($productId === '' && $sku === '') {
-            $productId = trim((string) ($this->recentContext['staged_product_id'] ?? ''));
+            $cartIds = $this->cartProductIds();
+            $productId = $cartIds->count() === 1
+                ? (string) $cartIds->first()
+                : trim((string) ($this->recentContext['staged_product_id'] ?? ''));
         }
 
         if ($productId === '' && $sku === '') {
@@ -449,6 +555,14 @@ class AssistantToolkit
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private function cartProductIds(): \Illuminate\Support\Collection
+    {
+        return collect((array) ($this->recentContext['cart'] ?? []))
+            ->map(static fn ($line) => (string) ($line['productId'] ?? ''))
+            ->filter()
+            ->values();
+    }
 
     private function tool(string $name, string $description, array $properties, array $required = []): array
     {

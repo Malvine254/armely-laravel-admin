@@ -8,6 +8,19 @@ const cart = () => ({
   items: [],
   addItem(item, quantity) { this.items.push({ ...item, quantity }); return true },
   updateQuantity(id, quantity) { this.items.find(row => row.productId === id).quantity = quantity; return true },
+  removeItem(id) { this.items = this.items.filter(row => row.productId !== id) },
+})
+
+test('removing a line drops it without touching the rest of the cart', async () => {
+  const store = cart()
+  store.items = [{ productId: 123, quantity: 5 }, { productId: 456, quantity: 2 }]
+  assert.equal(await applyAssistantCartOperation(store, operation('remove_from_cart'), async () => { throw new Error('must not load') }), true)
+  assert.deepEqual(store.items, [{ productId: 456, quantity: 2 }])
+})
+
+test('removing a product that is not in the cart reports failure', async () => {
+  const store = cart()
+  assert.equal(await applyAssistantCartOperation(store, operation('remove_from_cart'), async () => product), false)
 })
 
 test('adds five units using refreshed product details and pricing', async () => {

@@ -894,6 +894,99 @@ class AssistantChatHardeningTest extends TestCase
         $this->assertStringContainsString('DOCK-1', end($systemPrompts));
     }
 
+    public function test_cart_totals_come_from_the_catalogue_not_the_client_payload(): void
+    {
+        config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
+        config()->set('services.azure_openai.api_key', 'test-key');
+        config()->set('services.azure_openai.deployment', 'test-deployment');
+
+        $round = 0;
+        $cartToolResult = null;
+
+        Http::fake(function ($request) use (&$round, &$cartToolResult) {
+            foreach ((array) data_get($request->data(), 'messages', []) as $message) {
+                if (($message['role'] ?? '') === 'tool') {
+                    $cartToolResult = json_decode((string) $message['content'], true);
+                }
+            }
+
+            if (++$round === 1) {
+                return $this->fakeToolCall('call_cart', 'view_cart', []);
+            }
+
+            return Http::response([
+                'choices' => [['message' => ['content' => 'Your cart subtotal is $1,269.10.']]],
+            ]);
+        });
+
+        $user = $this->createCustomer('Cart Total User', 'cart-total@example.com');
+        $this->insertCatalogProduct('MON-27', 'ViewSonic VG2755 27 inch Monitor', '27 inch business monitor.', 253.82, 'Monitors');
+        $this->insertCatalogProduct('LAP-1', 'Lenovo ThinkPad E14 Gen 7', 'Business laptop.', 1175, 'Laptops');
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'What is my cart subtotal?',
+            'cart' => [
+                ['productId' => 'MON-27', 'quantity' => 5],
+                // A tampered price must be ignored; only id and quantity are trusted.
+                ['productId' => 'LAP-1', 'quantity' => 2, 'price' => 1],
+            ],
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.source', 'tool_agent');
+
+        $this->assertSame(2, $cartToolResult['line_count']);
+        $this->assertSame(7, $cartToolResult['total_units']);
+        $this->assertSame(3619.10, $cartToolResult['subtotal_usd']);
+        $this->assertSame(1269.10, $cartToolResult['lines'][0]['line_total_usd']);
+        $this->assertEqualsWithDelta(1175.0, $cartToolResult['lines'][1]['unit_price_usd'], 0.001);
+    }
+
+    public function test_agent_can_remove_a_cart_line_but_only_one_that_exists(): void
+    {
+        config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
+        config()->set('services.azure_openai.api_key', 'test-key');
+        config()->set('services.azure_openai.deployment', 'test-deployment');
+
+        $round = 0;
+        $toolResults = [];
+
+        Http::fake(function ($request) use (&$round, &$toolResults) {
+            foreach ((array) data_get($request->data(), 'messages', []) as $message) {
+                if (($message['role'] ?? '') === 'tool') {
+                    $toolResults[] = (string) $message['content'];
+                }
+            }
+
+            $round++;
+
+            if ($round === 1) {
+                return $this->fakeToolCall('call_absent', 'remove_from_cart', ['product_id' => 'NOT-IN-CART']);
+            }
+
+            if ($round === 2) {
+                return $this->fakeToolCall('call_remove', 'remove_from_cart', ['product_id' => 'LAP-1']);
+            }
+
+            return Http::response([
+                'choices' => [['message' => ['content' => 'Removed the ThinkPad from your cart.']]],
+            ]);
+        });
+
+        $user = $this->createCustomer('Cart Remove User', 'cart-remove@example.com');
+        $this->insertCatalogProduct('LAP-1', 'Lenovo ThinkPad E14 Gen 7', 'Business laptop.', 1175, 'Laptops');
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'remove it from the cart',
+            'cart' => [['productId' => 'LAP-1', 'quantity' => 5]],
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.cart_operation.type', 'remove_from_cart');
+        $response->assertJsonPath('data.cart_operation.items.0.productId', 'LAP-1');
+        $this->assertStringContainsString('not in the cart', $toolResults[0] ?? '');
+    }
+
     public function test_tool_agent_cart_action_requires_a_real_catalog_product(): void
     {
         config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');

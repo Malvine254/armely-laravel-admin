@@ -429,6 +429,9 @@ class MessageController extends Controller
         $validated = $request->validate([
             'message' => 'required|string|max:2000',
             'chat_session_id' => 'nullable|integer',
+            'cart' => 'sometimes|array|max:300',
+            'cart.*.productId' => 'required|string|max:64',
+            'cart.*.quantity' => 'required|integer|min:1|max:10000',
         ]);
 
         $user = $request->user();
@@ -568,7 +571,7 @@ class MessageController extends Controller
             ]);
         }
 
-        $agentResult = $this->runAssistantAgent($user, $question, $session);
+        $agentResult = $this->runAssistantAgent($user, $question, $session, (array) ($validated['cart'] ?? []));
 
         if ($agentResult !== null) {
             if ($agentResult['escalation_reason'] !== null && !(bool) $session->escalated_to_human) {
@@ -1128,13 +1131,14 @@ class MessageController extends Controller
      * every catalogue, account and cart fact. Returns null when Azure OpenAI is unavailable, so
      * the deterministic local path below can still answer.
      */
-    private function runAssistantAgent(User $user, string $question, ChatSession $session): ?array
+    private function runAssistantAgent(User $user, string $question, ChatSession $session, array $cart = []): ?array
     {
         if (!$this->assistantService->isConfigured()) {
             return null;
         }
 
         $recentContext = $this->loadRecentProductContext($session->id);
+        $recentContext['cart'] = $cart;
 
         $toolkit = new AssistantToolkit(
             $user,
@@ -1151,6 +1155,7 @@ class MessageController extends Controller
                     'recent_products' => $recentContext['products'] ?? [],
                     'staged_product_id' => $recentContext['staged_product_id'] ?? null,
                     'staged_quantity' => $recentContext['staged_quantity'] ?? null,
+                    'cart_line_count' => count($cart),
                 ],
                 $this->loadRecentChatTurns($session->id, $question),
                 $toolkit
@@ -1197,9 +1202,12 @@ class MessageController extends Controller
         $cartOperation = $toolkit->cartOperation();
 
         if ($cartOperation !== null) {
-            $actions[] = $cartOperation['type'] === 'prepare_quote'
-                ? ['label' => 'Review and submit quote', 'link' => '/cart?assistant_quote=1']
-                : ['label' => 'Review cart', 'link' => '/cart'];
+            $actions[] = match ($cartOperation['type']) {
+                'prepare_quote' => ['label' => 'Review and submit quote', 'link' => '/cart?assistant_quote=1'],
+                default => ['label' => 'Review cart', 'link' => '/cart'],
+            };
+        } elseif ($toolkit->used('view_cart')) {
+            $actions[] = ['label' => 'Review cart', 'link' => '/cart'];
         }
 
         if ($toolkit->used('search_catalog') && $toolkit->productSuggestions() !== []) {

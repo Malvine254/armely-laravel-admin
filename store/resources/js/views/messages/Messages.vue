@@ -1125,7 +1125,12 @@ const sendChatMessage = async (prefilled = null) => {
       },
       body: JSON.stringify({
         message: outgoing,
-        chat_session_id: activeChatSessionId.value
+        chat_session_id: activeChatSessionId.value,
+        // The cart lives in the browser, so the agent only sees it if we send it.
+        cart: cartStore.items.map(item => ({
+          productId: String(item.productId),
+          quantity: Number(item.quantity) || 1
+        }))
       })
     })
 
@@ -1135,7 +1140,7 @@ const sendChatMessage = async (prefilled = null) => {
     const assistantPayload = payload?.data || {}
     // Execute only the operation returned for this send, never while loading chat history.
     const operation = assistantPayload.cart_operation
-    if (operation && ['add_to_cart', 'prepare_quote', 'set_cart_quantity'].includes(operation.type)) {
+    if (operation && ['add_to_cart', 'prepare_quote', 'set_cart_quantity', 'remove_from_cart'].includes(operation.type)) {
       let applied = false
       try {
         applied = await applyAssistantCartOperation(cartStore, operation, loadCartProduct)
@@ -1145,11 +1150,14 @@ const sendChatMessage = async (prefilled = null) => {
       if (applied) {
         const toastMessage = {
           prepare_quote: 'Quote ready for review',
-          set_cart_quantity: 'Cart quantity updated'
+          set_cart_quantity: 'Cart quantity updated',
+          remove_from_cart: 'Removed from cart'
         }[operation.type] || 'Products added to cart'
         toastStore.addToast(toastMessage, 'success')
       } else {
-        assistantPayload.reply = 'The products could not be added to your cart. Please check your account and product availability.'
+        assistantPayload.reply = operation.type === 'remove_from_cart'
+          ? 'That item could not be removed from your cart. Please check the cart and try again.'
+          : 'The products could not be added to your cart. Please check your account and product availability.'
       }
       if (applied && operation.type === 'prepare_quote') {
         assistantPayload.actions = [{ label: 'Review and submit quote', link: '/cart?assistant_quote=1' }]

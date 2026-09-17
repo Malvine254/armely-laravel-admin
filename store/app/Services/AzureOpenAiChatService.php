@@ -278,12 +278,13 @@ class AzureOpenAiChatService
             'When the customer refers to something from earlier ("that one", "the cheaper model", "those quotes"), resolve it from the conversation and act on it. Ask a clarifying question only when the reference is genuinely ambiguous.',
             'Ask for a detail only when you cannot act without it. If the customer gave a quantity, a brand or a budget earlier in this conversation, reuse it instead of asking again.',
             'To change how many units are in the cart, call update_cart_quantity with the final number. Only call add_to_cart when the customer wants an additional product in the cart.',
+            'Call view_cart before answering anything about what is in the cart, how many items there are, or what it totals. Never estimate a cart total from the conversation.',
             $recentProducts !== [] ? '' : null,
             $recentProducts !== [] ? '# Already shown in this conversation' : null,
             $recentProducts !== [] ? 'Reuse these product_id values for follow-ups instead of searching again:' : null,
             $recentProducts !== [] ? json_encode(array_slice($recentProducts, 0, 8), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             $stagedProductId !== ''
-                ? "The customer's cart currently holds product_id {$stagedProductId} at quantity " . (int) ($profile['staged_quantity'] ?? 1) . ' from earlier in this chat.'
+                ? "Earlier in this chat you staged product_id {$stagedProductId} at quantity " . (int) ($profile['staged_quantity'] ?? 1) . '. Use view_cart to confirm what is actually there now.'
                 : null,
             '',
             '# Writing the reply',
