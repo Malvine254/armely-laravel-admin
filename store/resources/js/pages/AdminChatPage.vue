@@ -5,29 +5,44 @@
     <div class="flex gap-6 h-[calc(100vh-10rem)] min-h-0 text-gray-900">
 
       <!-- Session list sidebar -->
-      <div class="w-80 flex-shrink-0 rounded-2xl border border-gray-200 shadow-sm bg-white flex flex-col min-h-0 overflow-hidden">
-        <div class="px-4 py-4 border-b border-gray-200 flex-shrink-0 bg-gray-50">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Escalated Chats</h3>
-            <span v-if="openSessions.length" class="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 font-semibold">
+      <div class="w-80 flex-shrink-0 rounded-3xl bg-white shadow-[0_4px_24px_rgba(16,36,71,0.06)] flex flex-col min-h-0 overflow-hidden">
+        <div class="px-5 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
+          <div class="flex items-center gap-2.5 mb-5">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-lg" style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);">M</div>
+            <span class="text-xl font-extrabold tracking-tight text-gray-900">Mela</span>
+          </div>
+
+          <div class="flex items-center justify-between mb-1.5">
+            <h3 class="text-[11px] font-bold text-gray-500 uppercase tracking-[0.08em]">Escalated Chats</h3>
+            <span v-if="openSessions.length" class="bg-rose-500 text-white text-[10px] rounded-full px-2 py-0.5 font-bold">
               {{ openSessions.length }}
             </span>
           </div>
-          <p class="text-[11px] text-gray-500 mb-2">Select a conversation to respond.</p>
-          <div class="flex gap-2">
+          <p class="text-[11px] text-gray-400">Select a conversation to respond.</p>
+
+          <div class="relative mt-4">
+            <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+            </svg>
+            <input
+              v-model="sessionSearch"
+              type="search"
+              placeholder="Search conversations..."
+              aria-label="Search conversations"
+              class="w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-3 py-2.5 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2F5597]/30 focus:border-[#2F5597]/40 focus:bg-white transition"
+            >
+          </div>
+
+          <div class="flex gap-2 mt-3">
             <button
               @click="tab = 'open'"
-              :class="['flex-1 py-1.5 text-xs font-semibold rounded-md transition',
-                tab === 'open'
-                  ? 'bg-[#2F5597] text-white'
-                  : 'border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20']"
+              :class="['flex-1 py-2 text-[11px] font-bold rounded-lg transition',
+                tab === 'open' ? 'bg-[#2F5597] text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200']"
             >Open ({{ openSessions.length }})</button>
             <button
               @click="tab = 'resolved'"
-              :class="['flex-1 py-1.5 text-xs font-semibold rounded-md transition',
-                tab === 'resolved'
-                  ? 'bg-[#2F5597] text-white'
-                  : 'border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20']"
+              :class="['flex-1 py-2 text-[11px] font-bold rounded-lg transition',
+                tab === 'resolved' ? 'bg-[#2F5597] text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200']"
             >History</button>
           </div>
         </div>
@@ -36,54 +51,57 @@
           <div class="w-6 h-6 border-2 border-[#2F5597] border-t-transparent rounded-full animate-spin"></div>
         </div>
 
-        <div v-else class="flex-1 overflow-y-auto themed-scrollbar p-3">
+        <div v-else class="flex-1 overflow-y-auto themed-scrollbar px-3 py-3">
           <button
             v-for="session in displayedSessions"
             :key="session.id"
             @click="selectSession(session)"
-            class="w-full text-left rounded-xl border mb-2 p-2.5 transition"
-            :class="activeSession?.id === session.id
-              ? 'border-[#2F5597]/30 bg-[#2F5597]/10 ring-1 ring-[#2F5597]/20'
-              : 'border-gray-200 bg-white hover:bg-gray-50'"
+            class="w-full text-left rounded-xl mb-1.5 p-3 transition relative"
+            :class="activeSession?.id === session.id ? 'bg-[#2F5597]/[0.07]' : 'hover:bg-gray-50'"
           >
-            <div class="flex items-start gap-2">
-              <div
-                class="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                :class="session.resolved_at ? 'bg-emerald-500/20 text-emerald-600' : 'bg-amber-500/20 text-amber-600'"
-              >
-                <svg v-if="session.resolved_at" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V10a8 8 0 10-16 0v10h5m6 0v-3a3 3 0 00-3-3h-2a3 3 0 00-3 3v3m8 0H9" />
-                </svg>
+            <span
+              v-if="activeSession?.id === session.id"
+              class="absolute left-0 top-2 bottom-2 w-1 rounded-r-full"
+              style="background-color: #2F5597;"
+            ></span>
+
+            <div class="flex items-start gap-2.5">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden text-white text-[10px] font-bold" style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);">
+                <img
+                  v-if="customerAvatar(session.user) && !failedAvatars.includes(session.user?.id)"
+                  :src="customerAvatar(session.user)"
+                  :alt="session.user?.name || 'Customer'"
+                  class="w-full h-full object-cover"
+                  @error="failedAvatars.push(session.user?.id)"
+                >
+                <span v-else>{{ initialsOf(session.user?.name) }}</span>
               </div>
               <div class="min-w-0 flex-1">
                 <div class="flex items-center justify-between gap-2">
-                  <p class="text-xs font-semibold text-gray-900 truncate">{{ session.user?.name || 'Unknown user' }}</p>
-                  <span
-                    class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0"
-                    :class="session.resolved_at ? 'bg-emerald-500/20 text-emerald-600' : 'bg-amber-500/20 text-amber-600'"
-                  >{{ session.resolved_at ? 'Resolved' : 'Escalated' }}</span>
+                  <p class="text-[13px] font-bold text-gray-900 truncate">{{ session.user?.name || 'Unknown user' }}</p>
+                  <span class="text-[10px] text-gray-400 flex-shrink-0 font-medium">{{ timeAgo(session.escalated_at) }}</span>
                 </div>
                 <p class="text-[11px] text-gray-500 truncate mt-0.5">{{ session.last_message_preview || session.title || 'No messages' }}</p>
-                <p class="text-[10px] text-gray-400 mt-0.5">{{ timeAgo(session.escalated_at) }}</p>
+                <span
+                  class="inline-block mt-1.5 text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                  :class="session.resolved_at ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/15 text-amber-600'"
+                >{{ session.resolved_at ? 'Resolved' : 'Escalated' }}</span>
               </div>
             </div>
           </button>
 
-          <p v-if="!displayedSessions.length" class="text-[11px] text-gray-500 px-1 py-8 text-center">
-            {{ tab === 'open' ? 'No open escalations' : 'No chat history yet' }}
+          <p v-if="!displayedSessions.length" class="text-[11px] text-gray-400 px-2 py-8 text-center">
+            {{ sessionSearch.trim() ? `No conversations match "${sessionSearch}".` : (tab === 'open' ? 'No open escalations' : 'No chat history yet') }}
           </p>
         </div>
       </div>
 
       <!-- Conversation thread panel -->
-      <div class="flex-1 rounded-2xl border border-gray-200 shadow-sm bg-white flex flex-col min-h-0 overflow-hidden">
+      <div class="flex-1 rounded-3xl bg-white shadow-[0_4px_24px_rgba(16,36,71,0.06)] flex flex-col min-h-0 overflow-hidden">
 
         <!-- Empty state -->
         <div v-if="!activeSession" class="flex-1 flex flex-col items-center justify-center text-gray-500 gap-3">
-          <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z" />
           </svg>
           <p class="text-sm font-medium">Select a chat to view the conversation</p>
@@ -91,32 +109,47 @@
 
         <template v-else>
           <!-- Header -->
-          <div class="px-5 py-4 border-b border-gray-200 bg-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
-            <div>
-              <h2 class="text-lg font-bold text-gray-900">{{ activeSession.user?.name || 'Customer' }}</h2>
-              <p class="text-xs text-gray-500">
-                {{ activeSession.user?.email }} · Session #{{ activeSession.id }}
-                <span v-if="activeSession.resolved_at" class="font-semibold text-emerald-600"> · Resolved {{ timeAgo(activeSession.resolved_at) }}</span>
-                <span v-else class="font-semibold text-amber-600"> · Escalated {{ timeAgo(activeSession.escalated_at) }}</span>
-              </p>
+          <div class="px-5 py-4 border-b border-gray-100 bg-white flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-black text-lg flex-shrink-0 overflow-hidden" style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);">
+                <img
+                  v-if="customerAvatar(activeSession.user) && !failedAvatars.includes(activeSession.user?.id)"
+                  :src="customerAvatar(activeSession.user)"
+                  :alt="activeSession.user?.name || 'Customer'"
+                  class="w-full h-full object-cover"
+                  @error="failedAvatars.push(activeSession.user?.id)"
+                >
+                <span v-else>{{ initialsOf(activeSession.user?.name) }}</span>
+              </div>
+              <div class="min-w-0">
+                <h2 class="text-lg font-extrabold text-gray-900 leading-tight truncate">{{ activeSession.user?.name || 'Customer' }}</h2>
+                <p class="text-xs text-gray-500 truncate">
+                  {{ activeSession.user?.email }} · Session #{{ activeSession.id }}
+                  <span v-if="activeSession.resolved_at" class="font-semibold text-emerald-600"> · Resolved {{ timeAgo(activeSession.resolved_at) }}</span>
+                  <span v-else class="font-semibold text-amber-600"> · Escalated {{ timeAgo(activeSession.escalated_at) }}</span>
+                </p>
+              </div>
             </div>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2 flex-shrink-0">
               <button
                 v-if="!activeSession.resolved_at"
                 @click="resolveChat"
                 :disabled="resolving"
-                class="px-3 py-1.5 rounded-full text-xs font-semibold border border-emerald-500/30 text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-[13px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 {{ resolving ? 'Resolving...' : 'Mark Resolved' }}
               </button>
-              <span v-else class="px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-600">
+              <span v-else class="inline-flex items-center px-4 py-2.5 rounded-full text-[13px] font-bold bg-emerald-50 text-emerald-600">
                 Resolved
               </span>
             </div>
           </div>
 
           <!-- Messages -->
-          <div ref="messagesEl" class="flex-1 overflow-y-auto themed-scrollbar p-4 sm:p-5 space-y-4 bg-gray-50">
+          <div ref="messagesEl" class="flex-1 overflow-y-auto themed-scrollbar px-4 sm:px-6 py-5 space-y-5 bg-[#fafbfd]">
             <div v-if="messagesLoading" class="flex justify-center py-8">
               <div class="w-6 h-6 border-2 border-[#2F5597] border-t-transparent rounded-full animate-spin"></div>
             </div>
@@ -125,30 +158,71 @@
               <div
                 v-for="msg in messages"
                 :key="msg.id"
-                class="flex"
+                class="flex items-end gap-2.5"
                 :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
               >
                 <div
-                  class="max-w-[90%] rounded-2xl px-4 py-3 shadow-sm"
+                  v-if="msg.role !== 'user'"
+                  class="w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0"
+                  :style="msg.role === 'admin'
+                    ? 'background: linear-gradient(135deg, #f0a33c 0%, #d97706 100%);'
+                    : 'background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);'"
+                >
+                  {{ msg.role === 'admin' ? 'A' : 'M' }}
+                </div>
+
+                <div
+                  class="max-w-[80%] rounded-2xl px-4 py-3"
                   :class="msg.role === 'user'
-                    ? 'bg-[#2F5597] text-white rounded-br-md'
-                    : 'bg-white border border-gray-200 text-gray-900 rounded-bl-md'"
+                    ? 'text-white rounded-br-md shadow-[0_2px_8px_rgba(47,85,151,0.25)]'
+                    : 'bg-white text-gray-900 rounded-bl-md shadow-[0_1px_3px_rgba(16,36,71,0.08)]'"
+                  :style="msg.role === 'user' ? 'background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);' : ''"
                 >
                   <p class="text-sm whitespace-pre-wrap leading-relaxed">{{ msg.text }}</p>
+
+                  <div v-if="msg.attachments?.length" class="mt-2.5 flex flex-wrap gap-2">
+                    <div
+                      v-for="file in msg.attachments"
+                      :key="`admin-attachment-${msg.id}-${file.id}`"
+                      class="inline-flex items-center gap-2 rounded-xl px-2 py-1.5 max-w-[200px]"
+                      :class="msg.role === 'user' ? 'bg-white/15' : 'bg-gray-50 border border-gray-100'"
+                    >
+                      <svg class="w-4 h-4 flex-shrink-0" :class="msg.role === 'user' ? 'text-blue-100' : 'text-gray-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      <span class="text-[11px] font-semibold truncate" :class="msg.role === 'user' ? 'text-white' : 'text-gray-700'">{{ file.name }}</span>
+                    </div>
+                  </div>
+
                   <p
-                    class="mt-2 text-[10px] uppercase tracking-wide"
-                    :class="msg.role === 'user' ? 'text-blue-100' : 'text-gray-500'"
+                    class="mt-2 text-[10px] uppercase tracking-wide font-semibold"
+                    :class="msg.role === 'user' ? 'text-blue-100' : 'text-gray-400'"
                   >
                     <template v-if="msg.role === 'admin'">Admin · </template>
                     <template v-else-if="msg.role !== 'user'">Mela AI · </template>
                     {{ formatTime(msg.created_at) }}
                   </p>
                 </div>
+
+                <div
+                  v-if="msg.role === 'user'"
+                  class="w-9 h-9 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[11px] font-bold flex-shrink-0 overflow-hidden"
+                >
+                  <img
+                    v-if="customerAvatar(activeSession.user) && !failedAvatars.includes(activeSession.user?.id)"
+                    :src="customerAvatar(activeSession.user)"
+                    :alt="activeSession.user?.name || 'Customer'"
+                    class="w-full h-full object-cover"
+                    @error="failedAvatars.push(activeSession.user?.id)"
+                  >
+                  <span v-else>{{ initialsOf(activeSession.user?.name) }}</span>
+                </div>
               </div>
 
               <!-- Typing indicator while sending -->
-              <div v-if="sending" class="flex justify-start">
-                <div class="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3">
+              <div v-if="sending" class="flex justify-start items-end gap-2.5">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0" style="background: linear-gradient(135deg, #f0a33c 0%, #d97706 100%);">A</div>
+                <div class="bg-white rounded-2xl rounded-bl-md px-4 py-3 shadow-[0_1px_3px_rgba(16,36,71,0.08)]">
                   <div class="flex items-center gap-1">
                     <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce [animation-delay:-0.2s]"></span>
                     <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce [animation-delay:-0.1s]"></span>
@@ -160,23 +234,39 @@
           </div>
 
           <!-- Reply box (only for open/unresolved) -->
-          <form v-if="!activeSession.resolved_at" class="shrink-0 p-4 border-t border-gray-200 bg-white" @submit.prevent="sendReply">
-            <div class="flex gap-2 items-stretch">
-              <textarea
-                v-model="replyText"
-                @keydown.enter.ctrl.prevent="sendReply"
-                placeholder="Type a reply… (Ctrl+Enter to send)"
-                rows="2"
-                class="flex-1 resize-none rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 min-h-[92px] focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-              ></textarea>
+          <form v-if="!activeSession.resolved_at" class="shrink-0 px-4 sm:px-6 pt-4 pb-4 border-t border-gray-100 bg-white" @submit.prevent="sendReply">
+            <div class="flex gap-2.5 items-end">
+              <div class="flex-1 flex items-end gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 focus-within:bg-white focus-within:border-[#2F5597]/40 focus-within:ring-2 focus-within:ring-[#2F5597]/20 transition">
+                <textarea
+                  v-model="replyText"
+                  @keydown.enter.ctrl.prevent="sendReply"
+                  @input="autoGrowReply"
+                  placeholder="Type a reply…"
+                  rows="1"
+                  class="flex-1 resize-none bg-transparent border-0 py-1.5 text-sm text-gray-900 placeholder-gray-400 max-h-40 focus:outline-none focus:ring-0"
+                ></textarea>
+              </div>
               <button
                 type="submit"
                 :disabled="!replyText.trim() || sending"
-                class="px-4 rounded-xl text-white font-semibold transition self-stretch disabled:opacity-50 disabled:cursor-not-allowed"
-                style="background-color: #2F5597;"
+                class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-white text-sm font-bold shadow-[0_2px_8px_rgba(47,85,151,0.3)] transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex-shrink-0"
+                style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);"
               >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
                 {{ sending ? 'Sending…' : 'Send' }}
               </button>
+            </div>
+
+            <div class="mt-2.5 flex items-center justify-between gap-3 text-[11px] text-gray-400">
+              <p class="inline-flex items-center gap-1.5 min-w-0">
+                <svg class="w-3.5 h-3.5 flex-shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 21h6M10 17h4a4 4 0 002-3.5A6 6 0 106 13.5 4 4 0 008 17z" />
+                </svg>
+                <span class="truncate">Your reply is sent to the customer as Support.</span>
+              </p>
+              <p class="hidden sm:block flex-shrink-0">Press Ctrl + Enter to send</p>
             </div>
           </form>
         </template>
@@ -189,6 +279,7 @@
 import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import AdminLayout from '../components/AdminLayout.vue'
 import api from '../services/api.js'
+import { resolveProfilePictureUrl } from '../services/runtimeConfig'
 
 const tab = ref('open')
 const listLoading = ref(true)
@@ -206,7 +297,36 @@ const messagesEl = ref(null)
 let pollTimer = null
 
 const openSessions = computed(() => allSessions.value.filter((s) => !s.resolved_at))
-const displayedSessions = computed(() => tab.value === 'open' ? openSessions.value : resolvedSessions.value)
+
+const sessionSearch = ref('')
+const failedAvatars = ref([])
+
+const displayedSessions = computed(() => {
+  const source = tab.value === 'open' ? openSessions.value : resolvedSessions.value
+  const term = sessionSearch.value.trim().toLowerCase()
+  if (!term) return source
+
+  return source.filter((session) => {
+    const name = String(session.user?.name || '').toLowerCase()
+    const email = String(session.user?.email || '').toLowerCase()
+    const preview = String(session.last_message_preview || session.title || '').toLowerCase()
+    return name.includes(term) || email.includes(term) || preview.includes(term)
+  })
+})
+
+const initialsOf = (name) => {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return '?'
+  return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase()
+}
+
+const customerAvatar = (user) => resolveProfilePictureUrl(user?.profile_picture_url, user?.profile_picture)
+
+const autoGrowReply = (event) => {
+  const el = event.target
+  el.style.height = 'auto'
+  el.style.height = `${Math.min(el.scrollHeight, 160)}px`
+}
 
 const timeAgo = (dateStr) => {
   if (!dateStr) return ''

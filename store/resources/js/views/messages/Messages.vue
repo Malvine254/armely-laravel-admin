@@ -164,8 +164,15 @@
           </div>
 
           <div class="shrink-0 px-4 py-3.5 border-t border-gray-100 flex items-center gap-3">
-            <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0" style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);">
-              {{ userInitials }}
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 overflow-hidden" style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);">
+              <img
+                v-if="userAvatarUrl && !userAvatarFailed"
+                :src="userAvatarUrl"
+                :alt="userDisplayName"
+                class="w-full h-full object-cover"
+                @error="userAvatarFailed = true"
+              >
+              <span v-else>{{ userInitials }}</span>
             </div>
             <div class="min-w-0 flex-1">
               <p class="text-[13px] font-bold text-gray-900 truncate">{{ userDisplayName }}</p>
@@ -254,6 +261,24 @@
                 :style="chat.role === 'user' ? 'background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);' : ''"
               >
                 <p class="text-sm whitespace-pre-wrap leading-relaxed" v-html="renderMessageHtml(chat.text)"></p>
+
+                <div v-if="chat.attachments?.length" class="mt-2.5 flex flex-wrap gap-2">
+                  <a
+                    v-for="file in chat.attachments"
+                    :key="`attachment-${chat.id}-${file.id}`"
+                    :href="file.url"
+                    target="_blank"
+                    rel="noopener"
+                    class="inline-flex items-center gap-2 rounded-xl px-2 py-1.5 max-w-[200px] transition"
+                    :class="chat.role === 'user' ? 'bg-white/15 hover:bg-white/25' : 'bg-gray-50 hover:bg-gray-100 border border-gray-100'"
+                  >
+                    <img v-if="file.is_image" :src="file.url" :alt="file.name" class="w-9 h-9 rounded-lg object-cover flex-shrink-0">
+                    <svg v-else class="w-5 h-5 flex-shrink-0" :class="chat.role === 'user' ? 'text-blue-100' : 'text-gray-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <span class="text-[11px] font-semibold truncate" :class="chat.role === 'user' ? 'text-white' : 'text-gray-700'">{{ file.name }}</span>
+                  </a>
+                </div>
                 <p v-if="chat.degraded" class="mt-2 text-xs font-semibold text-amber-700">
                   Limited response — live assistant services were unavailable.
                 </p>
@@ -319,9 +344,16 @@
 
               <div
                 v-if="chat.role === 'user'"
-                class="w-9 h-9 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+                class="w-9 h-9 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[11px] font-bold flex-shrink-0 overflow-hidden"
               >
-                {{ userInitials }}
+                <img
+                  v-if="userAvatarUrl && !userAvatarFailed"
+                  :src="userAvatarUrl"
+                  :alt="userDisplayName"
+                  class="w-full h-full object-cover"
+                  @error="userAvatarFailed = true"
+                >
+                <span v-else>{{ userInitials }}</span>
               </div>
             </div>
 
@@ -349,14 +381,50 @@
             style="padding-bottom: calc(1rem + env(safe-area-inset-bottom));"
             @submit.prevent="sendChatMessage()"
           >
-            <div class="flex gap-2.5 items-end">
-              <div class="flex-1 flex items-end gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 focus-within:bg-white focus-within:border-[#2F5597]/40 focus-within:ring-2 focus-within:ring-[#2F5597]/20 transition">
+            <div v-if="pendingAttachments.length" class="mb-2.5 flex flex-wrap gap-2">
+              <div
+                v-for="file in pendingAttachments"
+                :key="`pending-${file.id ?? file.tempId}`"
+                class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 pl-2 pr-1.5 py-1.5 max-w-[220px]"
+              >
+                <img v-if="file.is_image && file.url" :src="file.url" alt="" class="w-8 h-8 rounded-lg object-cover flex-shrink-0">
+                <svg v-else class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <div class="min-w-0">
+                  <p class="text-[11px] font-semibold text-gray-700 truncate">{{ file.name }}</p>
+                  <p class="text-[10px] text-gray-400">{{ file.uploading ? 'Uploading…' : formatFileSize(file.size_bytes) }}</p>
+                </div>
                 <button
                   type="button"
-                  disabled
-                  title="Attachments aren't supported in chat yet"
-                  class="w-8 h-8 rounded-lg text-gray-300 flex items-center justify-center flex-shrink-0 cursor-not-allowed"
-                  aria-label="Attach a file (not available)"
+                  @click="removePendingAttachment(file)"
+                  class="w-6 h-6 rounded-md text-gray-400 hover:text-rose-500 hover:bg-white flex items-center justify-center flex-shrink-0"
+                  :aria-label="`Remove ${file.name}`"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="flex gap-2.5 items-end">
+              <div class="flex-1 flex items-end gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 focus-within:bg-white focus-within:border-[#2F5597]/40 focus-within:ring-2 focus-within:ring-[#2F5597]/20 transition">
+                <input
+                  ref="attachmentInputRef"
+                  type="file"
+                  class="hidden"
+                  multiple
+                  :accept="ATTACHMENT_ACCEPT"
+                  @change="handleAttachmentSelected"
+                >
+                <button
+                  type="button"
+                  @click="attachmentInputRef?.click()"
+                  :disabled="pendingAttachments.length >= MAX_ATTACHMENTS"
+                  :title="pendingAttachments.length >= MAX_ATTACHMENTS ? `Up to ${MAX_ATTACHMENTS} files per message` : 'Attach an image or document'"
+                  class="w-8 h-8 rounded-lg text-gray-400 hover:text-[#2F5597] hover:bg-gray-100 flex items-center justify-center flex-shrink-0 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Attach a file"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -406,7 +474,7 @@
 
               <button
                 type="submit"
-                :disabled="chatRequestInFlight || !chatInput.trim()"
+                :disabled="chatRequestInFlight || uploadingAttachment || (!chatInput.trim() && !readyAttachmentIds.length)"
                 class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-white text-sm font-bold shadow-[0_2px_8px_rgba(47,85,151,0.3)] transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex-shrink-0"
                 style="background: linear-gradient(135deg, #3b6fc4 0%, #2F5597 100%);"
               >
@@ -434,14 +502,14 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToastStore } from '../../stores/toastStore'
 import { useAuthStore } from '../../stores/authStore'
 import { useCartStore } from '../../stores/cartStore'
 import { applyAssistantCartOperation } from '../../services/assistantCart'
 import { getAuthStorageKeys } from '../../services/authContext'
-import { API_BASE_URL, resolveProductImageUrl } from '../../services/runtimeConfig'
+import { API_BASE_URL, resolveProductImageUrl, resolveProfilePictureUrl } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
 import { usePricingSettings } from '../../composables/usePricingSettings'
 
@@ -744,6 +812,17 @@ const userInitials = computed(() => {
   return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase()
 })
 
+const userAvatarFailed = ref(false)
+
+const userAvatarUrl = computed(() => resolveProfilePictureUrl(
+  authStore.user?.profile_picture_url,
+  authStore.user?.profile_picture
+))
+
+watch(userAvatarUrl, () => {
+  userAvatarFailed.value = false
+})
+
 const openAccountSettings = () => router.push('/account')
 
 const filteredSessions = computed(() => {
@@ -801,6 +880,77 @@ const sessionTimeLabel = (session) => {
 const insertEmoji = (emoji) => {
   chatInput.value = `${chatInput.value}${emoji}`
   showEmojiPicker.value = false
+}
+
+const MAX_ATTACHMENTS = 4
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
+const ATTACHMENT_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,text/plain,text/csv,text/markdown,application/json,application/pdf'
+
+const attachmentInputRef = ref(null)
+const pendingAttachments = ref([])
+const uploadingAttachment = computed(() => pendingAttachments.value.some((file) => file.uploading))
+const readyAttachmentIds = computed(() => pendingAttachments.value.filter((file) => file.id).map((file) => file.id))
+
+const formatFileSize = (bytes) => {
+  const size = Number(bytes || 0)
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`
+}
+
+const removePendingAttachment = (file) => {
+  pendingAttachments.value = pendingAttachments.value.filter((item) => item !== file)
+}
+
+const uploadAttachment = async (file) => {
+  const entry = {
+    tempId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: file.name,
+    size_bytes: file.size,
+    is_image: file.type.startsWith('image/'),
+    url: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
+    uploading: true,
+    id: null,
+  }
+  pendingAttachments.value.push(entry)
+
+  try {
+    const body = new FormData()
+    body.append('file', file)
+
+    const response = await fetch(`${API_BASE_URL}/messages/assistant/attachments`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${getAuthToken()}`, Accept: 'application/json' },
+      body,
+    })
+
+    const payload = await response.json().catch(() => null)
+    if (!response.ok || !payload?.data?.id) {
+      throw new Error(payload?.message || 'Upload failed')
+    }
+
+    Object.assign(entry, payload.data, { uploading: false, url: entry.url || payload.data.url })
+  } catch (error) {
+    removePendingAttachment(entry)
+    toastStore.addToast(`Could not attach ${file.name}`, 'error')
+  }
+}
+
+const handleAttachmentSelected = async (event) => {
+  const files = Array.from(event.target.files || [])
+  event.target.value = ''
+
+  for (const file of files) {
+    if (pendingAttachments.value.length >= MAX_ATTACHMENTS) {
+      toastStore.addToast(`You can attach up to ${MAX_ATTACHMENTS} files per message`, 'warning')
+      break
+    }
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      toastStore.addToast(`${file.name} is larger than 10 MB`, 'warning')
+      continue
+    }
+    await uploadAttachment(file)
+  }
 }
 
 const handleDocumentClick = (event) => {
@@ -869,6 +1019,7 @@ const refreshChatMessages = async () => {
       senderName: item.sender_name || null,
       createdAt: item.created_at || null,
       actions: item.actions || [],
+      attachments: item.attachments || [],
       productSuggestions: normalizeProductSuggestions(item.product_suggestions || [], item.created_at),
       degraded: !!item.degraded,
     }))
@@ -1059,6 +1210,7 @@ const selectChatSession = async (sessionId) => {
       senderName: item.sender_name || null,
       createdAt: item.created_at || null,
       actions: item.actions || [],
+      attachments: item.attachments || [],
       productSuggestions: normalizeProductSuggestions(item.product_suggestions || [], item.created_at),
       degraded: !!item.degraded,
     }))
@@ -1295,7 +1447,10 @@ const renderMessageHtml = (text) => {
 
 const sendChatMessage = async (prefilled = null) => {
   const outgoing = (prefilled ?? chatInput.value).trim()
-  if (!outgoing || chatRequestInFlight.value) return
+  const attachmentIds = readyAttachmentIds.value
+  if ((!outgoing && !attachmentIds.length) || chatRequestInFlight.value || uploadingAttachment.value) return
+
+  const sentAttachments = pendingAttachments.value.filter((file) => file.id)
 
   chatRequestInFlight.value = true
   stopMessagePolling()
@@ -1308,15 +1463,22 @@ const sendChatMessage = async (prefilled = null) => {
     text: outgoing,
     createdAt: new Date().toISOString(),
     actions: [],
+    attachments: sentAttachments.map((file) => ({
+      id: file.id,
+      name: file.name,
+      url: file.url,
+      is_image: file.is_image,
+    })),
     productSuggestions: [],
     optimistic: true,
   })
   chatInput.value = ''
+  pendingAttachments.value = []
 
   // Cache the optimistic state before any network work begins.
   if (activeChatSessionId.value) {
     cacheSessionMessages(activeChatSessionId.value, chatMessages.value)
-    updateSessionPreviewInstantly(activeChatSessionId.value, outgoing, 'user')
+    updateSessionPreviewInstantly(activeChatSessionId.value, outgoing || 'Sent an attachment', 'user')
   }
 
   // Commit one browser frame containing the user bubble before the typing state
@@ -1342,7 +1504,8 @@ const sendChatMessage = async (prefilled = null) => {
         cart: cartStore.items.map(item => ({
           productId: String(item.productId),
           quantity: Number(item.quantity) || 1
-        }))
+        })),
+        attachment_ids: attachmentIds
       })
     })
 

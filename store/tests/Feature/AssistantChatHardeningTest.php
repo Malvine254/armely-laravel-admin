@@ -66,11 +66,25 @@ class AssistantChatHardeningTest extends TestCase
             $table->string('role', 20);
             $table->text('content');
             $table->json('actions')->nullable();
+            $table->json('attachments')->nullable();
             $table->json('metadata')->nullable();
             $table->timestamps();
 
             $table->foreign('chat_session_id')->references('id')->on('chat_sessions')->onDelete('cascade');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
+        });
+
+        Schema::create('chat_attachments', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('chat_message_id')->nullable();
+            $table->string('disk', 32)->default('local');
+            $table->string('path');
+            $table->string('original_name');
+            $table->string('mime_type', 128);
+            $table->unsignedInteger('size_bytes');
+            $table->text('extracted_text')->nullable();
+            $table->timestamps();
         });
 
         Schema::create('app_settings', function (Blueprint $table) {
@@ -1047,6 +1061,89 @@ class AssistantChatHardeningTest extends TestCase
         $this->assertTrue($toolResults[0]['ok']);
         $this->assertTrue($toolResults[1]['ok']);
         $this->assertFalse($toolResults[2]['ok']);
+    }
+
+    public function test_uploaded_image_is_sent_to_the_model_as_vision_input(): void
+    {
+        config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
+        config()->set('services.azure_openai.api_key', 'test-key');
+        config()->set('services.azure_openai.deployment', 'test-deployment');
+        \Illuminate\Support\Facades\Storage::fake('local');
+
+        $userContent = null;
+        Http::fake(function ($request) use (&$userContent) {
+            $userContent = collect((array) data_get($request->data(), 'messages', []))
+                ->last(static fn (array $message) => ($message['role'] ?? '') === 'user')['content'] ?? null;
+
+            return Http::response([
+                'choices' => [['message' => ['content' => 'That looks like a Lenovo ThinkPad label.']]],
+            ]);
+        });
+
+        $user = $this->createCustomer('Attachment User', 'attachment@example.com');
+
+        $upload = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/attachments', [], []);
+        $upload->assertStatus(422);
+
+        $image = \Illuminate\Http\UploadedFile::fake()->image('label.png', 40, 40);
+        $uploaded = $this->actingAs($user, 'sanctum')->post('/api/v1/messages/assistant/attachments', ['file' => $image]);
+        $uploaded->assertOk();
+        $uploaded->assertJsonPath('data.is_image', true);
+        $attachmentId = (int) $uploaded->json('data.id');
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'What is in this photo?',
+            'attachment_ids' => [$attachmentId],
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.source', 'tool_agent');
+
+        // The bytes must reach the model as a vision part, not just the filename.
+        $this->assertIsArray($userContent);
+        $types = collect($userContent)->pluck('type')->all();
+        $this->assertContains('image_url', $types);
+        $this->assertStringStartsWith('data:image/', collect($userContent)->firstWhere('type', 'image_url')['image_url']['url']);
+    }
+
+    public function test_attachments_are_private_to_their_owner(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+
+        $owner = $this->createCustomer('Attachment Owner', 'attachment-owner@example.com');
+        $stranger = $this->createCustomer('Attachment Stranger', 'attachment-stranger@example.com');
+
+        $uploaded = $this->actingAs($owner, 'sanctum')->post('/api/v1/messages/assistant/attachments', [
+            'file' => \Illuminate\Http\UploadedFile::fake()->image('private.png'),
+        ]);
+        $uploaded->assertOk();
+        $attachmentId = (int) $uploaded->json('data.id');
+
+        $this->actingAs($stranger, 'sanctum')->get("/api/v1/messages/assistant/attachments/{$attachmentId}")->assertNotFound();
+        $this->actingAs($owner, 'sanctum')->get("/api/v1/messages/assistant/attachments/{$attachmentId}")->assertOk();
+
+        // A stranger also cannot attach someone else's upload to their own message.
+        config()->set('services.azure_openai.endpoint', '');
+        $this->actingAs($stranger, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Read this',
+            'attachment_ids' => [$attachmentId],
+        ])->assertOk();
+
+        $this->assertSame(
+            $owner->id,
+            (int) \Illuminate\Support\Facades\DB::table('chat_attachments')->where('id', $attachmentId)->value('user_id')
+        );
+    }
+
+    public function test_executable_uploads_are_rejected(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+
+        $user = $this->createCustomer('Bad Upload User', 'bad-upload@example.com');
+
+        $this->actingAs($user, 'sanctum')->post('/api/v1/messages/assistant/attachments', [
+            'file' => \Illuminate\Http\UploadedFile::fake()->createWithContent('shell.php', '<?php echo 1;'),
+        ], ['Accept' => 'application/json'])->assertStatus(422);
     }
 
     public function test_tool_agent_cart_action_requires_a_real_catalog_product(): void

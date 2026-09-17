@@ -13,11 +13,13 @@ class ChatMessage extends Model
         'role',
         'content',
         'actions',
+        'attachments',
         'metadata',
     ];
 
     protected $casts = [
         'actions' => 'array',
+        'attachments' => 'array',
         'metadata' => 'array',
     ];
 

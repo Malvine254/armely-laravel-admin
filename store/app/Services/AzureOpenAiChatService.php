@@ -196,7 +196,7 @@ class AzureOpenAiChatService
      *
      * @return array{reply: string, tool_calls: array<int, string>}|null
      */
-    public function runAgent(string $question, array $profile, array $chatHistory, AssistantToolkit $toolkit): ?array
+    public function runAgent(string $question, array $profile, array $chatHistory, AssistantToolkit $toolkit, array $attachmentParts = []): ?array
     {
         if (!$this->configured) {
             return null;
@@ -204,10 +204,14 @@ class AzureOpenAiChatService
 
         $this->lastRequestDegraded = false;
 
+        $userContent = $attachmentParts === []
+            ? $question
+            : [['type' => 'text', 'text' => $question !== '' ? $question : 'Please look at what I attached.'], ...$attachmentParts];
+
         $messages = [
             ['role' => 'system', 'content' => $this->agentSystemPrompt($profile)],
             ...$this->agentHistoryMessages($chatHistory),
-            ['role' => 'user', 'content' => $question],
+            ['role' => 'user', 'content' => $userContent],
         ];
 
         $tools = $toolkit->definitions();
@@ -279,6 +283,7 @@ class AzureOpenAiChatService
             'Ask for a detail only when you cannot act without it. If the customer gave a quantity, a brand or a budget earlier in this conversation, reuse it instead of asking again.',
             'To change how many units are in the cart, call update_cart_quantity with the final number. Only call add_to_cart when the customer wants an additional product in the cart.',
             'Call view_cart before answering anything about what is in the cart, how many items there are, or what it totals. Never estimate a cart total from the conversation.',
+            'When the customer attaches a file or image, read it and answer from what it actually contains. If you are asked to match it to products, pull the identifying details out of the attachment and search the catalogue with them.',
             $recentProducts !== [] ? '' : null,
             $recentProducts !== [] ? '# Already shown in this conversation' : null,
             $recentProducts !== [] ? 'Reuse these product_id values for follow-ups instead of searching again:' : null,

@@ -13,6 +13,7 @@ use App\Models\Quote;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\AppSetting;
+use App\Models\ChatAttachment;
 use App\Services\Assistant\AssistantToolkit;
 use App\Services\AzureOpenAiChatService;
 use App\Services\NotificationService;
@@ -20,10 +21,34 @@ use App\Services\TDSynnexService;
 use App\Support\ChatIntentSignals;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class MessageController extends Controller
 {
+    private const ATTACHMENT_MAX_KB = 10240;
+    private const ATTACHMENT_MAX_PER_MESSAGE = 4;
+    private const ATTACHMENT_TEXT_LIMIT = 12000;
+
+    private const ATTACHMENT_ALLOWED_MIMES = [
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'text/plain',
+        'text/csv',
+        'text/markdown',
+        'application/json',
+        'application/pdf',
+    ];
+
+    private const ATTACHMENT_TEXT_MIMES = [
+        'text/plain',
+        'text/csv',
+        'text/markdown',
+        'application/json',
+    ];
+
     public function __construct(
         private AzureOpenAiChatService $assistantService,
         private NotificationService $notificationService,
@@ -274,6 +299,7 @@ class MessageController extends Controller
                     'role' => $message->role,
                     'text' => $message->content,
                     'actions' => $message->actions ?? [],
+                    'attachments' => $message->attachments ?? [],
                     'product_suggestions' => (array) data_get($message->metadata, 'product_suggestions', []),
                     'degraded' => (bool) data_get($message->metadata, 'degraded', false),
                     'sender_name' => $senderName,
@@ -432,6 +458,8 @@ class MessageController extends Controller
             'cart' => 'sometimes|array|max:300',
             'cart.*.productId' => 'required|string|max:64',
             'cart.*.quantity' => 'required|integer|min:1|max:10000',
+            'attachment_ids' => 'sometimes|array|max:' . self::ATTACHMENT_MAX_PER_MESSAGE,
+            'attachment_ids.*' => 'integer',
         ]);
 
         $user = $request->user();
@@ -442,13 +470,20 @@ class MessageController extends Controller
         $session = $this->resolveOrCreateChatSession($user->id, $validated['chat_session_id'] ?? null);
         $wantsEscalation = $this->isUserEscalationIntent($question);
 
+        $attachments = $this->resolveOwnedAttachments($user, (array) ($validated['attachment_ids'] ?? []));
+
         $storedUserMessage = ChatMessage::create([
             'chat_session_id' => $session->id,
             'user_id' => $user->id,
             'role' => 'user',
             'content' => $question,
             'actions' => [],
+            'attachments' => $attachments->map(fn (ChatAttachment $item) => $this->presentAttachment($item))->all(),
         ]);
+
+        if ($attachments->isNotEmpty()) {
+            ChatAttachment::whereIn('id', $attachments->pluck('id'))->update(['chat_message_id' => $storedUserMessage->id]);
+        }
 
         $this->syncSessionTitle($session, $storedUserMessage->content);
 
@@ -571,7 +606,7 @@ class MessageController extends Controller
             ]);
         }
 
-        $agentResult = $this->runAssistantAgent($user, $question, $session, (array) ($validated['cart'] ?? []));
+        $agentResult = $this->runAssistantAgent($user, $question, $session, (array) ($validated['cart'] ?? []), $attachments->all());
 
         if ($agentResult !== null) {
             if ($agentResult['escalation_reason'] !== null && !(bool) $session->escalated_to_human) {
@@ -872,6 +907,162 @@ class MessageController extends Controller
     }
 
     /**
+     * Accept a chat attachment. Files are stored on the private disk under a generated name, so
+     * a crafted filename cannot escape the directory or be executed by the web server.
+     */
+    public function uploadAssistantAttachment(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => [
+                'required',
+                'file',
+                'max:' . self::ATTACHMENT_MAX_KB,
+                'mimetypes:' . implode(',', self::ATTACHMENT_ALLOWED_MIMES),
+            ],
+        ]);
+
+        $user = $request->user();
+        $file = $request->file('file');
+        $mime = (string) $file->getMimeType();
+
+        if (!in_array($mime, self::ATTACHMENT_ALLOWED_MIMES, true)) {
+            return response()->json(['success' => false, 'message' => 'That file type is not supported.'], 422);
+        }
+
+        $extension = strtolower((string) $file->extension());
+        $storedName = Str::uuid()->toString() . ($extension !== '' ? '.' . $extension : '');
+        $path = $file->storeAs('chat-attachments/' . $user->id, $storedName, 'local');
+
+        if ($path === false) {
+            return response()->json(['success' => false, 'message' => 'Could not store the file.'], 500);
+        }
+
+        $attachment = ChatAttachment::create([
+            'user_id' => $user->id,
+            'disk' => 'local',
+            'path' => $path,
+            'original_name' => Str::limit(trim((string) $file->getClientOriginalName()), 180, ''),
+            'mime_type' => $mime,
+            'size_bytes' => (int) $file->getSize(),
+            'extracted_text' => $this->extractAttachmentText($mime, (string) Storage::disk('local')->get($path)),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->presentAttachment($attachment),
+        ]);
+    }
+
+    /**
+     * Stream an attachment back to its owner. Ownership is checked on every read.
+     */
+    public function showAssistantAttachment(Request $request, int $attachmentId)
+    {
+        $attachment = ChatAttachment::where('id', $attachmentId)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if (!$attachment || !Storage::disk($attachment->disk)->exists($attachment->path)) {
+            abort(404);
+        }
+
+        return Storage::disk($attachment->disk)->response(
+            $attachment->path,
+            $attachment->original_name,
+            [
+                'Content-Type' => $attachment->mime_type,
+                // Never let an uploaded file be interpreted as markup in the browser.
+                'Content-Disposition' => 'inline; filename="' . addslashes($attachment->original_name) . '"',
+                'X-Content-Type-Options' => 'nosniff',
+                'Content-Security-Policy' => "default-src 'none'; img-src 'self'; sandbox",
+            ]
+        );
+    }
+
+    private function presentAttachment(ChatAttachment $attachment): array
+    {
+        return [
+            'id' => $attachment->id,
+            'name' => $attachment->original_name,
+            'mime_type' => $attachment->mime_type,
+            'size_bytes' => $attachment->size_bytes,
+            'is_image' => $attachment->isImage(),
+            'url' => '/api/v1/messages/assistant/attachments/' . $attachment->id,
+        ];
+    }
+
+    /**
+     * Text-like uploads are read directly; images go to the model as vision input instead.
+     */
+    private function extractAttachmentText(string $mime, string $contents): ?string
+    {
+        if ($contents === '' || !in_array($mime, self::ATTACHMENT_TEXT_MIMES, true)) {
+            return null;
+        }
+
+        $text = preg_replace('/\x{FEFF}/u', '', $contents) ?? $contents;
+        if (!mb_check_encoding($text, 'UTF-8')) {
+            $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        }
+
+        return Str::limit(trim($text), self::ATTACHMENT_TEXT_LIMIT, '');
+    }
+
+    /**
+     * Attachments referenced by a send must belong to the caller and not already be attached.
+     *
+     * @return \Illuminate\Support\Collection<int, ChatAttachment>
+     */
+    private function resolveOwnedAttachments(User $user, array $attachmentIds): \Illuminate\Support\Collection
+    {
+        if ($attachmentIds === []) {
+            return collect();
+        }
+
+        return ChatAttachment::whereIn('id', array_slice($attachmentIds, 0, self::ATTACHMENT_MAX_PER_MESSAGE))
+            ->where('user_id', $user->id)
+            ->whereNull('chat_message_id')
+            ->get();
+    }
+
+    /**
+     * Turn uploads into model input: images become vision parts, text-like files become quoted
+     * text. Anything we cannot read is declared so the model says so instead of inventing.
+     *
+     * @param array<int, ChatAttachment> $attachments
+     */
+    private function buildAttachmentParts(array $attachments): array
+    {
+        $parts = [];
+
+        foreach ($attachments as $attachment) {
+            if ($attachment->isImage()) {
+                $dataUrl = $attachment->toDataUrl();
+                if ($dataUrl !== null) {
+                    $parts[] = ['type' => 'text', 'text' => "Attached image: {$attachment->original_name}"];
+                    $parts[] = ['type' => 'image_url', 'image_url' => ['url' => $dataUrl]];
+                }
+                continue;
+            }
+
+            if (($attachment->extracted_text ?? '') !== '') {
+                $parts[] = [
+                    'type' => 'text',
+                    'text' => "Attached file {$attachment->original_name} ({$attachment->mime_type}). Contents:\n\n{$attachment->extracted_text}",
+                ];
+                continue;
+            }
+
+            $parts[] = [
+                'type' => 'text',
+                'text' => "The customer attached {$attachment->original_name} ({$attachment->mime_type}), but its contents could not be read as text. Say so plainly and ask them to paste the relevant part or send it as an image.",
+            ];
+        }
+
+        return $parts;
+    }
+
+    /**
      * Convert timestamp to human-readable "time ago" format
      */
     private function getTimeAgo($date)
@@ -1132,7 +1323,7 @@ class MessageController extends Controller
      * every catalogue, account and cart fact. Returns null when Azure OpenAI is unavailable, so
      * the deterministic local path below can still answer.
      */
-    private function runAssistantAgent(User $user, string $question, ChatSession $session, array $cart = []): ?array
+    private function runAssistantAgent(User $user, string $question, ChatSession $session, array $cart = [], array $attachments = []): ?array
     {
         if (!$this->assistantService->isConfigured()) {
             return null;
@@ -1159,7 +1350,8 @@ class MessageController extends Controller
                     'cart_line_count' => count($cart),
                 ],
                 $this->loadRecentChatTurns($session->id, $question),
-                $toolkit
+                $toolkit,
+                $this->buildAttachmentParts($attachments)
             );
         } catch (\Throwable $e) {
             Log::warning('Mela AI tool agent failed', [
@@ -3540,7 +3732,7 @@ class MessageController extends Controller
 
         $query = ChatSession::with([
             'messages' => fn ($q) => $q->latest('id')->limit(1),
-            'user:id,name,email',
+            'user:id,name,email,profile_picture',
         ])
             ->where(function ($q) {
                 $q->where('escalated_to_human', true)
@@ -3582,6 +3774,7 @@ class MessageController extends Controller
                         'id' => $session->user->id,
                         'name' => $session->user->name,
                         'email' => $session->user->email,
+                        'profile_picture' => $session->user->profile_picture,
                     ] : null,
                     'escalated_at' => $session->escalated_at,
                     'resolved_at' => $session->resolved_at ?? null,
@@ -3611,7 +3804,7 @@ class MessageController extends Controller
     {
         $this->requireAdminRole($request);
 
-        $session = ChatSession::with('user:id,name,email')
+        $session = ChatSession::with('user:id,name,email,profile_picture')
             ->findOrFail($chatSessionId);
 
         $messages = ChatMessage::where('chat_session_id', $session->id)
@@ -3622,6 +3815,7 @@ class MessageController extends Controller
                 'role' => $msg->role,
                 'text' => $msg->content,
                 'actions' => $msg->actions ?? [],
+                'attachments' => $msg->attachments ?? [],
                 'created_at' => $msg->created_at,
             ]);
 
@@ -3639,6 +3833,7 @@ class MessageController extends Controller
                         'id' => $session->user->id,
                         'name' => $session->user->name,
                         'email' => $session->user->email,
+                        'profile_picture' => $session->user->profile_picture,
                     ] : null,
                 ],
                 'messages' => $messages,
