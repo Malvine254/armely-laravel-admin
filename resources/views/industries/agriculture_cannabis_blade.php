@@ -940,14 +940,22 @@
     <div class="section-eyebrow">Get Started</div>
     <h2 class="section-title">Ready to discuss your agricultural or cannabis technology needs?</h2>
     <p class="section-body">Book a free 30-minute assessment. We will review your current systems and compliance requirements and come back with recommendations.</p>
-    <div class="ind-cta-form-wrap">
-      <div class="ind-form-row"><label class="ind-form-label">Full Name</label><input class="ind-form-input" type="text" placeholder="Jane Smith"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Business Email</label><input class="ind-form-input" type="email" placeholder="jane@yourorg.com"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Organization</label><input class="ind-form-input" type="text" placeholder="Your organization name"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Primary Need</label><select class="ind-form-select"><option value="">Select...</option><option>Custom compliance and operations application</option><option>Production and financial analytics</option><option>Data platform for operational reporting</option><option>Compliance workflow automation</option><option>Document management and regulatory recordkeeping</option><option>System integration across operational platforms</option><option>Not sure, need a recommendation</option></select></div>
-      <button class="ind-form-submit">Request Free Assessment</button>
-      <div class="ind-form-note">No spam. No sales pressure. Just a useful conversation.</div>
-    </div>
+    @include('partials.service-contact-form', [
+        'serviceContact' => [
+            'title' => 'Book Your Free Assessment',
+            'subtitle' => 'Tell us about your agriculture or cannabis technology needs.',
+            'button_label' => 'Request Free Assessment',
+            'options' => [
+                'Custom compliance and operations application',
+                'Production and financial analytics',
+                'Data platform for operational reporting',
+                'Compliance workflow automation',
+                'Document management and regulatory recordkeeping',
+                'System integration across operational platforms',
+                'Not sure, need a recommendation',
+            ],
+        ],
+    ])
   </div>
 </section>
 </div>
