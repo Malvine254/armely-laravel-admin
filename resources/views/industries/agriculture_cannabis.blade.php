@@ -881,10 +881,14 @@
 
 
 .armely-agriculture-cannabis-page .ind-cta-section { background:var(--navy-mid); padding-top:36px !important; padding-bottom:52px !important; }
-.armely-agriculture-cannabis-page .ind-cta-wrap { max-width:640px; margin:0 auto; text-align:center; padding:0 24px; }
+.armely-agriculture-cannabis-page .ind-cta-wrap { max-width:920px; margin:0 auto; text-align:center; padding:0 24px; }
 .armely-agriculture-cannabis-page .ind-cta-wrap .section-title { max-width:100%; text-align:center; }
 .armely-agriculture-cannabis-page .ind-cta-wrap .section-body { max-width:100%; text-align:center; margin-bottom:28px; }
-.armely-agriculture-cannabis-page .ind-cta-form-wrap { text-align:left; }
+.armely-agriculture-cannabis-page .ind-cta-wrap form.service-contact-form { width:100%; max-width:860px; margin:0 auto; text-align:left; }
+.armely-agriculture-cannabis-page .ind-cta-wrap form.service-contact-form label,
+.armely-agriculture-cannabis-page .ind-cta-wrap form.service-contact-form input,
+.armely-agriculture-cannabis-page .ind-cta-wrap form.service-contact-form select,
+.armely-agriculture-cannabis-page .ind-cta-wrap form.service-contact-form textarea { text-align:left; }
 
 </style>
 <div class="armely-agriculture-cannabis-page">

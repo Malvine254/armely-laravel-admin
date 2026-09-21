@@ -804,7 +804,7 @@ class HomeController extends Controller
             'agriculture-cannabis' => [
                 'label' => 'Agriculture & Cannabis',
                 'route_label' => 'agriculture-cannabis',
-                'view' => 'industries.agriculture_cannabis_blade',
+                'view' => 'industries.agriculture_cannabis',
                 'description' => 'Data, automation, and reporting for agricultural and cannabis operations.',
             ],
         ];
