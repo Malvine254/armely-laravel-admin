@@ -101,7 +101,7 @@ class SecurityHeaders
         $response->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
 
         // Permissions Policy — disable browser features not needed, but allow microphone for chat bot
-        $response->headers->set('Permissions-Policy', 'geolocation=(), camera=()');
+        $response->headers->set('Permissions-Policy', 'geolocation=(), camera=(), microphone=(self)');
 
         return $response;
     }
