@@ -7,8 +7,7 @@
 @section('content')
     @include($industryView)
 
-    @if($industrySlug !== 'agriculture-cannabis')
-        @push('styles')
+    @push('styles')
         <style>
             .industry-shared-contact {
                 padding: 64px 24px;
@@ -62,7 +61,7 @@
                 text-align: left;
             }
         </style>
-        @endpush
+    @endpush
 
         <section class="industry-shared-contact" id="contact">
             <div class="industry-shared-contact__inner">
@@ -88,5 +87,4 @@
                 ])
             </div>
         </section>
-    @endif
 @endsection

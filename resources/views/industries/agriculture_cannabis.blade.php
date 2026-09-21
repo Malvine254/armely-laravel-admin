@@ -939,27 +939,4 @@
     </div>
   </div>
 </section>
-<section class="cta-section ind-cta-section" id="contact">
-  <div class="ind-cta-wrap">
-    <div class="section-eyebrow">Get Started</div>
-    <h2 class="section-title">Ready to discuss your agricultural or cannabis technology needs?</h2>
-    <p class="section-body">Book a free 30-minute assessment. We will review your current systems and compliance requirements and come back with recommendations.</p>
-    @include('partials.service-contact-form', [
-        'serviceContact' => [
-            'title' => 'Book Your Free Assessment',
-            'subtitle' => 'Tell us about your agriculture or cannabis technology needs.',
-            'button_label' => 'Request Free Assessment',
-            'options' => [
-                'Custom compliance and operations application',
-                'Production and financial analytics',
-                'Data platform for operational reporting',
-                'Compliance workflow automation',
-                'Document management and regulatory recordkeeping',
-                'System integration across operational platforms',
-                'Not sure, need a recommendation',
-            ],
-        ],
-    ])
-  </div>
-</section>
 </div>

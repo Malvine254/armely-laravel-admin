@@ -935,19 +935,4 @@
     </div>
   </div>
 </section>
-<section class="cta-section ind-cta-section" id="contact">
-  <div class="ind-cta-wrap">
-    <div class="section-eyebrow">Get Started</div>
-    <h2 class="section-title">Ready to discuss your agency's technology needs?</h2>
-    <p class="section-body">Book a free 30-minute assessment. We will review your current environment and compliance requirements and come back with clear recommendations.</p>
-    <div class="ind-cta-form-wrap">
-      <div class="ind-form-row"><label class="ind-form-label">Full Name</label><input class="ind-form-input" type="text" placeholder="Jane Smith"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Business Email</label><input class="ind-form-input" type="email" placeholder="jane@yourorg.com"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Organization</label><input class="ind-form-input" type="text" placeholder="Your organization name"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Primary Need</label><select class="ind-form-select"><option value="">Select...</option><option>Microsoft 365 Government compliance and configuration</option><option>Performance reporting and analytics dashboards</option><option>Process automation for permitting, procurement, or grants</option><option>Data consolidation across multiple source systems</option><option>Custom application development for government workflows</option><option>AI deployment within GCC compliance boundary</option><option>Not sure, need a recommendation</option></select></div>
-      <button class="ind-form-submit">Request Free Assessment</button>
-      <div class="ind-form-note">No spam. No sales pressure. Just a useful conversation.</div>
-    </div>
-  </div>
-</section>
 </div>

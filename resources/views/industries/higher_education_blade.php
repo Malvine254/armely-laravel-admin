@@ -935,19 +935,4 @@
     </div>
   </div>
 </section>
-<section class="cta-section ind-cta-section" id="contact">
-  <div class="ind-cta-wrap">
-    <div class="section-eyebrow">Get Started</div>
-    <h2 class="section-title">Ready to discuss your institution's technology needs?</h2>
-    <p class="section-body">Book a free 30-minute assessment. We will review your Microsoft environment and compliance posture and come back with tailored recommendations.</p>
-    <div class="ind-cta-form-wrap">
-      <div class="ind-form-row"><label class="ind-form-label">Full Name</label><input class="ind-form-input" type="text" placeholder="Jane Smith"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Business Email</label><input class="ind-form-input" type="email" placeholder="jane@yourorg.com"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Organization</label><input class="ind-form-input" type="text" placeholder="Your organization name"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Primary Need</label><select class="ind-form-select"><option value="">Select...</option><option>Microsoft 365 EDU governance and FERPA compliance</option><option>Institutional research and analytics platform</option><option>Leadership and operations reporting dashboards</option><option>AI governance framework and Copilot deployment</option><option>Cybersecurity and security hardening</option><option>Administrative process automation</option><option>Not sure, need a recommendation</option></select></div>
-      <button class="ind-form-submit">Request Free Assessment</button>
-      <div class="ind-form-note">No spam. No sales pressure. Just a useful conversation.</div>
-    </div>
-  </div>
-</section>
 </div>

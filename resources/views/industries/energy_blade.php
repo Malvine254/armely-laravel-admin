@@ -1033,12 +1033,4 @@
     </div>
   </div>
 </section>
-<section class="cta-section ind-cta-section" id="contact">
-  <div class="ind-cta-wrap">
-    <div class="section-eyebrow">Get Started</div>
-    <h2 class="section-title">Ready to discuss your energy organization's technology needs?</h2>
-    <p class="section-body">Book a free 30-minute assessment. We will review your current systems and come back with recommendations.</p>
-    <a href="{{ route('contact') }}" class="btn-primary">Request Your Free Assessment</a>
-  </div>
-</section>
 </div>

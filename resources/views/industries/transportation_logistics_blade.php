@@ -935,19 +935,4 @@
     </div>
   </div>
 </section>
-<section class="cta-section ind-cta-section" id="contact">
-  <div class="ind-cta-wrap">
-    <div class="section-eyebrow">Get Started</div>
-    <h2 class="section-title">Ready to discuss your logistics technology needs?</h2>
-    <p class="section-body">Book a free 30-minute assessment. We will review your current systems and come back with clear recommendations.</p>
-    <div class="ind-cta-form-wrap">
-      <div class="ind-form-row"><label class="ind-form-label">Full Name</label><input class="ind-form-input" type="text" placeholder="Jane Smith"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Business Email</label><input class="ind-form-input" type="email" placeholder="jane@yourorg.com"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Organization</label><input class="ind-form-input" type="text" placeholder="Your organization name"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Primary Need</label><select class="ind-form-select"><option value="">Select...</option><option>Operational visibility and analytics dashboards</option><option>System integration between TMS, ERP, or fleet tools</option><option>Back-office and compliance process automation</option><option>Operational data platform for analytics</option><option>AI for customer service or operations support</option><option>Microsoft 365 for distributed teams</option><option>Not sure, need a recommendation</option></select></div>
-      <button class="ind-form-submit">Request Free Assessment</button>
-      <div class="ind-form-note">No spam. No sales pressure. Just a useful conversation.</div>
-    </div>
-  </div>
-</section>
 </div>
