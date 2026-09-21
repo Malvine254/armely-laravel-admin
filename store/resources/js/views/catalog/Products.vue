@@ -704,7 +704,7 @@ const buildProductsRouteQuery = () => {
 
 const requiresClientForFilters = (filters) => {
   const clientMediaStatuses = Array.isArray(filters?.mediaStatuses)
-    ? filters.mediaStatuses.filter((status) => !['Has Images', 'No Images'].includes(status))
+    ? filters.mediaStatuses.filter((status) => !['Has Images', 'No Images', 'Has Reviews'].includes(status))
     : []
 
   return (
@@ -1695,7 +1695,7 @@ const performSearch = async (resetPage = true, background = false) => {
       }
 
       const selectedImageStatuses = currentFilters.value.mediaStatuses
-        .filter((status) => ['Has Images', 'No Images'].includes(status))
+        .filter((status) => ['Has Images', 'No Images', 'Has Reviews'].includes(status))
       if (selectedImageStatuses.length > 0) {
         params.media = selectedImageStatuses.join(',')
       }

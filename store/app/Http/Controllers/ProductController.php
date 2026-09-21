@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use App\Jobs\ImportMissingCatalogSearchJob;
 
 class ProductController extends Controller
@@ -1417,6 +1418,19 @@ class ProductController extends Controller
             && in_array('No Images', $selectedMedia, true);
         if ($filterHasImages xor $filterNoImages) {
             $this->applyProductImageFilter($query, $filterHasImages);
+        }
+
+        if (in_array('Has Reviews', $selectedMedia, true) && Schema::hasTable('product_reviews')) {
+            $query->whereExists(function ($reviewQuery) {
+                $reviewQuery
+                    ->selectRaw('1')
+                    ->from('product_reviews')
+                    ->where(function ($productMatch) {
+                        $productMatch
+                            ->whereColumn('product_reviews.product_id', 'products.tdsynnex_product_id')
+                            ->orWhereColumn('product_reviews.product_id', 'products.tdsynnex_sku_no');
+                    });
+            });
         }
 
         $perPage = max(1, $pageSize);
