@@ -743,7 +743,6 @@ class TablesController extends Controller
             $blog = DB::table($blogTable)->where($idColumn, $request->id)->first();
             if (!empty($data)) {
                 ActivityLogger::log('update', 'Blog', $request->id, 'Updated blog ' . ($request->title ?? ($blog->title ?? $blog->blog_title ?? '')));
-                app(NewsletterNotificationService::class)->sendBlogNotification($blog, $idColumn);
             }
             return response()->json(['success' => true, 'message' => 'Blog updated successfully', 'data' => $blog]);
         } else {
@@ -1360,9 +1359,6 @@ class TablesController extends Controller
             }
             $caseStudy = DB::table('industry_listings')->where('id', $request->id)->first();
             ActivityLogger::log('update', 'CaseStudy', $request->id, 'Updated case study ' . ($caseStudy->category ?? ''));
-            if (!empty($data)) {
-                app(NewsletterNotificationService::class)->sendCaseStudyNotification($caseStudy);
-            }
             return response()->json(['success' => true, 'message' => 'Case study updated successfully', 'data' => $caseStudy]);
         }
 
@@ -1451,9 +1447,6 @@ class TablesController extends Controller
             }
             $whitePaper = DB::table('white_paper')->where('id', $request->id)->first();
             ActivityLogger::log('update', 'WhitePaper', $request->id, 'Updated white paper ' . ((string) ($whitePaper->{$titleColumn} ?? '')));
-            if (!empty($data)) {
-                app(NewsletterNotificationService::class)->sendWhitePaperNotification($whitePaper);
-            }
             return response()->json(['success' => true, 'message' => 'White paper updated successfully', 'data' => $whitePaper]);
         }
 
@@ -1616,7 +1609,6 @@ class TablesController extends Controller
             $blog = DB::table($blogTable)->where($idColumn, $id)->first();
             if ($blog) {
                 ActivityLogger::log('update', 'Blog', $id, 'Updated blog ' . ($blog->title ?? $blog->blog_title ?? ''));
-                app(NewsletterNotificationService::class)->sendBlogNotification($blog, $idColumn);
             }
         } else {
             Log::warning('No data to update');
@@ -1850,9 +1842,6 @@ class TablesController extends Controller
             
             $event = DB::table($table)->where('id', $id)->first();
             ActivityLogger::log('update', 'Event', $id, 'Updated event ' . ($event->title ?? ''));
-            if (!empty($data) && ($event->event_type ?? 'normal') === 'normal') {
-                app(NewsletterNotificationService::class)->sendEventNotification($event);
-            }
             return response()->json(['success' => true, 'message' => 'Event updated successfully', 'data' => $event]);
         } else {
             // Create new event
