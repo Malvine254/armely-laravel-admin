@@ -29,7 +29,8 @@ class SecurityHeaders
                 . "www.recaptcha.net "
                 . "copilotstudio.microsoft.com "
                 . "copilotstudio.preview.microsoft.com "
-                . "fonts.bunny.net",
+                . "fonts.bunny.net "
+                . "js.zi-scripts.com",
             "style-src 'self' 'unsafe-inline' "
                 . "cdn.datatables.net "
                 . "cdn.jsdelivr.net "
@@ -72,7 +73,9 @@ class SecurityHeaders
                 . "copilotstudio.preview.microsoft.com "
                 . "*.microsoft.com "
                 . "*.azurewebsites.net "
-                . "*.microsoftazure.com",
+                . "*.microsoftazure.com "
+                . "js.zi-scripts.com "
+                . "api.zi-scripts.com",
             "child-src 'self' "
                 . "copilotstudio.microsoft.com "
                 . "copilotstudio.preview.microsoft.com "

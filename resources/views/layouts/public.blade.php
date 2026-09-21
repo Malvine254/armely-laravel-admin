@@ -107,6 +107,23 @@
     @stack('styles')
     @stack('head')
 
+    <script>
+    window.ZIProjectKey = '7db0a52c3c1768584289';
+    (function() {
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.async = true;
+        script.src = 'https://js.zi-scripts.com/zi-tag.js';
+        if (document.readyState === 'complete') {
+            document.body.appendChild(script);
+        } else {
+            window.addEventListener('load', function() {
+                document.body.appendChild(script);
+            });
+        }
+    })();
+    </script>
+
     <style>
 /* ============================================
    Mobile Menu - Show/Hide Logic
