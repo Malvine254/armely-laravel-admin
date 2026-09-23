@@ -1018,7 +1018,7 @@ class AuthController extends Controller
         }
 
         // Check if token is valid (not older than 60 minutes)
-        if (now()->diffInMinutes($resetRecord->created_at) > 60) {
+        if (\Illuminate\Support\Carbon::parse($resetRecord->created_at)->addMinutes(60)->isPast()) {
             DB::table('password_reset_tokens')->where('email', $data['email'])->delete();
             return response()->json([
                 'success' => false,
@@ -1037,6 +1037,8 @@ class AuthController extends Controller
         // Update password
         $user->update([
             'password' => Hash::make($data['password']),
+            'force_password_change' => false,
+            'temp_password_expires_at' => null,
         ]);
 
         // Delete the used token

@@ -142,6 +142,7 @@
                 <!-- Actions -->
                 <td class="px-4 py-4 text-right">
                   <div class="flex justify-end items-center gap-1.5">
+                    <button @click="detailsUserId = admin.id" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-[#2F5597]/30 text-[#2F5597] hover:bg-blue-50">View details</button>
                     <button v-if="admin.force_password_change" @click="resendCredentials(admin.id)"
                       class="px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 transition">
                       Resend
@@ -286,12 +287,14 @@
       </div>
     </div>
 
+    <AdminAccountDetails v-if="detailsUserId" :user-id="detailsUserId" @close="detailsUserId = null" @updated="fetchAdminUsers" />
   </AdminLayout>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import AdminLayout from '@/components/AdminLayout.vue'
+import AdminAccountDetails from '@/components/AdminAccountDetails.vue'
 import api from '@/services/api'
 
 const ALL_PERMISSIONS = [
@@ -308,6 +311,7 @@ const permissionLabel = (key) => ALL_PERMISSIONS.find(p => p.key === key)?.label
 
 // ── State ────────────────────────────────────────────
 const searchQuery  = ref('')
+const detailsUserId = ref(null)
 const roleFilter   = ref('')
 const statusFilter = ref('')
 const adminUsers   = ref([])

@@ -210,6 +210,12 @@
                     Delete
                   </button>
                   <button
+                    @click="detailsUserId = user.id"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#2F5597]/50 text-[#2F5597] hover:bg-blue-50"
+                  >
+                    View details
+                  </button>
+                  <button
                     @click="viewCustomerOrders(user)"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#2F5597] hover:bg-[#1e3a6b] text-white transition"
                   >
@@ -720,6 +726,7 @@
         </div>
       </div>
     </div>
+    <AdminAccountDetails v-if="detailsUserId" :user-id="detailsUserId" @close="detailsUserId = null" @updated="fetchCustomers" />
   </AdminLayout>
 </template>
 
@@ -727,6 +734,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminLayout from '@/components/AdminLayout.vue'
+import AdminAccountDetails from '@/components/AdminAccountDetails.vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -735,6 +743,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const activeTab = ref('customers')
+const detailsUserId = ref(null)
 const userTabs = [
   { value: 'customers', label: 'Customer Users', icon: 'fa-users' },
   { value: 'admins', label: 'Admins', icon: 'fa-user-shield' }

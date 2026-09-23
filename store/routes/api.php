@@ -251,6 +251,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/admin/logs/bulk-delete', [AdminController::class, 'bulkDeleteActivityLogs']);
 
         // Admin User Management
+        Route::get('/admin/accounts/{account}', [\App\Http\Controllers\AdminAccountController::class, 'show']);
+        Route::put('/admin/accounts/{account}', [\App\Http\Controllers\AdminAccountController::class, 'update']);
+        Route::post('/admin/accounts/{account}/reset-password', [\App\Http\Controllers\AdminAccountController::class, 'sendReset'])->middleware('throttle:10,1');
         Route::get('/admin/users', [AdminController::class, 'getAdminUsers']);
         Route::post('/admin/users', [AdminController::class, 'createAdminUser']);
         Route::post('/admin/users/{userId}/resend-credentials', [AdminController::class, 'resendAdminCredentials']);

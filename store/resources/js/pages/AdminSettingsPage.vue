@@ -2,10 +2,11 @@
   <AdminLayout>
     <template #title>Settings</template>
 
-    <!-- Tabs -->
-    <div class="rounded-xl border-0 shadow-lg bg-white mb-6 overflow-hidden sticky top-0 z-10">
-      <div class="border-b border-gray-200">
-        <nav class="flex -mb-px overflow-x-auto">
+    <div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+      <!-- Tabs -->
+      <div class="rounded-xl border-0 shadow-lg bg-white mb-6 overflow-hidden sticky top-0 z-10">
+        <div class="border-b border-gray-200">
+          <nav class="flex -mb-px overflow-x-auto">
           <button
             v-for="tab in tabs"
             :key="tab.id"
@@ -25,7 +26,7 @@
     </div>
 
     <!-- Profile Settings -->
-    <div v-if="activeTab === 'profile'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <div v-if="activeTab === 'profile'" class="mx-auto max-w-6xl rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="p-6 border-b border-gray-200">
         <h3 class="text-lg font-semibold text-gray-900">Profile Settings</h3>
         <p class="text-sm text-gray-500 mt-1">Update your personal information</p>
@@ -97,7 +98,7 @@
     </div>
 
     <!-- API Configuration -->
-    <div v-if="activeTab === 'api'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <div v-if="activeTab === 'api'" class="mx-auto max-w-6xl rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="p-6 border-b border-gray-200">
         <h3 class="text-lg font-semibold text-gray-900">Integrations Configuration</h3>
         <p class="text-sm text-gray-500 mt-1">Manage TD SYNNEX XML mode and QuickBooks payment settings</p>
@@ -211,7 +212,7 @@
       </div>
     </div>
 
-    <div v-if="activeTab === 'price_sync'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <div v-if="activeTab === 'price_sync'" class="mx-auto max-w-6xl rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="p-6 border-b border-gray-200">
         <h3 class="text-lg font-semibold text-gray-900">Price Availability Sync</h3>
         <p class="text-sm text-gray-500 mt-1">Set when TD SYNNEX price &amp; availability refresh runs automatically. The sync always covers all products.</p>
@@ -375,7 +376,7 @@
     </div>
 
     <!-- Email Settings -->
-    <div v-if="activeTab === 'email'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <div v-if="activeTab === 'email'" class="mx-auto max-w-6xl rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="p-6 border-b border-gray-200">
         <h3 class="text-lg font-semibold text-gray-900">Email & Notifications</h3>
         <p class="text-sm text-gray-500 mt-1">Configure email notifications and SMTP settings</p>
@@ -475,7 +476,7 @@
     </div>
 
     <!-- System Settings -->
-    <div v-if="activeTab === 'system'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <div v-if="activeTab === 'system'" class="mx-auto max-w-6xl rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="p-6 border-b border-gray-200">
         <h3 class="text-lg font-semibold text-gray-900">System Settings</h3>
         <p class="text-sm text-gray-500 mt-1">General system configuration</p>
@@ -900,7 +901,7 @@
     </div>
 
     <!-- Admin Users Management (Super Admin Only) -->
-    <div v-if="activeTab === 'admins'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <div v-if="activeTab === 'admins'" class="mx-auto max-w-6xl rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="p-6 border-b border-gray-200 flex justify-between items-center">
         <div>
           <h3 class="text-lg font-semibold text-gray-900">Admin Users</h3>
@@ -1009,7 +1010,7 @@
     </div>
 
     <!-- Activity Logs (combined) -->
-    <div v-if="activeTab === 'activity_logs'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <div v-if="activeTab === 'activity_logs'" class="mx-auto max-w-6xl rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="p-6 border-b border-gray-200 bg-gray-50">
         <h3 class="text-lg font-semibold text-gray-900">Activity Logs</h3>
         <p class="text-sm text-gray-500 mt-1">Admin actions and user activity across the platform</p>
@@ -1241,7 +1242,7 @@
     </div>
 
     <!-- Add Admin Modal -->
-    <div v-if="showAddAdminModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" @click.self="closeAddAdminModal">
+    <div v-if="showAddAdminModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] px-4" @click.self="closeAddAdminModal">
       <div class="rounded-xl bg-white border-0 shadow-2xl w-full max-w-md mx-4 overflow-hidden">
         <div class="p-6 border-b border-gray-200 text-white" style="background: linear-gradient(135deg, #2F5597, #1e3a6b)">
           <h3 class="text-lg font-semibold text-white">Add New Admin</h3>
@@ -1299,6 +1300,7 @@
       </div>
     </div>
 
+    </div>
   </AdminLayout>
 </template>
 
