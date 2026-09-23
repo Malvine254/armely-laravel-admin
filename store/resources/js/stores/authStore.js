@@ -55,6 +55,10 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // setTimeout delays overflow a 32-bit signed int (~24.8 days) and fire immediately
+  // beyond that, so long "remember me" sessions (30 days) must be scheduled in chunks.
+  const MAX_TIMEOUT_DELAY = 2147483647
+
   const scheduleSessionExpiryTimer = () => {
     clearSessionExpiryTimer()
 
@@ -69,6 +73,13 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (msRemaining <= 0) {
       logout({ skipRequest: true, redirectReason: 'session-expired' })
+      return
+    }
+
+    if (msRemaining > MAX_TIMEOUT_DELAY) {
+      _sessionExpiryTimer = setTimeout(() => {
+        scheduleSessionExpiryTimer()
+      }, MAX_TIMEOUT_DELAY)
       return
     }
 
