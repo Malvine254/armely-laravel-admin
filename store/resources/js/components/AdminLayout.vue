@@ -556,8 +556,28 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'armely_admin_sidebar_collapsed_v1'
+
+const loadSidebarCollapsed = () => {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY)
+    if (raw === null) return true
+    return raw === 'true'
+  } catch {
+    return true
+  }
+}
+
 const sidebarOpen = ref(false)
-const sidebarCollapsed = ref(true)
+const sidebarCollapsed = ref(loadSidebarCollapsed())
+
+watch(sidebarCollapsed, (value) => {
+  try {
+    localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, value ? 'true' : 'false')
+  } catch {
+    // Ignore storage failures (e.g. private browsing quota).
+  }
+})
 const showNotifDropdown = ref(false)
 const notifRef = ref(null)
 const searchRef = ref(null)
