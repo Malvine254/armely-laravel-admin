@@ -535,8 +535,10 @@
       </div>
 
       <!-- Page Content -->
-      <div class="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-4 sm:p-6 lg:p-8 bg-gray-100">
-        <slot></slot>
+      <div class="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain bg-gray-100">
+        <div class="mx-auto w-full max-w-[1700px] px-3 sm:px-5 lg:px-7 xl:px-8 py-4 sm:py-6 lg:py-8">
+          <slot></slot>
+        </div>
       </div>
     </div>
   </div>
