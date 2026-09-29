@@ -60,12 +60,12 @@ body:has(.mobile-dropdown-menu.open) .mela-launcher {
 
 .mela-widget[data-state="open"] .mela-panel {
     width: 400px;
-    height: min(640px, calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom)));
+    height: min(680px, calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom)));
 }
 
 @media (min-width: 1200px) {
     .mela-widget[data-state="open"] .mela-panel {
-        height: min(clamp(640px, 45vw, 780px), calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom)));
+        height: min(clamp(680px, 50vw, 900px), calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom)));
     }
 }
 
