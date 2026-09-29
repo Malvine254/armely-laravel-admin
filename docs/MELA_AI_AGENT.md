@@ -71,6 +71,8 @@ If embeddings are unavailable, retrieval falls back to lexical search with `low`
 
 The index refreshes daily at 03:15 (`MELA_REINDEX_SCHEDULE=daily|weekly|off`). An admin can trigger a refresh with `POST /admin/mela/knowledge/reindex` and check status with `GET /admin/mela/knowledge`. Both require an admin session.
 
+Successful admin changes to published website content automatically request an incremental reindex after the response is sent. If an index is already running, one follow-up pass is scheduled so concurrent content changes are picked up. cPanel Git deployments also run `php artisan mela:index` through `.cpanel.yml`.
+
 ## Tools
 
 | Tool | Purpose |

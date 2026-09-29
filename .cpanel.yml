@@ -1,0 +1,4 @@
+---
+deployment:
+  tasks:
+    - php artisan mela:index

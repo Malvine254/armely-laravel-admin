@@ -732,7 +732,7 @@ Route::prefix('admin')->group(function () {
 Route::get('/admin/tables/ping', [TablesController::class, 'ping'])->name('admin.tables.ping');
 
 // Admin Protected Routes
-Route::prefix('admin')->middleware(['admin'])->group(function () {
+Route::prefix('admin')->middleware(['admin', \App\Http\Middleware\ReindexMelaKnowledgeAfterContentChange::class])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('admin.logout');
     // Graceful fallback: allow GET logout to handle cases where JS/form submission fails
