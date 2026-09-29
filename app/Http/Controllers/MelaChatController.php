@@ -103,6 +103,7 @@ class MelaChatController extends Controller
                 'content' => $result['reply'],
             ],
             'escalation_status' => $result['escalation_status'],
+            'sources' => $result['sources'] ?? [],
         ]);
     }
 

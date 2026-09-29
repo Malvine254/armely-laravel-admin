@@ -89,7 +89,7 @@ class ConversationStore
     }
 
     /**
-     * @return array<int, array{id: int, role: string, content: string, created_at: ?string}>
+    * @return array<int, array{id: int, role: string, content: string, created_at: ?string, sources: array}>
      */
     public function transcript(MelaConversation $conversation): array
     {
@@ -97,12 +97,13 @@ class ConversationStore
             ->where('conversation_id', $conversation->id)
             ->whereIn('role', ['user', 'assistant'])
             ->orderBy('id')
-            ->get(['id', 'role', 'content', 'created_at'])
+            ->get(['id', 'role', 'content', 'created_at', 'meta'])
             ->map(fn (MelaMessage $m) => [
                 'id' => $m->id,
                 'role' => $m->role,
                 'content' => $m->content,
                 'created_at' => $m->created_at?->toIso8601String(),
+                'sources' => (array) data_get($m->meta, 'sources', []),
             ])
             ->all();
     }

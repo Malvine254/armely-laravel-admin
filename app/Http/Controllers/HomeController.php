@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\AzureMailService;
 use App\Support\ReadingTime;
 use App\Support\ServiceUrl;
+use App\Support\CareerAvailability;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -472,8 +473,16 @@ class HomeController extends Controller
                 ->get();
         }, $dbErrorMessage);
 
+        $careerListings = collect($careerListings)->map(function ($job) {
+            $job->availability = CareerAvailability::status($job->job_deadline ?? null);
+
+            return $job;
+        });
+
         return view('company.career', [
             'careerListings' => $careerListings,
+            'openCareerCount' => $careerListings->where('availability', 'Open')->count(),
+            'unverifiedCareerCount' => $careerListings->where('availability', 'Unknown')->count(),
             'dbErrorMessage' => $dbErrorMessage,
         ]);
     }

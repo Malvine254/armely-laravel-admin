@@ -102,6 +102,36 @@
         }).join('');
     }
 
+    function renderSources(messageNode, sources) {
+        var links = Array.isArray(sources) ? sources : [];
+        var sourceNode = document.createElement('div');
+        sourceNode.className = 'mela-msg-sources';
+
+        links.forEach(function (source) {
+            if (!source || !source.url) { return; }
+
+            try {
+                var url = new URL(source.url, window.location.href);
+                if (url.protocol !== 'http:' && url.protocol !== 'https:') { return; }
+
+                var link = document.createElement('a');
+                link.href = url.href;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = source.title || url.hostname;
+                sourceNode.appendChild(link);
+            } catch (e) { /* Ignore invalid source URLs. */ }
+        });
+
+        if (sourceNode.childElementCount === 0) { return; }
+
+        var label = document.createElement('span');
+        label.className = 'mela-msg-sources-label';
+        label.textContent = 'Sources';
+        sourceNode.insertBefore(label, sourceNode.firstChild);
+        messageNode.appendChild(sourceNode);
+    }
+
     function addMessage(role, content, options) {
         options = options || {};
         var node = document.createElement('div');
@@ -110,6 +140,7 @@
             node.textContent = content;
         } else {
             node.innerHTML = renderMarkdown(content);
+            renderSources(node, options.sources);
         }
         if (options.retry) {
             var retry = document.createElement('button');
@@ -162,7 +193,7 @@
     function renderTranscript(messages) {
         Array.prototype.slice.call(log.children).forEach(function (child) { child.remove(); });
         (messages || []).forEach(function (m) {
-            addMessage(m.role, m.content);
+            addMessage(m.role, m.content, { sources: m.sources });
         });
         chips.hidden = (messages || []).some(function (m) { return m.role === 'user'; });
     }
@@ -403,7 +434,7 @@
         }).then(function (res) {
             hideTyping();
             if (res.ok && res.data.message) {
-                addMessage('assistant', res.data.message.content);
+                addMessage('assistant', res.data.message.content, { sources: res.data.sources });
                 saveConversation(conversation);
                 return;
             }

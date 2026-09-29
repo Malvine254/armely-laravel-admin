@@ -255,6 +255,26 @@ body:has(.mobile-dropdown-menu.open) .mela-launcher {
     text-decoration: underline;
 }
 
+.mela-msg-sources {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    margin-top: 9px;
+    padding-top: 7px;
+    border-top: 1px solid var(--mela-border);
+    font-size: 11px;
+}
+
+.mela-msg-sources-label {
+    color: var(--mela-muted);
+    font-weight: 600;
+}
+
+.mela-msg-sources a {
+    overflow-wrap: anywhere;
+}
+
 .mela-retry {
     display: block;
     margin-top: 8px;

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Services\Mela\Escalation\EscalationNotifier;
 use App\Services\Mela\Escalation\GraphEscalationNotifier;
 use App\Services\Mela\Telemetry\MelaLogger;
+use App\Services\Mela\Tools\CurrentCareerOpportunitiesTool;
 use App\Services\Mela\Tools\FindRelevantServicesTool;
 use App\Services\Mela\Tools\RequestHumanFollowUpTool;
 use App\Services\Mela\Tools\SaveVisitorDetailsTool;
@@ -25,6 +26,7 @@ class MelaServiceProvider extends ServiceProvider
         $this->app->scoped(ToolRegistry::class, fn ($app) => new ToolRegistry($app->make(MelaLogger::class), [
             $app->make(SearchKnowledgeTool::class),
             $app->make(FindRelevantServicesTool::class),
+            $app->make(CurrentCareerOpportunitiesTool::class),
             $app->make(SaveVisitorDetailsTool::class),
             $app->make(RequestHumanFollowUpTool::class),
         ]));

@@ -23,8 +23,16 @@
 							</svg>
 							Join Our Team
 						</div>
-						<h2 class="career-main-title text-light">Find Your Future Here!</h2>
-						<p class="lead">We're hiring across disciplines. Competitive pay, great benefits, and a collaborative environment. Full-time roles include paid holidays, vacations, performance bonuses, and project-driven incentives.</p>
+						<h2 class="career-main-title text-light">Careers at Armely</h2>
+						@if(!empty($dbErrorMessage))
+							<p class="lead">Current openings could not be verified right now. Please check the listings below or return later.</p>
+						@elseif(($openCareerCount ?? 0) > 0)
+							<p class="lead">{{ $openCareerCount }} position{{ $openCareerCount === 1 ? '' : 's' }} currently listed as open. Only listings marked Open are accepting applications.</p>
+						@elseif(($unverifiedCareerCount ?? 0) > 0)
+							<p class="lead">Some position statuses could not be verified. Please check each listing below for its current status.</p>
+						@else
+							<p class="lead">There are no current positions listed as open. Please check back for future opportunities.</p>
+						@endif
 					</div>
 				</div>
 				<div class="col-lg-5">
@@ -97,7 +105,7 @@
 					@forelse($careerListings as $job)
 						@php
 							$jobTypeClass = strtolower(str_replace(' ', '-', $job->job_type));
-							$status = !empty($job->job_deadline) && \Carbon\Carbon::parse($job->job_deadline)->endOfDay()->lt(now()) ? 'Closed' : 'Open';
+							$status = $job->availability ?? 'Unknown';
 						@endphp
 						<div class="career-item" data-type="{{ $jobTypeClass }}">
 							<div class="card career-card">
@@ -113,7 +121,7 @@
 										</div>
 										<div class="career-card-top-copy">
 											<span class="career-badge">{{ $job->job_type }}</span>
-											<span class="career-status {{ $status === 'Closed' ? 'is-closed' : 'is-open' }}">
+											<span class="career-status {{ $status === 'Open' ? 'is-open' : 'is-closed' }}">
 												<span class="career-status-dot"></span>
 												{{ $status }}
 											</span>
@@ -146,8 +154,8 @@
 								</div>
 
 								<div class="card-footer">
-									@if($status === 'Closed')
-										<button class="btn career-closed-btn w-100" type="button" disabled>Closed</button>
+									@if($status !== 'Open')
+										<button class="btn career-closed-btn w-100" type="button" disabled>{{ $status === 'Closed' ? 'Closed' : 'Status unavailable' }}</button>
 									@else
 										<a href="{{ route('job-board.show', ['publicToken' => $job->public_token]) }}" class="btn default-button apply-btn w-100">
 											<span>View Details</span>
