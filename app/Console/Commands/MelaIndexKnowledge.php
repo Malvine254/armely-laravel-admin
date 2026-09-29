@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\Mela\Knowledge\KnowledgeIndexer;
+use App\Services\Mela\Knowledge\MelaKnowledgeIndexProgress;
 use Illuminate\Console\Command;
 
 class MelaIndexKnowledge extends Command
@@ -14,13 +15,18 @@ class MelaIndexKnowledge extends Command
 
     protected $description = 'Crawl approved Armely website pages and refresh the Mela AI knowledge index';
 
-    public function handle(KnowledgeIndexer $indexer): int
+    public function handle(KnowledgeIndexer $indexer, MelaKnowledgeIndexProgress $progress): int
     {
-        $indexer->onProgress(fn (string $line) => $this->line($line));
+        $progress->start();
+        $indexer
+            ->onProgress(fn (string $line) => $this->line($line))
+            ->onProgressState(fn (array $state) => $progress->update($state));
 
         try {
             $stats = $indexer->run((array) $this->option('url'), (bool) $this->option('force'), (bool) $this->option('dry-run'));
+            $progress->finish($stats);
         } catch (\Throwable $e) {
+            $progress->fail();
             $this->error('Indexing failed: ' . $e->getMessage());
 
             return self::FAILURE;

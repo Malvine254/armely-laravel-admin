@@ -14,4 +14,5 @@ match (config('mela.knowledge.schedule')) {
     default => null,
 };
 
+Schedule::command('mela:index-scheduled')->everyMinute()->withoutOverlapping(30);
 Schedule::command('mela:prune')->dailyAt('03:45');

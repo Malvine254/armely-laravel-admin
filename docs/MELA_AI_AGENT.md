@@ -73,6 +73,8 @@ The index refreshes daily at 03:15 (`MELA_REINDEX_SCHEDULE=daily|weekly|off`). A
 
 Successful admin changes to published website content automatically request an incremental reindex after the response is sent. If an index is already running, one follow-up pass is scheduled so concurrent content changes are picked up. cPanel Git deployments also run `php artisan mela:index` through `.cpanel.yml`.
 
+Admins can monitor progress, start an index, or schedule a one-time run at `/admin/mela/knowledge/manage`. One-time schedules are checked every minute, so the production server must run `php artisan schedule:run` every minute.
+
 ## Tools
 
 | Tool | Purpose |

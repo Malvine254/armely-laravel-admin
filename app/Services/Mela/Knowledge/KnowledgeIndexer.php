@@ -22,6 +22,9 @@ class KnowledgeIndexer
     /** @var callable|null */
     private $progress = null;
 
+    /** @var callable|null */
+    private $progressState = null;
+
     private int $sitemapUrlCount = 0;
 
     public function __construct(
@@ -39,6 +42,13 @@ class KnowledgeIndexer
         return $this;
     }
 
+    public function onProgressState(callable $callback): self
+    {
+        $this->progressState = $callback;
+
+        return $this;
+    }
+
     /**
      * @param  array<int, string>  $onlyUrls  Restrict to these URLs (incremental); empty = full discovery.
      * @return array<string, int>
@@ -52,30 +62,47 @@ class KnowledgeIndexer
         $targets = $onlyUrls !== [] ? $this->explicitTargets($onlyUrls) : $this->discover();
         $stats['discovered'] = count($targets);
         $this->report("Discovered {$stats['discovered']} URLs");
+        $this->reportState([
+            'phase' => 'fetching',
+            'discovered' => $stats['discovered'],
+            'processed' => 0,
+            'total' => $stats['discovered'],
+        ]);
 
         $pages = [];
         $missing = [];
+        $processedFetches = 0;
         foreach (array_chunk(array_keys($targets), self::FETCH_CONCURRENCY) as $batch) {
             foreach ($this->fetchBatch($batch) as $url => $result) {
+                $processedFetches++;
                 if ($result['status'] === 'ok') {
                     $stats['fetched']++;
                     $extracted = $this->extractor->extract($result['html']);
                     $canonical = $this->canonicalFor($url, $extracted['canonical']);
-                    if (isset($pages[$canonical])) {
-                        continue;
+                    if (!isset($pages[$canonical])) {
+                        $pages[$canonical] = [
+                            'title' => $extracted['title'] !== '' ? $extracted['title'] : $canonical,
+                            'description' => $extracted['description'],
+                            'blocks' => $extracted['blocks'],
+                            'lastmod' => $targets[$url] ?? null,
+                        ];
                     }
-                    $pages[$canonical] = [
-                        'title' => $extracted['title'] !== '' ? $extracted['title'] : $canonical,
-                        'description' => $extracted['description'],
-                        'blocks' => $extracted['blocks'],
-                        'lastmod' => $targets[$url] ?? null,
-                    ];
                 } elseif ($result['status'] === 'gone') {
                     $missing[] = $url;
                 } else {
                     $stats['failed']++;
                     $this->report("  ! fetch failed: {$url} ({$result['status']})");
                 }
+
+                $this->reportState([
+                    'phase' => 'fetching',
+                    'discovered' => $stats['discovered'],
+                    'fetched' => $stats['fetched'],
+                    'failed' => $stats['failed'],
+                    'processed' => $processedFetches,
+                    'total' => $stats['discovered'],
+                    'current_url' => $url,
+                ]);
             }
         }
 
@@ -90,6 +117,15 @@ class KnowledgeIndexer
 
         $boilerplate = $onlyUrls === [] ? $this->detectBoilerplate($sectionsByPage, $dryRun) : (array) Cache::get(self::BOILERPLATE_CACHE_KEY, []);
 
+        $processedPages = 0;
+        $totalPages = count($pages);
+        $this->reportState([
+            'phase' => 'indexing',
+            'processed' => 0,
+            'total' => $totalPages,
+            'current_url' => null,
+        ]);
+
         foreach ($pages as $url => $page) {
             $type = KnowledgeUrl::pageType($url);
             $sections = array_values(array_filter(
@@ -101,6 +137,7 @@ class KnowledgeIndexer
             if ($chunks === []) {
                 $stats['skipped']++;
                 $this->report("  - no content: {$url}");
+                $this->reportIndexProgress($url, ++$processedPages, $totalPages, $stats);
                 continue;
             }
 
@@ -112,6 +149,7 @@ class KnowledgeIndexer
                 if (!$dryRun) {
                     $existing->forceFill(['last_indexed_at' => now()])->save();
                 }
+                $this->reportIndexProgress($url, ++$processedPages, $totalPages, $stats);
                 continue;
             }
 
@@ -119,6 +157,7 @@ class KnowledgeIndexer
                 $stats['indexed']++;
                 $stats['chunks'] += count($chunks);
                 $this->report("  + would index {$url} (" . count($chunks) . ' chunks)');
+                $this->reportIndexProgress($url, ++$processedPages, $totalPages, $stats);
                 continue;
             }
 
@@ -132,9 +171,12 @@ class KnowledgeIndexer
                 $this->logger->event('KNOWLEDGE_INDEX_FAILED', ['url' => $url, 'error' => $e->getMessage()], 'error');
                 $this->report("  ! index failed: {$url}: {$e->getMessage()}");
             }
+
+            $this->reportIndexProgress($url, ++$processedPages, $totalPages, $stats);
         }
 
         if (!$dryRun) {
+            $this->reportState(['phase' => 'cleaning', 'current_url' => null]);
             $stale = $missing;
             // Without a sitemap we cannot tell removed pages from an outage, so keep existing pages.
             if ($onlyUrls === [] && $this->sitemapUrlCount > 0) {
@@ -152,6 +194,21 @@ class KnowledgeIndexer
         $this->logger->event('KNOWLEDGE_INDEX_COMPLETED', $stats);
 
         return $stats;
+    }
+
+    private function reportIndexProgress(string $url, int $processed, int $total, array $stats): void
+    {
+        $this->reportState([
+            'phase' => 'indexing',
+            'processed' => $processed,
+            'total' => $total,
+            'current_url' => $url,
+            'indexed' => $stats['indexed'],
+            'unchanged' => $stats['unchanged'],
+            'skipped' => $stats['skipped'],
+            'failed' => $stats['failed'],
+            'chunks' => $stats['chunks'],
+        ]);
     }
 
     /**
@@ -400,6 +457,13 @@ class KnowledgeIndexer
     {
         if ($this->progress) {
             ($this->progress)($line);
+        }
+    }
+
+    private function reportState(array $state): void
+    {
+        if ($this->progressState) {
+            ($this->progressState)($state);
         }
     }
 }

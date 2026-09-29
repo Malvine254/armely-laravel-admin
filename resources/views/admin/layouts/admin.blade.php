@@ -343,6 +343,12 @@
             </a>
         </li>
         <li>
+            <a href="{{ route('admin.mela.knowledge.manage') }}" class="nav-link {{ request()->routeIs('admin.mela.knowledge*') ? 'active' : '' }}">
+                <i class="fas fa-brain"></i>
+                <span>Mela Knowledge</span>
+            </a>
+        </li>
+        <li>
             <a href="{{ route('admin.admins') }}" class="nav-link {{ request()->routeIs('admin.admins*') ? 'active' : '' }}">
                 <i class="fas fa-user-shield"></i>
                 <span>Manage Admins</span>

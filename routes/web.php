@@ -741,6 +741,9 @@ Route::prefix('admin')->middleware(['admin', \App\Http\Middleware\ReindexMelaKno
     // Mela AI knowledge index
     Route::get('/mela/knowledge', [\App\Http\Controllers\Admin\MelaKnowledgeController::class, 'status'])->name('admin.mela.knowledge.status');
     Route::post('/mela/knowledge/reindex', [\App\Http\Controllers\Admin\MelaKnowledgeController::class, 'reindex'])->name('admin.mela.knowledge.reindex');
+    Route::get('/mela/knowledge/manage', [\App\Http\Controllers\Admin\MelaKnowledgeController::class, 'index'])->name('admin.mela.knowledge.manage');
+    Route::post('/mela/knowledge/schedule', [\App\Http\Controllers\Admin\MelaKnowledgeController::class, 'schedule'])->name('admin.mela.knowledge.schedule');
+    Route::delete('/mela/knowledge/schedule', [\App\Http\Controllers\Admin\MelaKnowledgeController::class, 'cancelSchedule'])->name('admin.mela.knowledge.schedule.cancel');
 
     // Resource Management
     Route::get('/resources', [AdminResourceController::class, 'index'])->name('admin.resources.index');
