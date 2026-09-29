@@ -22,7 +22,7 @@ class CurrentCareerOpportunitiesTool implements MelaTool
     {
         return [
             'type' => 'object',
-            'properties' => [],
+            'properties' => (object) [],
             'required' => [],
             'additionalProperties' => false,
         ];
