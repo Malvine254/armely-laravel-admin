@@ -263,6 +263,11 @@
     // ========================================
 
     const ChatBot = {
+        GREETED_KEY: 'armely_mela_greeted',
+        DISMISSED_KEY: 'armely_mela_dismissed',
+        ENGAGED_KEY: 'armely_mela_engaged',
+        EXIT_SHOWN_KEY: 'armely_mela_exit_shown',
+
         init: function () {
             this.cacheDom();
             this.bindEvents();
@@ -272,71 +277,121 @@
         cacheDom: function () {
             this.$popup = $('#helpPopup');
             this.$bubble = $('#chatBubble');
+            this.$badge = $('#chatBubbleBadge');
             this.$modal = $('#myModal');
             this.$chatNowBtn = $('#chatNowBtn');
             this.$noThanksBtn = $('#noThanksBtn');
             this.$closeModal = $('.modal-chat .close');
+            this.$typing = $('#melaTyping');
+            this.$msg1 = $('#melaMsg1');
+            this.$msg2 = $('#melaMsg2');
+            this.$chips = $('#melaQuickReplies');
+        },
+
+        session: function (key, value) {
+            try {
+                if (value === undefined) return sessionStorage.getItem(key);
+                sessionStorage.setItem(key, value);
+            } catch (e) { return null; }
         },
 
         bindEvents: function () {
             const self = this;
 
-            // Chat Now button
             self.$chatNowBtn.on('click', function () {
-                self.$popup.hide();
-                self.openChat();
+                self.engage();
             });
 
-            // No Thanks button
+            self.$chips.on('click', '.mela-chip', function () {
+                self.engage();
+            });
+
             self.$noThanksBtn.on('click', function () {
-                self.$popup.hide();
-                self.$bubble.css('display', 'flex');
-                // Store preference in localStorage
-                localStorage.setItem('armely_chat_dismissed', Date.now());
+                self.$popup.fadeOut(200);
+                self.session(self.DISMISSED_KEY, '1');
+                self.showBubble(true);
             });
 
-            // Bubble click
-            self.$bubble.on('click', function () {
-                self.openChat();
+            self.$bubble.on('click keydown', function (e) {
+                if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
+                self.engage();
             });
 
-            // Close modal
             self.$closeModal.on('click', function () {
                 self.closeChat();
             });
 
-            // Close on overlay click
             self.$modal.on('click', function (e) {
                 if ($(e.target).is(self.$modal)) {
                     self.closeChat();
                 }
             });
 
-            // Close on ESC key
             $(document).on('keydown', function (e) {
                 if (e.key === 'Escape' && self.$modal.is(':visible')) {
                     self.closeChat();
                 }
+            });
+
+            // Re-engage once per session when a desktop visitor moves to leave the page
+            $(document).on('mouseout', function (e) {
+                if (e.relatedTarget || e.clientY > 0) return;
+                if (self.session(self.ENGAGED_KEY) || self.session(self.EXIT_SHOWN_KEY)) return;
+                if (self.$modal.is(':visible') || self.$popup.is(':visible')) return;
+                self.session(self.EXIT_SHOWN_KEY, '1');
+                self.greet(0);
             });
         },
 
         showInitialPopup: function () {
             const self = this;
 
-            // Check if user has dismissed popup in the last 24 hours
-            const dismissed = localStorage.getItem('armely_chat_dismissed');
-            const now = Date.now();
-            const oneDayMs = 24 * 60 * 60 * 1000;
-
-            if (!dismissed || (now - parseInt(dismissed)) > oneDayMs) {
-                // Show popup after 5 seconds
-                setTimeout(function () {
-                    self.$popup.fadeIn(400);
-                }, 5000);
-            } else {
-                // Show bubble instead
-                self.$bubble.css('display', 'flex');
+            if (self.session(self.ENGAGED_KEY) || self.session(self.DISMISSED_KEY) || self.session(self.GREETED_KEY)) {
+                // Already greeted this visit: keep the unread badge until they engage
+                self.showBubble(!self.session(self.ENGAGED_KEY));
+                return;
             }
+
+            self.session(self.GREETED_KEY, '1');
+            self.greet(3500);
+        },
+
+        greet: function (delay) {
+            const self = this;
+            self.$bubble.hide();
+            self.$msg1.attr('hidden', true);
+            self.$msg2.attr('hidden', true);
+            self.$chips.attr('hidden', true);
+            self.$typing.show();
+
+            setTimeout(function () {
+                self.$popup.fadeIn(300);
+                setTimeout(function () {
+                    self.$typing.hide();
+                    self.$msg1.removeAttr('hidden');
+                    setTimeout(function () {
+                        self.$msg2.removeAttr('hidden');
+                        self.$chips.removeAttr('hidden');
+                    }, 700);
+                }, 1200);
+            }, delay);
+        },
+
+        showBubble: function (withBadge) {
+            this.$bubble.css('display', 'flex');
+            if (withBadge) {
+                this.$badge.removeAttr('hidden');
+            } else {
+                this.$badge.attr('hidden', true);
+            }
+        },
+
+        engage: function () {
+            this.session(this.ENGAGED_KEY, '1');
+            this.$popup.hide();
+            this.$badge.attr('hidden', true);
+            this.openChat();
         },
 
         openChat: function () {
@@ -351,7 +406,7 @@
 
         closeChat: function () {
             this.$modal.fadeOut(300);
-            this.$bubble.css('display', 'flex');
+            this.showBubble(false);
             $('body').css('overflow', '');
         }
     };
