@@ -45,7 +45,6 @@
     border-radius: 14px;
     overflow: hidden;
     box-shadow: 0 12px 40px rgba(23, 59, 103, 0.28);
-    animation: melaSlideUp 0.35s ease-out;
 }
 
 .mela-widget[data-state="teaser"] .mela-panel {
@@ -438,6 +437,84 @@ body:has(.mobile-dropdown-menu.open) .mela-launcher {
     animation: melaPulse 1.8s ease-in-out infinite;
 }
 
+/* Panel grows out of the launcher corner, and shrinks back into it. */
+.mela-panel {
+    transform-origin: bottom right;
+}
+
+.mela-panel.mela-opening {
+    animation: melaGrow 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+
+.mela-panel.mela-closing {
+    animation: melaShrink 0.22s ease-in forwards;
+}
+
+/* Attention nudges, only while auto-open is still allowed. */
+.mela-launcher.is-nudging::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 0 0 rgba(47, 85, 151, 0.55);
+    animation: melaRing 2.4s ease-out infinite;
+    pointer-events: none;
+}
+
+.mela-launcher.is-nudging .mela-launcher-avatar {
+    animation: melaWave 4s ease-in-out infinite;
+}
+
+.mela-launcher-typing {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    padding: 0 6px;
+}
+
+.mela-launcher-typing span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #fff;
+    animation: melaTyping 1.1s infinite ease-in-out;
+}
+
+.mela-launcher-typing span:nth-child(2) { animation-delay: 0.15s; }
+.mela-launcher-typing span:nth-child(3) { animation-delay: 0.3s; }
+
+.mela-launcher.is-typing .mela-launcher-text {
+    display: none;
+}
+
+.mela-launcher.is-typing .mela-launcher-typing {
+    display: inline-flex;
+}
+
+@keyframes melaGrow {
+    0% { opacity: 0; transform: scale(0.25) translateY(24px); }
+    60% { opacity: 1; }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes melaShrink {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.3) translateY(24px); }
+}
+
+@keyframes melaRing {
+    0% { box-shadow: 0 0 0 0 rgba(47, 85, 151, 0.55); }
+    70%, 100% { box-shadow: 0 0 0 14px rgba(47, 85, 151, 0); }
+}
+
+@keyframes melaWave {
+    0%, 70%, 100% { transform: rotate(0deg); }
+    75% { transform: rotate(-12deg); }
+    80% { transform: rotate(10deg); }
+    85% { transform: rotate(-8deg); }
+    90% { transform: rotate(6deg); }
+}
+
 @keyframes melaTyping {
     0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
     30% { transform: translateY(-4px); opacity: 1; }
@@ -495,7 +572,11 @@ body:has(.mobile-dropdown-menu.open) .mela-launcher {
 
 @media (prefers-reduced-motion: reduce) {
     .mela-panel,
+    .mela-panel.mela-opening,
+    .mela-panel.mela-closing,
     .mela-launcher,
+    .mela-launcher.is-nudging::after,
+    .mela-launcher.is-nudging .mela-launcher-avatar,
     .mela-msg,
     .mela-quick-replies,
     .mela-badge,

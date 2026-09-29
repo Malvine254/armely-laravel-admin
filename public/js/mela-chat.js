@@ -9,8 +9,11 @@
 
     var STORAGE_KEY = 'mela.conversation.v1';
     var STORAGE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-    var SESSION = { greeted: 'mela.greeted', dismissed: 'mela.dismissed', engaged: 'mela.engaged', exitShown: 'mela.exitShown' };
+    var SESSION = { engaged: 'mela.engaged' };
+    var DISMISSED_KEY = 'mela.dismissedAt';
+    var DISMISSED_TTL_MS = 30 * 24 * 60 * 60 * 1000;
     var GREETING_DELAY_MS = 3500;
+    var CLOSE_ANIMATION_MS = 220;
 
     var api = root.getAttribute('data-api');
     var contactEmail = root.getAttribute('data-contact-email') || '';
@@ -191,15 +194,60 @@
     }
 
     function setState(state) {
+        var wasShowingPanel = !panel.hidden;
         fitBelowHeader();
         root.setAttribute('data-state', state);
         panel.hidden = state !== 'teaser' && state !== 'open';
         launcher.hidden = state !== 'launcher';
+        if (!panel.hidden && !wasShowingPanel) {
+            playAnimation(panel, 'mela-opening');
+        }
+        if (!launcher.hidden) {
+            launcher.classList.toggle('is-nudging', !isDismissed());
+        }
         if (state === 'open') {
             document.documentElement.classList.add('mela-open');
         } else {
             document.documentElement.classList.remove('mela-open');
         }
+    }
+
+    function playAnimation(node, className) {
+        node.classList.remove(className);
+        void node.offsetWidth;
+        node.classList.add(className);
+        node.addEventListener('animationend', function done() {
+            node.classList.remove(className);
+            node.removeEventListener('animationend', done);
+        });
+    }
+
+    // ---------- auto-open (stops once the visitor dismisses the chat) ----------
+    function isDismissed() {
+        try {
+            var at = parseInt(localStorage.getItem(DISMISSED_KEY) || '0', 10);
+            return at > 0 && Date.now() - at < DISMISSED_TTL_MS;
+        } catch (e) { return false; }
+    }
+
+    function rememberDismissal() {
+        try { localStorage.setItem(DISMISSED_KEY, String(Date.now())); } catch (e) { /* ignore */ }
+        launcher.classList.remove('is-nudging');
+    }
+
+    function autoOpen() {
+        if (isDismissed() || root.getAttribute('data-state') !== 'launcher') { return; }
+        // Launcher "types" first, then the chat grows out of it.
+        launcher.classList.add('is-typing');
+        setTimeout(function () {
+            launcher.classList.remove('is-typing');
+            if (isDismissed() || root.getAttribute('data-state') !== 'launcher') { return; }
+            if (conversation) {
+                open();
+            } else {
+                greet(0);
+            }
+        }, 1500);
     }
 
     function showLauncher(withBadge) {
@@ -241,12 +289,13 @@
 
     function minimize() {
         hideTypingIfIdle();
-        if (root.getAttribute('data-state') === 'teaser' && !session(SESSION.engaged)) {
-            session(SESSION.dismissed, '1');
-            showLauncher(true);
-            return;
-        }
-        showLauncher(false);
+        rememberDismissal();
+        var withBadge = !conversation && !session(SESSION.engaged);
+        panel.classList.add('mela-closing');
+        setTimeout(function () {
+            panel.classList.remove('mela-closing');
+            showLauncher(withBadge);
+        }, CLOSE_ANIMATION_MS);
     }
 
     function hideTypingIfIdle() {
@@ -405,23 +454,21 @@
         if (e.key === 'Escape' && root.getAttribute('data-state') === 'open') { minimize(); }
     });
 
-    // Re-engage once per visit when a desktop visitor moves to leave without having chatted.
+    // Re-engage when a desktop visitor moves to leave, unless they dismissed the chat.
+    var exitShown = false;
     document.addEventListener('mouseout', function (e) {
         if (e.relatedTarget || e.clientY > 0) { return; }
-        if (conversation || session(SESSION.engaged) || session(SESSION.exitShown)) { return; }
+        if (exitShown || conversation || isDismissed()) { return; }
         if (root.getAttribute('data-state') !== 'launcher') { return; }
-        session(SESSION.exitShown, '1');
+        exitShown = true;
         greet(0);
     });
 
     // ---------- start ----------
-    if (conversation) {
+    if (isDismissed()) {
         showLauncher(false);
-    } else if (session(SESSION.greeted) || session(SESSION.dismissed)) {
-        showLauncher(!session(SESSION.engaged));
     } else {
-        session(SESSION.greeted, '1');
-        setState('hidden');
-        greet(GREETING_DELAY_MS);
+        showLauncher(!conversation);
+        setTimeout(autoOpen, GREETING_DELAY_MS);
     }
 })();

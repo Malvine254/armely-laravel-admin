@@ -40,7 +40,8 @@
 
     <button type="button" class="mela-launcher" id="melaLauncher" aria-label="Chat with {{ config('mela.assistant_name', 'Mela AI') }}" hidden>
         <img src="{{ asset('images/bot-image/bot.png') }}" alt="" class="mela-launcher-avatar">
-        <span>Questions? <br> Chat with {{ config('mela.assistant_name', 'Mela AI') }}</span>
+        <span class="mela-launcher-text">Questions? <br> Chat with {{ config('mela.assistant_name', 'Mela AI') }}</span>
+        <span class="mela-launcher-typing" aria-hidden="true"><span></span><span></span><span></span></span>
         <span class="mela-badge" id="melaBadge" hidden>1</span>
     </button>
 </div>
