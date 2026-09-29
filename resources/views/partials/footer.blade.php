@@ -185,5 +185,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <!-- Enhanced Search & Bot JavaScript -->
 <script src="{{ asset('js/search-enhanced.js') }}?v={{ file_exists(public_path('js/search-enhanced.js')) ? filemtime(public_path('js/search-enhanced.js')) : '' }}"></script>
+<!-- Mela AI website assistant -->
+<script src="{{ asset('js/mela-chat.js') }}?v={{ file_exists(public_path('js/mela-chat.js')) ? filemtime(public_path('js/mela-chat.js')) : '' }}"></script>
 <!-- More Settings (includes legacy features) -->
 <script src="{{ asset('js/more-options10-v2.js') }}?v={{ file_exists(public_path('js/more-options10-v2.js')) ? filemtime(public_path('js/more-options10-v2.js')) : '' }}"></script>

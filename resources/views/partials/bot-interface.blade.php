@@ -1,57 +1,46 @@
-{{-- Enhanced Bot Interface Components --}}
+{{-- Mela AI website assistant --}}
+<div id="melaWidget" class="mela-widget" data-state="hidden"
+     data-api="{{ url('/api/mela/conversations') }}"
+     data-contact-email="{{ config('mela.contact_fallback.email') }}">
+    <section class="mela-panel" id="melaPanel" role="dialog" aria-modal="false" aria-labelledby="melaTitle" hidden>
+        <header class="mela-header">
+            <img src="{{ asset('images/bot-image/bot.png') }}" alt="" class="mela-avatar">
+            <div class="mela-title">
+                <strong id="melaTitle">{{ config('mela.assistant_name', 'Mela AI') }}</strong>
+                <span><i class="mela-online-dot" aria-hidden="true"></i> Armely's AI assistant &middot; Online</span>
+            </div>
+            <button type="button" class="mela-icon-btn" id="melaRestart" aria-label="Start a new conversation" title="New conversation">
+                <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="mela-icon-btn mela-close" id="melaClose" aria-label="Minimize chat" title="Minimize">&times;</button>
+        </header>
 
-{{-- Proactive greeting: the assistant opens the conversation --}}
-<div id="helpPopup" class="help-popup mela-greeting" role="dialog" aria-label="Armely AI Assistant" aria-live="polite" style="display: none;">
-    <div class="mela-greeting-header">
-        <img src="{{ asset('images/bot-image/bot.png') }}" alt="" class="mela-greeting-avatar">
-        <div class="mela-greeting-title">
-            <strong>Armely AI Assistant</strong>
-            <span><i class="mela-online-dot"></i> Online now</span>
+        <div class="mela-body" id="melaLog" role="log" aria-live="polite" aria-relevant="additions">
+            @foreach ((array) config('mela.greeting', []) as $line)
+                <div class="mela-msg mela-msg-bot" data-greeting hidden>{{ $line }}</div>
+            @endforeach
         </div>
-        <button id="noThanksBtn" type="button" class="mela-greeting-close" aria-label="Minimize assistant">&times;</button>
-    </div>
 
-    <div class="mela-greeting-body">
-        <div class="mela-typing" id="melaTyping" aria-hidden="true"><span></span><span></span><span></span></div>
-        <div class="mela-msg" id="melaMsg1" hidden>
-            Hi there! I&rsquo;m the Armely AI Assistant. I can help explore our enterprise data and AI solutions, guide you through software and licensing options, or connect you directly with a technical specialist.
+        <div class="mela-quick-replies" id="melaChips" hidden>
+            @foreach ((array) config('mela.quick_replies', []) as $chip)
+                <button type="button" class="mela-chip">{{ $chip }}</button>
+            @endforeach
         </div>
-        <div class="mela-msg" id="melaMsg2" hidden>
-            What challenge are you looking to solve today?
-        </div>
-        <div class="mela-quick-replies" id="melaQuickReplies" hidden>
-            <button type="button" class="mela-chip">Data &amp; AI solutions</button>
-            <button type="button" class="mela-chip">Software &amp; licensing</button>
-            <button type="button" class="mela-chip">Talk to a technical specialist</button>
-        </div>
-    </div>
 
-    <button id="chatNowBtn" type="button" class="mela-greeting-input">
-        <span>Type your message&hellip;</span>
-        <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+        {{-- Not a <form>: analytics tags would count every chat message as a site form submission. --}}
+        <div class="mela-composer" id="melaForm" role="group" aria-label="Send a message">
+            <label for="melaInput" class="mela-sr-only">Message Mela AI</label>
+            <textarea id="melaInput" rows="1" maxlength="{{ (int) config('mela.input.max_message_chars', 2000) }}" placeholder="Type your message&hellip;" autocomplete="off"></textarea>
+            <button type="button" class="mela-send" id="melaSend" aria-label="Send message">
+                <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+            </button>
+        </div>
+        <p class="mela-disclaimer">AI answers may be inaccurate. Please don't share sensitive information.</p>
+    </section>
+
+    <button type="button" class="mela-launcher" id="melaLauncher" aria-label="Chat with {{ config('mela.assistant_name', 'Mela AI') }}" hidden>
+        <img src="{{ asset('images/bot-image/bot.png') }}" alt="" class="mela-launcher-avatar">
+        <span>Questions? <br> Chat with {{ config('mela.assistant_name', 'Mela AI') }}</span>
+        <span class="mela-badge" id="melaBadge" hidden>1</span>
     </button>
-</div>
-
-{{-- Small Floating Bubble --}}
-<div id="chatBubble" class="chat-bubble" role="button" tabindex="0" aria-label="Chat with the Armely AI Assistant">
-    <img src="{{ asset('images/bot-image/bot.png') }}" alt="" class="agent-img-small">
-    <span>Questions? <br> Chat with us</span>
-    <span class="chat-bubble-badge" id="chatBubbleBadge" hidden>1</span>
-</div>
-
-{{-- Chat Modal --}}
-<div id="myModal" class="modal-chat">
-    <div class="modal-content-chat col-lg-4">
-        <span class="close" aria-label="Close chat">&times;</span>
-        
-        <iframe 
-            id="armelyWebchatFrame"
-            src="about:blank"
-            data-src="https://copilotstudio.preview.microsoft.com/environments/Default-b783208a-8014-4829-9589-5324f76470c8/bots/cr44c_agent/webchat?__version__=2"
-            frameborder="0"
-            style="width: 100%; height: 100%;"
-            title="Armely Chat Bot"
-            allow="microphone">
-        </iframe>
-    </div>
 </div>

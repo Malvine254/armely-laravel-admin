@@ -42,6 +42,7 @@
     
     <!-- Enhanced Search & Bot Styles -->
     <link rel="stylesheet" href="{{ asset('css/search-enhanced.css') }}?v={{ file_exists(public_path('css/search-enhanced.css')) ? filemtime(public_path('css/search-enhanced.css')) : '' }}">
+    <link rel="stylesheet" href="{{ asset('css/mela-chat.css') }}?v={{ file_exists(public_path('css/mela-chat.css')) ? filemtime(public_path('css/mela-chat.css')) : '' }}">
     
     <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha384-h/hnnw1Bi4nbpD6kE7nYfCXzovi622sY5WBxww8ARKwpdLj5kUWjRuyiXaD1U2JT" crossorigin="anonymous">

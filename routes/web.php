@@ -738,6 +738,10 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     // Graceful fallback: allow GET logout to handle cases where JS/form submission fails
     Route::get('/logout', [AuthController::class, 'logout'])->name('admin.logout.get');
 
+    // Mela AI knowledge index
+    Route::get('/mela/knowledge', [\App\Http\Controllers\Admin\MelaKnowledgeController::class, 'status'])->name('admin.mela.knowledge.status');
+    Route::post('/mela/knowledge/reindex', [\App\Http\Controllers\Admin\MelaKnowledgeController::class, 'reindex'])->name('admin.mela.knowledge.reindex');
+
     // Resource Management
     Route::get('/resources', [AdminResourceController::class, 'index'])->name('admin.resources.index');
     Route::get('/resources/create', [AdminResourceController::class, 'create'])->name('admin.resources.create');

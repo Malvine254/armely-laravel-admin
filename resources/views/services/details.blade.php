@@ -401,22 +401,6 @@
 	</div>
 @endif
 
-<!-- Floating Chat Button -->
-<section>	
-	<div class="floating-btn">
-		<button id="myBtn" style="border-radius: 50%; height: 60px; width: 60px; background-color: rgb(47,85,151);" type="button" class="btn btn-primary btn-lg h1">
-			<i class="fa fa-comments"></i>
-		</button>
-	</div>
-	<div id="myModal" class="modal-chat">
-		<div class="modal-content-chat col-lg-4">
-			<span class="close">&times;</span>
-			<iframe src="https://copilotstudio.microsoft.com/environments/Default-588cadf4-9902-4465-86c0-8bcf04f4f102/bots/crc65_armelyCom/webchat?__version__=2"
-			frameborder="0" style="width: 100%; height: 80%;"></iframe>  
-		</div>
-	</div>
-</section>
-
 
 @push('scripts')
 <script>
@@ -795,29 +779,6 @@
 			});
 		}, true);
 	});
-</script>
-@endpush
-
-@push('scripts')
-<script>
-	// Chat modal functionality
-	var modal = document.getElementById("myModal");
-	var btn = document.getElementById("myBtn");
-	var span = document.getElementsByClassName("close")[0];
-
-	btn.onclick = function() {
-		modal.style.display = "block";
-	}
-
-	span.onclick = function() {
-		modal.style.display = "none";
-	}
-
-	window.onclick = function(event) {
-		if (event.target == modal) {
-			modal.style.display = "none";
-		}
-	}
 </script>
 @endpush
 
