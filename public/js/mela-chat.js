@@ -149,12 +149,14 @@
     }
 
     function resetLog() {
-        Array.prototype.slice.call(log.children).forEach(function (child) {
-            if (!child.hasAttribute('data-greeting')) {
-                child.remove();
-            }
+        while (log.firstChild) {
+            log.removeChild(log.firstChild);
+        }
+        greetingNodes.forEach(function (node) {
+            node.hidden = false;
+            log.appendChild(node);
         });
-        greetingNodes.forEach(function (n) { n.hidden = false; });
+        scrollToBottom();
     }
 
     function renderTranscript(messages) {
