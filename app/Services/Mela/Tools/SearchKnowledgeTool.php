@@ -24,7 +24,7 @@ class SearchKnowledgeTool implements MelaTool
     {
         return 'Searches approved Armely website content (services, solutions, products such as Mela, industries, case studies, customer stories, partners, company information, contact details, blog articles and resources). '
             . 'Use it whenever an answer depends on Armely-specific information. Write the query as a self-contained description of what you need to know, '
-            . 'including relevant context from earlier in the conversation. Returns matching passages with their page URL and a confidence level; '
+            . 'including relevant context from earlier in the conversation. Blog results include the author when the page provides one. Returns matching passages with their page URL and a confidence level; '
             . 'if confidence is low or none, do not state Armely-specific facts that the passages do not support.';
     }
 
@@ -79,6 +79,7 @@ class SearchKnowledgeTool implements MelaTool
             },
             'results' => array_map(static fn ($r) => [
                 'title' => $r['title'],
+                'author' => $r['author'],
                 'url' => $r['url'],
                 'page_type' => $r['page_type'],
                 'section' => $r['section'],

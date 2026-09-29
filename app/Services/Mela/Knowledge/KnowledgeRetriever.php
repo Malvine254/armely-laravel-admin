@@ -193,6 +193,7 @@ class KnowledgeRetriever
     {
         return [
             'title' => (string) $chunk->page->title,
+            'author' => (string) data_get($chunk->metadata, 'author', ''),
             'url' => (string) $chunk->page->url,
             'page_type' => (string) $chunk->page->page_type,
             'section' => (string) data_get($chunk->metadata, 'section', $chunk->heading),

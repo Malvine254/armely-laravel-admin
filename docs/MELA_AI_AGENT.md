@@ -57,7 +57,7 @@ No conversational behaviour is keyword-driven. Application code only validates a
 4. Splits the content into sections at h1–h3 headings, then packs the sections into chunks of about 1,100 characters. Small neighbouring sections are merged; long ones are split by line and sentence.
 5. Treats sections repeated on 3 or more pages (shared CTAs and banners) as boilerplate and indexes them only on the home and contact pages.
 6. Skips unchanged pages using a per-page content hash, so only changed pages are re-embedded. `--force` re-embeds everything.
-7. Embeds each chunk with its page title and section path (`text-embedding-3-large`, 1,024 dimensions). The vectors are unit-normalised and stored as packed float32 in `mela_knowledge_chunks.embedding`. Each chunk's metadata stores the title, URL, page type, section, heading, service or product, and last-updated date.
+7. Embeds each chunk with its page title, available blog author, and section path (`text-embedding-3-large`, 1,024 dimensions). The vectors are unit-normalised and stored as packed float32 in `mela_knowledge_chunks.embedding`. Each chunk's metadata stores the title, author when present, URL, page type, section, heading, service or product, and last-updated date.
 
 Retrieval (`KnowledgeRetriever`) embeds the query and caches the embedding by hash. It then:
 

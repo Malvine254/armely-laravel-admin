@@ -22,7 +22,7 @@ class ContentExtractor
     private const LEAF_TAGS = ['p', 'li', 'blockquote', 'td', 'th', 'dt', 'dd', 'figcaption', 'summary', 'pre', 'address'];
 
     /**
-     * @return array{title: string, description: string, canonical: ?string, blocks: array<int, array{type: string, level?: int, text: string}>}
+    * @return array{title: string, description: string, author: string, canonical: ?string, blocks: array<int, array{type: string, level?: int, text: string}>}
      */
     public function extract(string $html): array
     {
@@ -35,6 +35,10 @@ class ContentExtractor
         $xpath = new DOMXPath($dom);
         $metaTitle = $this->clean((string) ($xpath->query('//title')->item(0)?->textContent ?? ''));
         $description = $this->clean((string) ($xpath->query('//meta[@name="description"]/@content')->item(0)?->nodeValue ?? ''));
+        $author = $this->clean((string) ($xpath->query('//meta[@property="article:author"]/@content | //meta[@name="author"]/@content')->item(0)?->nodeValue ?? ''));
+        if ($author === '') {
+            $author = $this->clean((string) ($xpath->query('//*[contains(concat(" ", normalize-space(@class), " "), " blog-author ")]')->item(0)?->textContent ?? ''));
+        }
         $canonical = trim((string) ($xpath->query('//link[@rel="canonical"]/@href')->item(0)?->nodeValue ?? '')) ?: null;
 
         $root = $xpath->query('//main')->item(0) ?? $xpath->query('//body')->item(0);
@@ -50,6 +54,7 @@ class ContentExtractor
         return [
             'title' => $this->pageTitle($h1, $metaTitle),
             'description' => $description,
+            'author' => $author,
             'canonical' => $canonical,
             'blocks' => $this->dedupeConsecutive($blocks),
         ];

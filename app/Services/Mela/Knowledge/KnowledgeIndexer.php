@@ -83,6 +83,7 @@ class KnowledgeIndexer
                         $pages[$canonical] = [
                             'title' => $extracted['title'] !== '' ? $extracted['title'] : $canonical,
                             'description' => $extracted['description'],
+                            'author' => $extracted['author'],
                             'blocks' => $extracted['blocks'],
                             'lastmod' => $targets[$url] ?? null,
                         ];
@@ -139,6 +140,10 @@ class KnowledgeIndexer
                 $this->report("  - no content: {$url}");
                 $this->reportIndexProgress($url, ++$processedPages, $totalPages, $stats);
                 continue;
+            }
+
+            if ($page['author'] !== '') {
+                $chunks[0]['text'] = "Author: {$page['author']}\n" . $chunks[0]['text'];
             }
 
             $pageHash = hash('sha256', $page['title'] . '|' . implode('|', array_column($chunks, 'text')));
@@ -416,6 +421,7 @@ class KnowledgeIndexer
                     'content_hash' => Chunker::hash($chunk['text']),
                     'metadata' => array_filter([
                         'title' => $page['title'],
+                        'author' => $page['author'] ?: null,
                         'url' => $url,
                         'page_type' => $type,
                         'section' => $chunk['section_path'],
