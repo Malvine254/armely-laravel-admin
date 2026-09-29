@@ -163,7 +163,35 @@
     }
 
     // ---------- state ----------
+    var siteHeader = document.querySelector('header.header') || document.querySelector('header');
+    var cookieBar = document.getElementById('snackbar');
+    var fitScheduled = false;
+
+    // Keep the panel between the visible site header/menu and the cookie bar.
+    function fitBelowHeader() {
+        fitScheduled = false;
+        var bottom = siteHeader ? siteHeader.getBoundingClientRect().bottom : 0;
+        var gap = window.innerWidth <= 520 ? 0 : (window.innerWidth <= 768 ? 12 : 30);
+        var cookieHeight = cookieBar && window.getComputedStyle(cookieBar).display !== 'none' ? cookieBar.getBoundingClientRect().height : 0;
+        root.style.setProperty('--mela-top', (Math.max(0, bottom) + 12) + 'px');
+        root.style.setProperty('--mela-bottom', (cookieHeight > 0 ? cookieHeight + 12 : gap) + 'px');
+    }
+
+    function scheduleFit() {
+        if (!fitScheduled) {
+            fitScheduled = true;
+            window.requestAnimationFrame(fitBelowHeader);
+        }
+    }
+
+    window.addEventListener('resize', scheduleFit);
+    window.addEventListener('scroll', scheduleFit, { passive: true });
+    if (cookieBar && window.MutationObserver) {
+        new MutationObserver(scheduleFit).observe(cookieBar, { attributes: true, attributeFilter: ['class', 'style'] });
+    }
+
     function setState(state) {
+        fitBelowHeader();
         root.setAttribute('data-state', state);
         panel.hidden = state !== 'teaser' && state !== 'open';
         launcher.hidden = state !== 'launcher';
