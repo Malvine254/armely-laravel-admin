@@ -13,10 +13,10 @@ return [
     ],
 
     'quick_replies' => [
-        '🤖 Enterprise AI & Copilot',
-        '📊 Data Modernization & Microsoft Fabric',
-        '🔑 Microsoft & Partner Licensing',
-        '👤 Speak with a Specialist',
+        'Enterprise AI & Copilot',
+        'Data Modernization & Microsoft Fabric',
+        'Microsoft & Partner Licensing',
+        'Speak with a Specialist',
     ],
 
     'azure_openai' => [
