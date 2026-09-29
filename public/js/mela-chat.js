@@ -167,16 +167,32 @@
 
     // ---------- state ----------
     var siteHeader = document.querySelector('header.header') || document.querySelector('header');
+    // The nav pins itself (jQuery sticky) once the page scrolls, so measure it as well as the header.
+    var headerParts = siteHeader
+        ? [siteHeader].concat(Array.prototype.slice.call(siteHeader.querySelectorAll('.header-inner, .sticky-wrapper, .is-sticky, [class*="sticky"]')))
+        : [];
     var cookieBar = document.getElementById('snackbar');
     var fitScheduled = false;
+    var settleTimer = null;
+
+    function headerBottom() {
+        var bottom = 0;
+        headerParts.forEach(function (el) {
+            var r = el.getBoundingClientRect();
+            if (r.height > 0 && r.bottom > 0 && window.getComputedStyle(el).visibility !== 'hidden') {
+                bottom = Math.max(bottom, r.bottom);
+            }
+        });
+        return Math.min(bottom, window.innerHeight * 0.5);
+    }
 
     // Keep the panel between the visible site header/menu and the cookie bar.
     function fitBelowHeader() {
         fitScheduled = false;
-        var bottom = siteHeader ? siteHeader.getBoundingClientRect().bottom : 0;
         var gap = window.innerWidth <= 520 ? 0 : (window.innerWidth <= 768 ? 12 : 30);
         var cookieHeight = cookieBar && window.getComputedStyle(cookieBar).display !== 'none' ? cookieBar.getBoundingClientRect().height : 0;
-        root.style.setProperty('--mela-top', (Math.max(0, bottom) + 12) + 'px');
+        root.style.setProperty('--mela-vh', window.innerHeight + 'px');
+        root.style.setProperty('--mela-top', (headerBottom() + (window.innerWidth <= 520 ? 0 : 12)) + 'px');
         root.style.setProperty('--mela-bottom', (cookieHeight > 0 ? cookieHeight + 12 : gap) + 'px');
     }
 
@@ -185,6 +201,9 @@
             fitScheduled = true;
             window.requestAnimationFrame(fitBelowHeader);
         }
+        // Re-measure after the sticky menu finishes sliding in.
+        clearTimeout(settleTimer);
+        settleTimer = setTimeout(fitBelowHeader, 450);
     }
 
     window.addEventListener('resize', scheduleFit);
@@ -210,6 +229,8 @@
         } else {
             document.documentElement.classList.remove('mela-open');
         }
+        document.documentElement.classList.toggle('mela-panel-visible', !panel.hidden);
+        document.documentElement.classList.toggle('mela-launcher-visible', !launcher.hidden);
     }
 
     function playAnimation(node, className) {

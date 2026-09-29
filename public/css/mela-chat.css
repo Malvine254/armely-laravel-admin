@@ -40,7 +40,7 @@
     flex-direction: column;
     width: 360px;
     max-width: calc(100vw - 24px);
-    max-height: calc(100vh - var(--mela-top) - var(--mela-bottom));
+    max-height: calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom));
     background: #fff;
     border-radius: 14px;
     overflow: hidden;
@@ -48,7 +48,7 @@
 }
 
 .mela-widget[data-state="teaser"] .mela-panel {
-    max-height: min(470px, calc(100vh - var(--mela-top) - var(--mela-bottom)));
+    max-height: min(470px, calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom)));
 }
 
 body:has(.header .mega-nav-item.mega-open) .mela-panel,
@@ -60,7 +60,7 @@ body:has(.mobile-dropdown-menu.open) .mela-launcher {
 
 .mela-widget[data-state="open"] .mela-panel {
     width: 400px;
-    height: min(640px, calc(100vh - var(--mela-top) - var(--mela-bottom)));
+    height: min(640px, calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom)));
 }
 
 .mela-widget[data-state="teaser"] .mela-disclaimer,
@@ -535,19 +535,70 @@ body:has(.mobile-dropdown-menu.open) .mela-launcher {
     50% { transform: scale(1.15); }
 }
 
+/* The site's back-to-top button (#scrollUp) shares the bottom-right corner. */
+html.mela-panel-visible #scrollUp {
+    display: none !important;
+}
+
+html.mela-launcher-visible #scrollUp {
+    bottom: calc(var(--mela-launcher-offset, 90px)) !important;
+}
+
+@media (max-width: 1024px) {
+    .mela-widget[data-state="open"] .mela-panel {
+        width: 370px;
+    }
+
+    .mela-panel,
+    .mela-launcher {
+        right: 20px;
+    }
+}
+
 @media (max-width: 768px) {
     .mela-panel,
     .mela-launcher {
         right: 12px;
     }
 
-    .mela-panel {
-        max-height: calc(100vh - var(--mela-top) - var(--mela-bottom));
+    .mela-panel,
+    .mela-widget[data-state="open"] .mela-panel {
+        width: min(360px, calc(100vw - 24px));
+        max-height: calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom));
+    }
+
+    .mela-launcher {
+        padding: 8px 14px 8px 8px;
+        font-size: 12px;
+    }
+
+    .mela-launcher-avatar {
+        width: 30px;
+        height: 30px;
+    }
+}
+
+/* Short screens (landscape phones, small laptops): use the space that is available. */
+@media (max-height: 560px) and (min-width: 521px) {
+    .mela-widget[data-state="open"] .mela-panel,
+    .mela-widget[data-state="teaser"] .mela-panel {
+        height: calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom));
+    }
+
+    .mela-disclaimer {
+        display: none;
     }
 }
 
 @media (max-width: 520px) {
-    /* Full width on phones, but still starting below the site header. */
+    /* Teaser stays a compact card; the open chat fills the width below the site header. */
+    .mela-widget[data-state="teaser"] .mela-panel {
+        left: 8px;
+        right: 8px;
+        width: auto;
+        max-width: none;
+    }
+
     .mela-widget[data-state="open"] .mela-panel {
         top: var(--mela-top);
         right: 0;
@@ -558,6 +609,26 @@ body:has(.mobile-dropdown-menu.open) .mela-launcher {
         height: auto;
         max-height: none;
         border-radius: 14px 14px 0 0;
+    }
+
+    .mela-launcher {
+        right: 10px;
+        bottom: max(10px, var(--mela-bottom));
+    }
+
+    /* Icon-only launcher on phones so it doesn't cover page content. */
+    .mela-launcher .mela-launcher-text {
+        display: none;
+    }
+
+    .mela-launcher {
+        padding: 6px;
+        border-radius: 50%;
+    }
+
+    .mela-launcher-avatar {
+        width: 44px;
+        height: 44px;
     }
 
     html.mela-open,
