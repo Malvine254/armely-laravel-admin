@@ -9,7 +9,7 @@ return [
 
     'greeting' => [
         "Hi there! I'm Mela AI, Armely's AI assistant. I can help you explore our enterprise data and AI solutions, guide you through software and licensing options, or connect you directly with a technical specialist.",
-        'What challenge are you looking to solve today?',
+        'How can I help you today?',
     ],
 
     'quick_replies' => [

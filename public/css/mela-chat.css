@@ -63,6 +63,12 @@ body:has(.mobile-dropdown-menu.open) .mela-launcher {
     height: min(640px, calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom)));
 }
 
+@media (min-width: 1200px) {
+    .mela-widget[data-state="open"] .mela-panel {
+        height: min(clamp(640px, 45vw, 780px), calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom)));
+    }
+}
+
 .mela-widget[data-state="teaser"] .mela-disclaimer,
 .mela-widget[data-state="teaser"] #melaRestart {
     display: none;

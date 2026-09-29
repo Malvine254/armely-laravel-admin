@@ -183,7 +183,7 @@
                 bottom = Math.max(bottom, r.bottom);
             }
         });
-        return Math.min(bottom, window.innerHeight * 0.5);
+        return bottom;
     }
 
     // Keep the panel between the visible site header/menu and the cookie bar.
