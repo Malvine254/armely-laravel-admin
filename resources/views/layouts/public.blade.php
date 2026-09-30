@@ -454,7 +454,8 @@
     display: flex;
     width: 100%;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
+    gap: 8px clamp(18px, 2vw, 28px);
     margin: 0;
     padding: 0;
     float: none;
@@ -470,9 +471,8 @@
 
 @media (max-width: 991px) and (min-width: 577px) {
     .topbar .top-contact {
-        justify-content: center;
+        justify-content: space-between;
         flex-wrap: wrap;
-        gap: 8px 24px;
     }
 }
 
