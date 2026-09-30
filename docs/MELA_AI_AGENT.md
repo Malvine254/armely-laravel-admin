@@ -178,3 +178,15 @@ Logs are written to `storage/logs/mela-*.log` as structured events:
 5. Run `php artisan mela:index`. The first run embeds all pages and takes about 20 minutes; later runs are incremental.
 6. Run `php artisan mela:check`.
 7. Make sure cron runs `php artisan schedule:run` every minute.
+
+## Admin monitoring and recurring refresh
+
+Open **Admin → Mela AI** (`/admin/mela/knowledge/manage`). The tabs show index progress, the recurring refresh schedule, visitor sessions, and escalation history/transcripts.
+
+- Apply migration `2026_09_30_000001_add_mela_admin_monitoring` before serving the updated app.
+- Schedule defaults to every 24 hours; admins can select 1–1440 minutes or 1–24 hours, or disable recurring refresh. This database setting replaces `MELA_KNOWLEDGE_SCHEDULE` and survives cache clears.
+- Cron must execute `php artisan schedule:run` every minute. `mela:index-scheduled` checks due refreshes, pending content edits, and changes to public Blade templates, controllers, and routes. The first check establishes the deployment fingerprint by indexing. Successful runs advance the schedule; failed runs remain eligible for retry. Changes arriving during indexing are retained for the next scheduler tick.
+- Successful admin content mutations trigger indexing after the response. Deployments changing public templates/controllers/routes are detected on the next scheduler tick. Other changes, such as direct database imports or asset-only deployments, are covered by recurring refreshes; deployment/import scripts can also run `php artisan mela:index` explicitly.
+- Active sessions means conversation activity within five minutes, not a live browser connection. Session lists refresh every 15 seconds while their tab is visible. Existing conversation retention/pruning still applies.
+- Contact details come from the visitor's stored conversation memory. Country codes are resolved for new sessions through the configured GeoIP service. Configure a working local GeoIP database for country coverage; private IPs, old sessions, failed lookups, and default locations show Unknown. Raw IPs are not added to session records.
+- Session lists and transcripts require an active admin login, return no session tokens, and are served with the admin no-store cache policy. Failed escalation notifications are displayed separately from submitted requests.

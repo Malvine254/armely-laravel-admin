@@ -25,6 +25,11 @@ class MelaIndexKnowledge extends Command
         try {
             $stats = $indexer->run((array) $this->option('url'), (bool) $this->option('force'), (bool) $this->option('dry-run'));
             $progress->finish($stats);
+            if (($stats['failed'] ?? 0) > 0) {
+                $progress->fail();
+                $this->error('Some pages could not be indexed. The automatic refresh will retry.');
+                return self::FAILURE;
+            }
         } catch (\Throwable $e) {
             $progress->fail();
             $this->error('Indexing failed: ' . $e->getMessage());

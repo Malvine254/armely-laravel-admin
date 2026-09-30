@@ -22,6 +22,7 @@ class MelaConversation extends Model
         'ip_hash',
         'user_agent',
         'landing_page',
+        'country_code',
         'last_activity_at',
     ];
 

@@ -10,7 +10,6 @@ use App\Services\Mela\Knowledge\MelaKnowledgeIndexProgress;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Carbon;
 use Illuminate\Contracts\View\View;
 
 class MelaKnowledgeController extends Controller
@@ -32,12 +31,14 @@ class MelaKnowledgeController extends Controller
     public function schedule(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'scheduled_at' => ['required', 'date', 'after:now'],
+            'interval' => ['required', 'integer', 'min:1', 'max:1440'],
+            'unit' => ['required', 'in:minutes,hours'],
         ]);
-        $scheduledAt = Carbon::parse($data['scheduled_at']);
-        $this->indexRefresh->scheduleAt($scheduledAt);
+        $minutes = (int) $data['interval'] * ($data['unit'] === 'hours' ? 60 : 1);
+        abort_if($minutes > 1440, 422, 'Choose an interval of no more than 24 hours.');
+        $this->indexRefresh->scheduleEvery($minutes);
 
-        return response()->json(['scheduled' => true, 'scheduled_at' => $scheduledAt->toIso8601String()], 201);
+        return response()->json(['scheduled' => true, 'scheduled_at' => $this->indexRefresh->scheduledAt()], 201);
     }
 
     public function cancelSchedule(): JsonResponse
@@ -58,6 +59,7 @@ class MelaKnowledgeController extends Controller
             'reindex_running' => Cache::has(MelaKnowledgeIndexRefresh::RUNNING_KEY) || $progressState['status'] === 'running',
             'progress' => $progressState,
             'scheduled_at' => $this->indexRefresh->scheduledAt(),
+            'interval_minutes' => $this->indexRefresh->settings()->interval_minutes,
             'pages_by_type' => MelaKnowledgePage::query()->where('is_active', true)
                 ->selectRaw('page_type, count(*) as total')->groupBy('page_type')->pluck('total', 'page_type'),
         ];

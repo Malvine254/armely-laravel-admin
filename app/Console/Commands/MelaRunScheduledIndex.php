@@ -9,7 +9,7 @@ class MelaRunScheduledIndex extends Command
 {
     protected $signature = 'mela:index-scheduled';
 
-    protected $description = 'Run a one-time Mela knowledge index when its scheduled time arrives';
+    protected $description = 'Refresh Mela for website changes, pending edits, or recurring schedules';
 
     public function handle(MelaKnowledgeIndexRefresh $indexRefresh): int
     {

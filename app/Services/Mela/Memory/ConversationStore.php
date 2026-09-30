@@ -18,6 +18,7 @@ class ConversationStore
 
         $conversation = MelaConversation::query()->create([
             'token_hash' => hash('sha256', $token),
+            'country_code' => app(VisitorCountry::class)->resolve($ip),
             'memory' => MemoryManager::defaults(),
             'ip_hash' => $ip ? hash('sha256', $ip . '|' . config('app.key')) : null,
             'user_agent' => $userAgent ? mb_substr($userAgent, 0, 255) : null,

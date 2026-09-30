@@ -80,7 +80,7 @@
                 <div class="form-group">
                     <label class="form-label" for="email">Email Address</label>
                     <div class="input-group">
-                        <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" placeholder="admin@armely.com" value="{{ old('email') }}" required autofocus>
+                        <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" value="{{ old('email') }}" required autofocus>
                         <span class="icon"><i class="fas fa-envelope"></i></span>
                     </div>
                     @error('email')<small class="text-danger d-block mt-2">{{ $message }}</small>@enderror

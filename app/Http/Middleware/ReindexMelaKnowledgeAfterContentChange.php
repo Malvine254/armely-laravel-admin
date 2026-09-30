@@ -39,6 +39,7 @@ class ReindexMelaKnowledgeAfterContentChange
         if (
             !$request->isMethodSafe()
             && $response->getStatusCode() < 400
+            && !($request->hasSession() && $request->session()->has('errors'))
             && $this->isContentRoute($routeName)
         ) {
             $this->indexRefresh->dispatchAfterResponse('admin_content');

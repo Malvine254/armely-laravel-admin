@@ -1,7 +1,7 @@
 @extends('admin.layouts.admin')
 
-@section('title', 'Mela Knowledge')
-@section('page-title', 'Mela Knowledge')
+@section('title', 'Mela AI')
+@section('page-title', 'Mela AI')
 
 @push('styles')
 <style>
@@ -177,14 +177,21 @@
 >
     <header class="mela-knowledge-header">
         <div>
-            <h2>Knowledge Index</h2>
-            <p>Monitor and control the content Mela uses to answer questions.</p>
+            <h2>Mela AI</h2>
+            <p>Manage knowledge refreshes, visitor conversations, and human follow-ups.</p>
         </div>
         <span class="mela-index-state" id="indexState" data-state="idle" role="status">Not running</span>
     </header>
 
     <div class="alert d-none" id="indexNotice" role="status" aria-live="polite"></div>
 
+    <ul class="nav nav-tabs mb-4" role="tablist" id="melaTabs">
+        @foreach(['knowledge' => 'Knowledge', 'schedule' => 'Refresh schedule', 'sessions' => 'Sessions', 'escalations' => 'Escalations'] as $key => $label)
+        <li class="nav-item" role="presentation"><button class="nav-link {{ $loop->first ? 'active' : '' }}" id="{{ $key }}-tab" data-bs-toggle="tab" data-bs-target="#{{ $key }}-pane" type="button" role="tab" aria-controls="{{ $key }}-pane" aria-selected="{{ $loop->first ? 'true' : 'false' }}">{{ $label }}</button></li>
+        @endforeach
+    </ul>
+    <div class="tab-content">
+    <div class="tab-pane fade show active" id="knowledge-pane" role="tabpanel" aria-labelledby="knowledge-tab">
     <section class="mela-index-panel" aria-labelledby="indexProgressTitle">
         <div class="mela-index-panel-header">
             <div>
@@ -218,33 +225,7 @@
         </div>
     </section>
 
-    <div class="mela-index-controls">
-        <section class="mela-index-panel" aria-labelledby="scheduleIndexTitle">
-            <div class="mela-index-panel-header">
-                <h3 id="scheduleIndexTitle">Schedule one run</h3>
-            </div>
-            <div class="mela-index-panel-body">
-                <form class="mela-schedule-form" id="scheduleIndexForm">
-                    @csrf
-                    <div class="flex-grow-1">
-                        <label class="form-label" for="scheduledAt">Run at</label>
-                        <input class="form-control" id="scheduledAt" name="scheduled_at" type="datetime-local" required>
-                    </div>
-                    <button class="btn btn-outline-success" type="submit">
-                        <i class="far fa-clock me-2" aria-hidden="true"></i>Schedule
-                    </button>
-                </form>
-                <div class="d-none mt-3" id="scheduledRunInfo">
-                    <span class="text-success fw-semibold" id="scheduledRunText"></span>
-                    <button class="btn btn-sm btn-outline-danger ms-2" id="cancelScheduledRun" type="button" aria-label="Cancel scheduled index">
-                        <i class="fas fa-times" aria-hidden="true"></i>
-                    </button>
-                </div>
-                <p class="mela-index-note mt-3">One-time runs start through the Laravel scheduler, which must run every minute on the server.</p>
-            </div>
-        </section>
-
-        <section class="mela-index-panel" aria-labelledby="indexInventoryTitle">
+<div class="mt-3">        <section class="mela-index-panel" aria-labelledby="indexInventoryTitle">
             <div class="mela-index-panel-header">
                 <h3 id="indexInventoryTitle">Indexed content</h3>
             </div>
@@ -252,7 +233,36 @@
                 <div id="pageTypeBreakdown" class="d-flex flex-wrap gap-2" aria-live="polite"></div>
                 <p class="mela-index-note mt-3">The index refreshes automatically after published content changes.</p>
             </div>
+        </section></div></div><div class="tab-pane fade" id="schedule-pane" role="tabpanel" aria-labelledby="schedule-tab">
+        <section class="mela-index-panel" aria-labelledby="scheduleIndexTitle">
+            <div class="mela-index-panel-header">
+                <h3 id="scheduleIndexTitle">Recurring refresh</h3>
+            </div>
+            <div class="mela-index-panel-body">
+                <form class="mela-schedule-form" id="scheduleIndexForm">
+                    @csrf
+                    <div class="flex-grow-1">
+                        <label class="form-label" for="scheduledAt">Refresh every</label>
+                        <input class="form-control" id="scheduledAt" name="interval" type="number" min="1" max="1440" value="24" required>
+                    </div>
+<div><label class="form-label" for="scheduleUnit">Unit</label><select class="form-select" id="scheduleUnit"><option value="minutes">Minutes</option><option value="hours" selected>Hours</option></select></div>
+                    <button class="btn btn-outline-success" type="submit">
+                        <i class="far fa-clock me-2" aria-hidden="true"></i>Schedule
+                    </button>
+                </form>
+                <div class="d-none mt-3" id="scheduledRunInfo">
+                    <span class="text-success fw-semibold" id="scheduledRunText"></span>
+                    <button class="btn btn-sm btn-outline-danger ms-2" id="cancelScheduledRun" type="button" aria-label="Disable recurring refresh">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <p class="mela-index-note mt-3">Runs every day at your chosen interval (1 minute to 24 hours). The next refresh is scheduled after a successful run. Website edits also trigger a refresh.</p>
+            </div>
         </section>
+
+
+    </div>
+    @include('admin.mela.sessions')
     </div>
 </main>
 
@@ -332,12 +342,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const scheduledInfo = document.getElementById('scheduledRunInfo');
         const scheduledText = document.getElementById('scheduledRunText');
+        cancelButton.hidden = !data.scheduled_at;
         if (data.scheduled_at) {
             scheduledInfo.classList.remove('d-none');
-            scheduledText.textContent = `Scheduled for ${formatDate(data.scheduled_at)}`;
+            scheduledText.textContent = `Every ${data.interval_minutes} minutes · Next refresh ${formatDate(data.scheduled_at)}`;
         } else {
-            scheduledInfo.classList.add('d-none');
-            scheduledText.textContent = '';
+            scheduledInfo.classList.remove('d-none');
+            scheduledText.textContent = 'Recurring refresh is disabled.';
         }
 
         const breakdown = document.getElementById('pageTypeBreakdown');
@@ -350,7 +361,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    let statusTimer;
+    let statusLoading = false;
     async function refreshStatus() {
+        if (statusLoading) return;
+        clearTimeout(statusTimer);
+        statusLoading = true;
         let running = false;
         try {
             const response = await fetch(root.dataset.statusUrl, {
@@ -364,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             showNotice(error.message, 'danger');
         }
-        window.setTimeout(refreshStatus, running ? 2000 : 15000);
+        statusLoading = false; statusTimer = window.setTimeout(refreshStatus, running ? 2000 : 15000);
     }
 
     startButton.addEventListener('click', async () => {
@@ -383,10 +399,10 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         if (!scheduleInput.value) return;
         try {
-            const scheduledAt = new Date(scheduleInput.value);
-            const data = await postJson(root.dataset.scheduleUrl, 'POST', { scheduled_at: scheduledAt.toISOString() });
-            showNotice(`Index scheduled for ${formatDate(data.scheduled_at)}.`);
-            scheduleForm.reset();
+            const interval = Number(scheduleInput.value);
+            const data = await postJson(root.dataset.scheduleUrl, 'POST', { interval, unit: document.getElementById('scheduleUnit').value });
+            showNotice(`Next refresh scheduled for ${formatDate(data.scheduled_at)}.`);
+
             refreshStatus();
         } catch (error) {
             showNotice(error.message, 'danger');
@@ -396,15 +412,19 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelButton.addEventListener('click', async () => {
         try {
             await postJson(root.dataset.cancelUrl, 'DELETE');
-            showNotice('Scheduled index cancelled.');
+            showNotice('Recurring refresh disabled. Website changes still trigger indexing.');
             refreshStatus();
         } catch (error) {
             showNotice(error.message, 'danger');
         }
     });
 
-    const minimumTime = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-    scheduleInput.min = minimumTime;
+    const initial = @json($initialStatus);
+    if (initial.interval_minutes) {
+        const hours = initial.interval_minutes % 60 === 0;
+        scheduleInput.value = hours ? initial.interval_minutes / 60 : initial.interval_minutes;
+        document.getElementById('scheduleUnit').value = hours ? 'hours' : 'minutes';
+    }
     renderStatus(@json($initialStatus));
     refreshStatus();
 });
