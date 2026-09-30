@@ -111,7 +111,12 @@ class MelaChatController extends Controller
     {
         $token = (string) $request->header('X-Mela-Token', '');
 
-        return $token === '' ? null : $this->store->find($id, $token);
+        $conversation = $token === '' ? null : $this->store->find($id, $token);
+        if ($conversation && !$conversation->country_code) {
+            $country = app(\App\Services\Mela\Memory\VisitorCountry::class)->resolve($request->ip());
+            if ($country) $conversation->update(['country_code' => $country]);
+        }
+        return $conversation;
     }
 
     private function sameSitePage(?string $url): ?string

@@ -135,6 +135,10 @@ return [
         'schedule' => env('MELA_REINDEX_SCHEDULE', 'daily'),
     ],
 
+    'geoip' => [
+        'api_enabled' => env('MELA_GEOIP_API_ENABLED', true),
+    ],
+
     'rate_limits' => [
         'per_minute' => (int) env('MELA_RATE_PER_MINUTE', 12),
         'per_day' => (int) env('MELA_RATE_PER_DAY', 200),

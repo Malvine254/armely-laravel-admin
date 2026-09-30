@@ -106,7 +106,7 @@ class MelaAdminTest extends TestCase
         $store = app(ConversationStore::class);
         $created = $store->create('127.0.0.1', 'Test', 'https://armely.com/');
         $session = $created['conversation'];
-        $session->update(['country_code' => 'KE', 'escalation_status' => 'submitted', 'memory' => ['visitor' => ['name' => '<script>Visitor</script>', 'email' => 'visitor@example.test']]]);
+        $session->update(['country_code' => 'KE', 'escalation_status' => 'submitted', 'memory' => ['visitor' => ['name' => ['value' => '<script>Visitor</script>', 'source' => 'visitor'], 'email' => ['value' => 'visitor@example.test'], 'company' => 'Legacy company', 'phone' => ['source' => 'visitor']]]]);
         $other = $store->create(null, null, null)['conversation'];
         $other->update(['last_activity_at' => now()->subMinutes(10)]);
         $this->getJson(route('admin.mela.sessions.index'))->assertUnauthorized();
@@ -114,7 +114,10 @@ class MelaAdminTest extends TestCase
         $this->admin();
         $response = $this->getJson(route('admin.mela.sessions.index', ['filter' => 'active']))->assertOk()
             ->assertJsonPath('sessions.total', 1)->assertJsonPath('sessions.data.0.country_code', 'KE')
-            ->assertJsonPath('sessions.data.0.visitor.email', 'visitor@example.test');
+            ->assertJsonPath('sessions.data.0.visitor.email', 'visitor@example.test')
+            ->assertJsonPath('sessions.data.0.visitor.name', '<script>Visitor</script>')
+            ->assertJsonPath('sessions.data.0.visitor.company', 'Legacy company')
+            ->assertJsonPath('sessions.data.0.visitor.phone', null);
         $this->assertStringNotContainsString($session->token_hash, $response->getContent());
         $this->getJson(route('admin.mela.sessions.index', ['filter' => 'escalated']))->assertJsonPath('sessions.total', 1);
         $this->getJson(route('admin.mela.sessions.show', $session))->assertOk()->assertJsonStructure(['messages', 'escalation']);

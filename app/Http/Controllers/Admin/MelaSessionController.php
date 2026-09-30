@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\MelaConversation;
 use App\Services\Mela\Memory\ConversationStore;
+use App\Services\Mela\Memory\MemoryManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MelaSessionController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, MemoryManager $memory): JsonResponse
     {
         $data = $request->validate([
             'filter' => ['nullable', 'in:all,active,escalated'],
@@ -25,7 +26,7 @@ class MelaSessionController extends Controller
             'id' => $session->id,
             'active' => $session->last_activity_at?->gte($cutoff) ?? false,
             'country_code' => $session->country_code,
-            'visitor' => array_intersect_key((array) data_get($session->memory, 'visitor', []), array_flip(['name', 'email', 'phone', 'company'])),
+            'visitor' => collect(MemoryManager::VISITOR_FIELDS)->mapWithKeys(fn ($field) => [$field => $memory->visitorValue((array) $session->memory, $field)])->all(),
             'topic' => data_get($session->memory, 'conversation.current_topic'),
             'escalation_status' => $session->escalation_status,
             'user_message_count' => $session->user_message_count,
