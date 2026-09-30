@@ -100,6 +100,20 @@
 .mela-page .mela-task-actions button:last-child { background: #a80000; }
 .mela-page .mela-action-preview { max-width: 560px; margin: 0 auto; padding: 10px; border: 1px solid var(--mela-border); border-radius: 18px; background: #fff; box-shadow: 0 18px 42px rgba(30,58,109,.14); }
 .mela-page .mela-action-preview img { width: 100%; height: auto; display: block; border-radius: 11px; }
+.mela-page .mela-reference-gallery { padding: 54px 0; border-bottom: 1px solid var(--mela-border); background: #f8fafd; }
+.mela-page .mela-reference-gallery h2 { margin: 0 0 8px; color: var(--mela-text); font-size: clamp(1.55rem, 2.6vw, 2rem); text-align: center; }
+.mela-page .mela-reference-gallery > .mela-container > p { margin: 0 auto 26px; color: var(--mela-muted); text-align: center; }
+.mela-page .mela-reference-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.mela-page .mela-reference-item { display: flex; min-width: 0; flex-direction: column; margin: 0; overflow: hidden; border: 1px solid var(--mela-border); border-radius: 8px; background: #fff; box-shadow: 0 5px 16px rgba(30,58,109,.07); transition: transform .22s ease, box-shadow .22s ease; }
+.mela-page .mela-reference-item:hover, .mela-page .mela-reference-item:focus-within { transform: translateY(-4px); box-shadow: 0 12px 25px rgba(30,58,109,.15); }
+.mela-page .mela-reference-item img { width: 100%; aspect-ratio: 16 / 9; object-fit: contain; background: #f2f4f6; transition: transform .28s ease; }
+.mela-page .mela-reference-item:hover img, .mela-page .mela-reference-item:focus-within img { transform: scale(1.035); }
+.mela-page .mela-reference-item figcaption strong { display: block; margin-bottom: 3px; color: var(--mela-text); font-size: .95rem; font-weight: 700; }
+.mela-page .mela-reference-item figcaption { display: flex; flex: 1; flex-direction: column; padding: 11px 12px 13px; color: var(--mela-muted); font-size: .8rem; font-weight: 400; line-height: 1.5; }
+.mela-page .mela-reference-full { display: inline-flex; align-items: center; gap: 6px; margin-top: 9px; color: var(--mela-primary); font-size: .77rem; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.mela-page .mela-reference-full { display: flex; justify-content: space-between; margin: auto -12px -13px; padding: 10px 12px; border-top: 1px solid var(--mela-border); background: #f8fafd; text-decoration: none; }
+.mela-page .mela-reference-full:hover { background: #edf3fc; color: var(--mela-primary-hover); }
+.mela-page .mela-reference-full:focus-visible { outline: 3px solid var(--mela-accent); outline-offset: 3px; }
 .mela-page .mela-steps, .mela-page .mela-deploy-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 17px; margin-top: 36px; }
 .mela-page .mela-step, .mela-page .mela-deploy-card { padding: 24px 19px; border: 1px solid var(--mela-border); border-radius: 13px; background: #fff; box-shadow: 0 8px 24px rgba(30,58,109,.07); transition: transform .2s ease, box-shadow .2s ease; }
 .mela-page .mela-step:hover, .mela-page .mela-deploy-card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(30,58,109,.12); }
@@ -209,6 +223,7 @@
 .mela-collection-cta p { max-width: 620px; margin: 0 auto 22px; color: var(--mela-muted); }
 @media (max-width: 900px) {
     .mela-page .mela-steps, .mela-page .mela-deploy-grid { grid-template-columns: repeat(2, 1fr); }
+    .mela-page .mela-reference-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 767px) {
     .mela-page .mela-hero { padding: 42px 0; }
@@ -216,6 +231,8 @@
     .mela-page .mela-steps, .mela-page .mela-deploy-grid, .mela-page .mela-faq-grid { grid-template-columns: 1fr; }
     .mela-product-grid { grid-template-columns: 1fr; }
     .mela-page .mela-media-bar { min-height: 50px; }
+    .mela-page .mela-reference-gallery { padding: 42px 0; }
+    .mela-page .mela-reference-grid { gap: 14px; }
     .mela-page .mela-section, .mela-page .mela-comparison { padding: 48px 0; }
     .mela-page .mela-service-hero { padding: 64px 22px 56px; }
     .mela-page .mela-service-hero .mela-hero-grid { grid-template-columns: 1fr; gap: 34px; }
@@ -227,6 +244,14 @@
     .mela-page .mela-contact-inner { gap: 34px; }
     .mela-page .mela-contact-form { padding: 26px 20px; }
     .mela-page .mela-form-row-full { grid-column: auto; }
+}
+@media (max-width: 480px) {
+    .mela-page .mela-reference-grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .mela-page .mela-reference-item, .mela-page .mela-reference-item img { transition: none; }
+    .mela-page .mela-reference-item:hover, .mela-page .mela-reference-item:focus-within { transform: none; }
+    .mela-page .mela-reference-item:hover img, .mela-page .mela-reference-item:focus-within img { transform: none; }
 }
 </style>
 @endpush
@@ -416,6 +441,31 @@
   
     <section class="mela-section">
     <div class="mela-container">
+        <section class="mela-reference-gallery" aria-labelledby="mela-reference-title">
+            <div class="mela-container">
+                <h2 id="mela-reference-title">A closer look at Mela</h2>
+                <p>See how Mela supports your team before, during, and after a meeting.</p>
+                <div class="mela-reference-grid">
+                    <figure class="mela-reference-item">
+                        <img src="{{ asset('images/mela-images/mela_welcome_onboarding_1366x768.webp') }}" alt="Mela welcome and onboarding experience in Microsoft Teams" width="1366" height="768" loading="lazy">
+                        <figcaption><div><strong>Meet Mela in Teams.</strong> See how to bring the assistant into the conversations where your team works.</div><a class="mela-reference-full" href="{{ asset('images/mela-images/mela_welcome_onboarding_1366x768.webp') }}" target="_blank" rel="noopener">View full-size image <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a></figcaption>
+                    </figure>
+                    <figure class="mela-reference-item">
+                        <img src="{{ asset('images/mela-images/mela_onboarding_confirmation_1366x768.webp') }}" alt="Mela onboarding confirmation in Microsoft Teams" width="1366" height="768" loading="lazy">
+                        <figcaption><div><strong>Your setup, confirmed.</strong> The Teams confirmation screen shows that Mela is ready to support your meetings.</div><a class="mela-reference-full" href="{{ asset('images/mela-images/mela_onboarding_confirmation_1366x768.webp') }}" target="_blank" rel="noopener">View full-size image <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a></figcaption>
+                    </figure>
+                    <figure class="mela-reference-item">
+                        <img src="{{ asset('images/mela-images/mela_mobile_action_items_planner_1366x768.webp') }}" alt="Mela meeting action items ready to post to Microsoft Planner" width="1366" height="768" loading="lazy">
+                        <figcaption><div><strong>Turn commitments into tasks.</strong> Review meeting action items in Teams, then send selected follow-ups to Microsoft Planner.</div><a class="mela-reference-full" href="{{ asset('images/mela-images/mela_mobile_action_items_planner_1366x768.webp') }}" target="_blank" rel="noopener">View full-size image <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a></figcaption>
+                    </figure>
+                    <figure class="mela-reference-item">
+                        <img src="{{ asset('images/mela-images/mela_post_meeting_email_summary_1366x768.webp') }}" alt="Mela post-meeting email summary with decisions and follow-up tasks" width="1366" height="768" loading="lazy">
+                        <figcaption><div><strong>Close the loop after the call.</strong> Share a structured email recap with the meeting summary, decisions, and next steps.</div><a class="mela-reference-full" href="{{ asset('images/mela-images/mela_post_meeting_email_summary_1366x768.webp') }}" target="_blank" rel="noopener">View full-size image <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a></figcaption>
+                    </figure>
+                </div>
+            </div>
+        </section>
+
         <h2 class="mela-title mela-feature-title">
             Go Beyond Notes. Turn Every Conversation Into Action.
         </h2>

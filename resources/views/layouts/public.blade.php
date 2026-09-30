@@ -450,6 +450,32 @@
     color: inherit !important;
 }
 
+.topbar .top-contact {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+    padding: 0;
+    float: none;
+    list-style: none;
+}
+
+.topbar .top-contact li {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    white-space: nowrap;
+}
+
+@media (max-width: 991px) and (min-width: 577px) {
+    .topbar .top-contact {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px 24px;
+    }
+}
+
 /* ============================================
    Responsive Mega Menu
    ============================================ */
@@ -1161,8 +1187,7 @@ main .service-card {
     <div class="topbar">
         <div class="container">
             <div class="row">
-                <div class="col-lg-3 col-md-4 col-12"></div>
-                <div class="col-lg-9 col-md-8 col-12">
+                <div class="col-12">
                     <ul class="top-contact">
                         <li><i class="fa fa-phone"></i><a href="tel:+19724600643" class="text-decoration-none text-dark">+1 972 460 0643</a></li>
                         <li><i class="fa fa-envelope"></i><a href="mailto:info@armely.com">info@armely.com</a></li>
