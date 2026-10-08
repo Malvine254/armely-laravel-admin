@@ -560,6 +560,15 @@
 
 @section('content')
 
+@if($errors->has('access'))
+<div class="container" style="padding-top:24px">
+    <div class="alert alert-danger" role="alert">
+        <strong>Unable to download your resource.</strong>
+        {{ $errors->first('access') }}
+    </div>
+</div>
+@endif
+
 <!-- Breadcrumbs -->
 <div class="breadcrumbs overlay">
 	<div class="container">

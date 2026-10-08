@@ -1656,7 +1656,8 @@ class CaseStudiesController extends Controller
 
             if (Schema::hasColumn('white_paper', 'pdf')) {
                 $query->addSelect('pdf');
-            } elseif (Schema::hasColumn('white_paper', 'pdf_url')) {
+            }
+            if (Schema::hasColumn('white_paper', 'pdf_url')) {
                 $query->addSelect('pdf_url');
             }
 
@@ -1718,8 +1719,8 @@ class CaseStudiesController extends Controller
     {
         try {
             $response = Http::timeout(20)->get($url);
-            if (!$response->successful()) {
-                Log::warning('Failed to proxy remote PDF download: non-success status', [
+            if (!$response->successful() || !str_starts_with(ltrim($response->body()), '%PDF-')) {
+                Log::warning('Failed to proxy remote PDF download: unsuccessful response or non-PDF body', [
                     'url' => $url,
                     'status' => $response->status(),
                 ]);
@@ -1753,13 +1754,15 @@ class CaseStudiesController extends Controller
 
     private function normalizeAmpEncodedSignatureQuery(Request $request): ?string
     {
-        $query = $request->query();
+        // Some request parsers decode entities in the query bag but retain them in QUERY_STRING.
+        $query = [];
+        parse_str((string) $request->server->get('QUERY_STRING', ''), $query);
         $normalized = [];
         $changed = false;
 
         foreach ($query as $key => $value) {
             $targetKey = (string) $key;
-            if (str_starts_with($targetKey, 'amp;')) {
+            while (str_starts_with($targetKey, 'amp;')) {
                 $targetKey = substr($targetKey, 4);
                 $changed = true;
             }
@@ -1778,7 +1781,7 @@ class CaseStudiesController extends Controller
             return null;
         }
 
-        return $request->url() . '?' . http_build_query($normalized);
+        return $request->url() . '?' . http_build_query($normalized, '', '&', PHP_QUERY_RFC3986);
     }
 
     private function grantCaseStudyAccess(Request $request, string $email, int $caseStudyId): void

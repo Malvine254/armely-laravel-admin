@@ -71,4 +71,9 @@
 
     # Cross-Origin Resource Policy
     Header always set Cross-Origin-Resource-Policy "same-site"
+
+    # The public email wordmark must load in external webmail clients.
+    <Files "logo-replace-v2.png">
+        Header always set Cross-Origin-Resource-Policy "cross-origin"
+    </Files>
 </IfModule>

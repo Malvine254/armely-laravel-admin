@@ -29,6 +29,18 @@ Ad hoc PHP diagnostics and one-off verification scripts should live in `test_php
 - Use subfolders like `test_php_files/scripts/` and `test_php_files/store/` when you want to group scripts by area.
 - Keep application code out of this folder so these helpers stay easy to find and remove later.
 
+## Resource downloads and email templates
+
+- Case study and white paper links are signed and expire after one hour. Expired or tampered links must be requested again; do not disable signature checks or change `APP_KEY` to troubleshoot them.
+- Email URLs must use Blade's `{{ $url }}` syntax, not `{{ e($url) }}`. Blade escapes once already; escaping twice corrupts query separators and displays entities in text.
+- Legacy emailed links with `amp;`-encoded query keys are normalized before signature validation. Normalization does not extend expiry or bypass validation.
+- Download failures appear as an access alert on the Case Studies page. Missing files and remote retrieval failures also appear in the application logs.
+- Notification templates share `emails.layouts.modern` and the `emails.partials.details` / `button` partials. Pass `plainText => true` with raw values to the details partial. Its legacy mode expects values that have already been escaped (or intentionally constructed safe HTML).
+- Main-site emails use the same Armely wordmark as the website header (`public/images/logo/logo-replace-v2.png`). Store email branding remains separate.
+- The public wordmark has a targeted `Cross-Origin-Resource-Policy: cross-origin` exception in `public/.htaccess` so external webmail can display it; other resources retain the same-site policy.
+- Decode stored entity-encoded content titles with `App\Support\EmailText::decode`, then let Blade escape the result. Never render decoded content as raw HTML.
+- After deployment, clear compiled views with `php artisan view:clear` and request a new download email to verify the production file path and link.
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.

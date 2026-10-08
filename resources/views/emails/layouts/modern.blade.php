@@ -1,20 +1,62 @@
 @php
     $emailTitle = $emailTitle ?? 'Armely Notification';
     $emailBadge = $emailBadge ?? 'Armely';
-    $emailAccent = $emailAccent ?? '#2F5597';
-    $logoUrl = 'https://armely.com/store/images/logo/armely-store-logo.png';
+    $emailAccent = $emailAccent ?? '#2f5597';
+    $logoUrl = 'https://armely.com/images/logo/logo-replace-v2.png';
 @endphp
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting">
-<meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">
-<title>{{ $emailTitle }}</title>
-<style>@media only screen and (max-width:620px){.mail-shell{padding:6px 3px 14px!important}.mail-header,.mail-body,.mail-footer{padding:13px 10px!important}.mail-logo-cell{width:56px!important;padding-right:9px!important}.mail-logo-box{width:48px!important;height:40px!important;padding:3px!important}.mail-logo{width:48px!important;max-height:40px!important}.mail-title{font-size:19px!important}.mail-detail-label,.mail-detail-value{display:block!important;width:100%!important;text-align:left!important;box-sizing:border-box!important}.mail-detail-label{padding-bottom:2px!important}.mail-detail-value{padding-top:2px!important}.mail-button{display:block!important;text-align:center!important}}
-/* Some webmail/desktop clients (notably Outlook) override inline color on heading tags with their own default; force white here too. */
-h1.mail-title,.mail-title,.mail-title span{color:#ffffff!important}
-/* Outlook.com / OWA dark mode re-processing targets [data-ogsc]; force the header text and background back to authored colors. */
-[data-ogsc] .mail-header,[data-ogsb] .mail-header{background:#0f2f63!important}
-[data-ogsc] .mail-title,[data-ogsc] h1.mail-title{color:#ffffff!important}</style></head>
-<body style="margin:0;padding:0;background:#eef3fa;font-family:'Segoe UI',Arial,sans-serif;color:#1f2937;"><div class="mail-shell" style="max-width:760px;margin:0 auto;padding:20px 10px 30px;"><div style="background:#fff;border:1px solid #dbe7f7;border-radius:16px;overflow:hidden;box-shadow:0 10px 28px rgba(15,47,99,.10);">
-<div class="mail-header" style="background:#0f2f63;padding:20px 24px;"><table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr><td class="mail-logo-cell" width="92" style="width:92px;padding-right:18px;vertical-align:middle"><div class="mail-logo-box" style="width:78px;height:64px;padding:5px;background:#fff;border-radius:10px"><img class="mail-logo" src="{{ $logoUrl }}" width="78" alt="Armely" style="display:block;width:78px;max-height:64px;height:auto"></div></td><td style="vertical-align:middle"><span style="display:inline-block;margin-bottom:6px;padding:4px 11px;border-radius:20px;background:{{ $emailAccent }};color:#fff;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">{{ $emailBadge }}</span><p style="margin:0 0 4px;color:#dbe7ff;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Armely AI Solutions</p><h1 class="mail-title" style="margin:0;color:#fff!important;font-size:24px;line-height:1.2">{{ $emailTitle }}</h1></td></tr></table></div>
-<div class="mail-body" style="padding:24px 28px;font-size:14px;line-height:1.65">@yield('content')</div>
-<div class="mail-footer" style="padding:15px 28px 18px;background:#f8fbff;border-top:1px solid #e3ebf8;color:#7b8fad;font-size:11px">@yield('footer', 'This is an automated message from Armely AI Solutions.')</div>
-</div></div></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>{{ $emailTitle }}</title>
+    <style>
+        @media only screen and (max-width:620px) {
+            .mail-shell { padding:12px 8px!important }
+            .mail-header,.mail-body,.mail-footer { padding:22px 18px!important }
+            .mail-logo-cell { width:106px!important;padding-right:12px!important }
+            .mail-logo { width:94px!important }
+            .mail-title { font-size:22px!important }
+            .mail-detail-label,.mail-detail-value { display:block!important;width:100%!important;text-align:left!important;box-sizing:border-box!important }
+            .mail-detail-label { padding:12px 0 2px!important;border-bottom:0!important }
+            .mail-detail-value { padding:2px 0 12px!important }
+        }
+        h1.mail-title,.mail-title,.mail-title span { color:#ffffff!important }
+        [data-ogsc] .mail-header,[data-ogsb] .mail-header { background:#0f2f63!important }
+        [data-ogsc] .mail-title { color:#ffffff!important }
+    </style>
+</head>
+<body style="margin:0;padding:0;background:#eef3fa;font-family:'Segoe UI',Arial,sans-serif;color:#172033">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" bgcolor="#eef3fa">
+    <tr>
+        <td class="mail-shell" align="center" style="padding:32px 16px">
+            <!--[if mso]><table role="presentation" width="640" cellpadding="0" cellspacing="0"><tr><td><![endif]-->
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" bgcolor="#ffffff" style="max-width:640px;background:#ffffff;border:1px solid #dbe7f7;border-radius:12px">
+                <tr>
+                    <td class="mail-header" bgcolor="#0f2f63" style="background:#0f2f63;padding:28px 32px;border-radius:12px 12px 0 0">
+                        <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                            <tr>
+                                <td class="mail-logo-cell" width="138" style="width:138px;padding-right:18px;vertical-align:middle">
+                                    <img class="mail-logo" src="{{ $logoUrl }}" width="120" alt="Armely" style="display:block;width:120px;height:auto;background:#ffffff;padding:5px;border-radius:6px">
+                                </td>
+                                <td style="vertical-align:middle">
+                                    <p style="margin:0 0 8px;color:#bfdbfe;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px">{{ $emailBadge }}</p>
+                                    <h1 class="mail-title" style="margin:0;color:#ffffff!important;font-size:25px;line-height:1.3;font-weight:700">{{ $emailTitle }}</h1>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr><td height="4" bgcolor="{{ $emailAccent }}" style="height:4px;background:{{ $emailAccent }};font-size:0;line-height:0">&nbsp;</td></tr>
+                <tr><td class="mail-body" style="padding:28px 32px;color:#172033;font-size:14px;line-height:1.7">@yield('content')</td></tr>
+                <tr><td class="mail-footer" bgcolor="#f8fafc" style="padding:20px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;color:#64748b;font-size:11px;line-height:1.6">@yield('footer', 'This is an automated message from Armely AI Solutions.')</td></tr>
+            </table>
+            <!--[if mso]></td></tr></table><![endif]-->
+        </td>
+    </tr>
+</table>
+</body>
+</html>

@@ -1,50 +1,16 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Mela Documentation Request</title>
-</head>
-<body style="margin:0;padding:0;background:#eef2fa;font-family:'Segoe UI',Arial,sans-serif;color:#1e2f4d;">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef2fa;padding:28px 14px;">
-    <tr>
-        <td align="center">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #d6e1f7;">
-                <tr>
-                    <td style="background:linear-gradient(135deg,#153462 0%,#2f5597 100%);padding:24px 30px;">
-                        <p style="margin:0;color:#9cc8ff;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;">Mela Meeting Assistant</p>
-                        <h1 style="margin:10px 0 0;color:#ffffff;font-size:22px;line-height:1.25;">New Documentation Request</h1>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding:24px 30px;">
-                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;color:#233f71;">
-                            <tr><td style="padding:6px 0;width:140px;color:#6b7fa2;">Name</td><td style="padding:6px 0;font-weight:600;">{{ e($name) }}</td></tr>
-                            <tr><td style="padding:6px 0;color:#6b7fa2;">Email</td><td style="padding:6px 0;font-weight:600;">{{ e($email) }}</td></tr>
-                            <tr><td style="padding:6px 0;color:#6b7fa2;">Organization</td><td style="padding:6px 0;">{{ $organization !== '' ? e($organization) : 'N/A' }}</td></tr>
-                            <tr><td style="padding:6px 0;color:#6b7fa2;">Job title</td><td style="padding:6px 0;">{{ $jobTitle !== '' ? e($jobTitle) : 'N/A' }}</td></tr>
-                            <tr><td style="padding:6px 0;color:#6b7fa2;">Phone</td><td style="padding:6px 0;">{{ $phone !== '' ? e($phone) : 'N/A' }}</td></tr>
-                            <tr><td style="padding:6px 0;color:#6b7fa2;">Link expires</td><td style="padding:6px 0;">{{ e($expiresAt) }}</td></tr>
-                        </table>
-                        <p style="margin:16px 0 0;font-size:13px;color:#6b7fa2;text-transform:uppercase;letter-spacing:.5px;font-weight:700;">Notes</p>
-                        <p style="margin:6px 0 0;font-size:14px;line-height:1.6;color:#324a73;">{{ $message !== '' ? nl2br(e($message)) : 'N/A' }}</p>
-                        <table role="presentation" cellspacing="0" cellpadding="0" style="margin:18px 0 0;">
-                            <tr>
-                                <td align="center" style="border-radius:10px;background:#1f4d99;">
-                                    <a href="{{ e($downloadUrl) }}" style="display:inline-block;padding:12px 20px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;border-radius:10px;">Download the documentation (PDF)</a>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding:16px 30px 22px;background:#f7faff;border-top:1px solid #e5edff;">
-                        <p style="margin:0;color:#7b8fad;font-size:12px;line-height:1.5;">The requester has already been emailed this same secure download link automatically.</p>
-                    </td>
-                </tr>
-            </table>
-        </td>
-    </tr>
-</table>
-</body>
-</html>
+@extends('emails.layouts.modern', ['emailTitle' => 'New documentation request', 'emailBadge' => 'Mela Meeting Assistant'])
+@section('content')
+<p style="margin:0 0 16px;color:#475569">A visitor requested Mela's security and compliance documentation.</p>
+@include('emails.partials.details', ['plainText' => true, 'rows' => [
+    'Name' => $name,
+    'Email' => $email,
+    'Organization' => $organization ?: 'Not provided',
+    'Job title' => $jobTitle ?: 'Not provided',
+    'Phone' => $phone ?: 'Not provided',
+    'Link expires' => $expiresAt,
+]])
+<h2 style="margin:24px 0 8px;font-size:16px;color:#172033">Notes</h2>
+<div style="margin:0 0 20px;padding:16px;background:#f8fafc;border-left:3px solid #cbd5e1">{!! nl2br(e($message ?: 'No additional notes.')) !!}</div>
+@include('emails.partials.button', ['buttonUrl' => $downloadUrl, 'buttonLabel' => 'Download documentation (PDF)'])
+@endsection
+@section('footer')The requester has already been emailed this same secure download link automatically.@endsection

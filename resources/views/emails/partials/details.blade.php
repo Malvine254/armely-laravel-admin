@@ -1,1 +1,8 @@
-<div style="margin:16px 0;padding:14px 16px;background:#f4f8ff;border:1px solid #d8e4f6;border-radius:11px">@foreach($rows as $label => $value)<table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr><td class="mail-detail-label" width="38%" style="width:38%;padding:6px 0;color:#64748b;font-size:11px;text-transform:uppercase;vertical-align:top">{{ $label }}</td><td class="mail-detail-value" style="padding:6px 0;color:#172033;font-size:14px;font-weight:700;text-align:right;vertical-align:top">{!! $value !!}</td></tr></table>@endforeach</div>
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:12px 0 20px;border-collapse:collapse">
+    @foreach($rows as $label => $value)
+    <tr>
+        <td class="mail-detail-label" width="34%" style="width:34%;padding:12px 14px 12px 0;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:12px;vertical-align:top">{{ $label }}</td>
+        <td class="mail-detail-value" style="padding:12px 0;border-bottom:1px solid #e2e8f0;color:#172033;font-size:14px;font-weight:600;text-align:left;vertical-align:top;overflow-wrap:anywhere;word-break:break-word">@if($plainText ?? false){{ $value }}@else{!! $value !!}@endif</td>
+    </tr>
+    @endforeach
+</table>
