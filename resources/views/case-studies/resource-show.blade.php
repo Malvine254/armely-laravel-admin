@@ -376,7 +376,7 @@
 
                             <div class="case-form-status" id="whitePaperFormStatus" aria-live="polite"></div>
                             <div class="case-direct-download" id="whitePaperDirectDownload" aria-live="polite"></div>
-                            <p class="mt-2 mb-0" style="font-size:.9rem; color: var(--case-muted);">We will send a secure download link to your work email. The link expires in 1 hour.</p>
+                            <p class="mt-2 mb-0" style="font-size:.9rem; color: var(--case-muted);">We will send a secure download link to your work email. The link expires in 24 hours.</p>
                         </form>
                     </section>
                 </aside>

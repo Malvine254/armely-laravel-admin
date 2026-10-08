@@ -943,9 +943,8 @@
                                 </td>
                                 <td>
                                     @if(!empty($caseStudy->pdf_url))
-                                        @php($pdfFolder = $isWhitePaper ? 'white_paper_docs' : 'case_docs')
-                                        @php($casePdfUrl = str_starts_with($caseStudy->pdf_url, 'http') ? $caseStudy->pdf_url : url($pdfFolder . '/' . $caseStudy->pdf_url))
-                                        <a href="{{ $casePdfUrl }}" target="_blank" class="btn btn-sm btn-outline-primary" title="Preview PDF"><i class="fas fa-file-pdf"></i></a>
+                                        @php($casePdfUrl = $isWhitePaper ? route('admin.white-papers.download', ['paper' => $caseStudy->id]) : route('admin.case-studies.download', ['caseStudy' => $caseStudy->id]))
+                                        <a href="{{ $casePdfUrl }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="Download PDF"><i class="fas fa-file-pdf"></i></a>
                                     @else
                                         <span class="text-muted">N/A</span>
                                     @endif
@@ -1972,6 +1971,9 @@
                             <div class="d-flex flex-wrap gap-2 mb-3">
                                 <a id="viewCaseStudyPdf" href="#" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary d-none">
                                     <i class="fas fa-file-pdf me-1"></i> Open One-Pager PDF
+                                </a>
+                                <a id="viewCaseStudyDownload" href="#" target="_blank" rel="noopener" class="btn btn-sm btn-primary d-none">
+                                    <i class="fas fa-download me-1"></i> Download Full PDF
                                 </a>
                                 <span class="badge bg-light text-secondary border" id="viewCaseStudyTypeBadge">Case Study</span>
                             </div>
@@ -3113,9 +3115,10 @@ $(document).ready(function() {
     function caseStudyPdfUrl(pdfValue, item = {}) {
         const value = String(pdfValue || '').trim();
         if (!value) return '';
-        if (/^https?:\/\//i.test(value)) return value;
-        const basePath = item.resource_type === 'white_paper' ? `{{ url('white_paper_docs') }}` : `{{ url('case_docs') }}`;
-        return `${basePath}/${encodeURIComponent(value)}`;
+        const routeTemplate = item.resource_type === 'white_paper'
+            ? @json(route('admin.white-papers.download', ['paper' => '__ID__']))
+            : @json(route('admin.case-studies.download', ['caseStudy' => '__ID__']));
+        return routeTemplate.replace('__ID__', encodeURIComponent(item.id));
     }
 
     function caseStudyPreviewPdfUrl(previewValue, item = {}) {
@@ -3190,6 +3193,7 @@ $(document).ready(function() {
         const title = String(item.title || item.category || typeLabel);
         const summary = caseStudySummaryText(item);
         const frameUrl = caseStudyPreviewFrameUrl(item);
+        const downloadUrl = caseStudyPdfUrl(item.pdf_url, item);
 
         $('#viewCaseStudyModal .modal-title').text(typeLabel === 'White Paper' ? 'View White Paper' : 'View Case Study');
         $('#viewCaseStudyChips').html(caseStudyPreviewChipsHtml(item));
@@ -3201,6 +3205,11 @@ $(document).ready(function() {
             ? 'The iframe shows the gated white-paper preview so the team can validate the publishing flow.'
             : 'The iframe mirrors the public preview shown to visitors before they request the full case-study PDF.');
         $('#viewCaseStudyBody').html(item.body || '<p class="text-muted mb-0">No editor body available.</p>');
+        if (downloadUrl) {
+            $('#viewCaseStudyDownload').attr('href', downloadUrl).removeClass('d-none');
+        } else {
+            $('#viewCaseStudyDownload').removeAttr('href').addClass('d-none');
+        }
 
         if (frameUrl) {
             $('#viewCaseStudyFrame').attr('src', frameUrl);
@@ -3293,7 +3302,7 @@ $(document).ready(function() {
                             : '<span class="text-muted">N/A</span>';
                         const pdfUrl = caseStudyPdfUrl(item.pdf_url, item);
                         const pdfHtml = pdfUrl
-                            ? `<a href="${pdfUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="Preview PDF"><i class="fas fa-file-pdf"></i></a>`
+                            ? `<a href="${pdfUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="Download PDF"><i class="fas fa-file-pdf"></i></a>`
                             : '<span class="text-muted">N/A</span>';
                         const btns = `
                             <div class="action-btns">

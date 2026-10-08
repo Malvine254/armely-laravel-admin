@@ -6,7 +6,9 @@ use App\Services\AzureMailService;
 use Illuminate\Database\QueryException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -250,8 +252,8 @@ class CaseStudiesController extends Controller
         ]);
 
         $message = $emailSent
-            ? 'Thanks! Your secure download link has been sent by email. It expires in 1 hour.'
-            : 'Request received. We could not confirm email delivery right now, so use the secure link below. It expires in 1 hour.';
+            ? 'Thanks! Your secure download link has been sent by email. It expires in 24 hours.'
+            : 'Request received. We could not confirm email delivery right now, so use the secure link below. It expires in 24 hours.';
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
@@ -342,6 +344,10 @@ class CaseStudiesController extends Controller
 
     public function legacyCaseDoc(Request $request, string $file)
     {
+        if ($redirect = $this->legacyAdminDocument($request, $file, false)) {
+            return $redirect;
+        }
+
         return redirect()->route('case-studies.index')
             ->withErrors(['access' => 'Direct document links are disabled. Please request a secure download link from the form.']);
     }
@@ -424,8 +430,58 @@ class CaseStudiesController extends Controller
 
     public function legacyWhitePaperDoc(Request $request, string $file)
     {
+        if ($redirect = $this->legacyAdminDocument($request, $file, true)) {
+            return $redirect;
+        }
+
         return redirect()->route('case-studies.index')
             ->withErrors(['access' => 'Direct document links are disabled. Please request a secure download link from the form.']);
+    }
+
+    public function adminCaseStudyDownload(Request $request, int $caseStudy): RedirectResponse
+    {
+        return $this->adminDocumentLink($request, 'case-studies.access', ['caseStudy' => $caseStudy]);
+    }
+
+    public function adminWhitePaperDownload(Request $request, int $paper): RedirectResponse
+    {
+        return $this->adminDocumentLink($request, 'white-papers.access', ['paper' => $paper]);
+    }
+
+    private function adminDocumentLink(Request $request, string $route, array $parameters): RedirectResponse
+    {
+        if ($request->boolean('preview')) {
+            $parameters['preview'] = 1;
+        }
+
+        return redirect()->to(url(URL::temporarySignedRoute($route, now()->addHours(24), $parameters, false)));
+    }
+
+    private function legacyAdminDocument(Request $request, string $file, bool $whitePaper): ?RedirectResponse
+    {
+        $admin = Auth::guard('admin')->user();
+        if (!$admin || !$admin->isActive()) {
+            return null;
+        }
+
+        $table = $whitePaper ? 'white_paper' : 'industry_listings';
+        abort_unless($this->isTableQueryable($table), 503, 'Resources are temporarily unavailable.');
+        $columns = array_values(array_filter(['pdf', 'pdf_url'], fn ($column) => $this->safeHasColumn($table, $column)));
+        $records = DB::table($table)->select(array_merge(['id'], $columns))->get();
+
+        foreach ($records as $record) {
+            foreach ($columns as $column) {
+                $value = trim((string) ($record->{$column} ?? ''));
+                if ($value !== '' && ($value === $file || basename($value) === $file)) {
+                    return redirect()->route(
+                        $whitePaper ? 'admin.white-papers.download' : 'admin.case-studies.download',
+                        array_merge($whitePaper ? ['paper' => $record->id] : ['caseStudy' => $record->id], ['preview' => $request->boolean('preview') ? 1 : 0])
+                    );
+                }
+            }
+        }
+
+        abort(404, 'This resource file could not be located.');
     }
 
     private function findCaseStudyBySlug(string $slug): ?object
@@ -1615,7 +1671,7 @@ class CaseStudiesController extends Controller
 
     private function buildDownloadDetails(array $data, string $email): ?array
     {
-        $expiresAt = now()->addHour();
+        $expiresAt = now()->addHours(24);
         $caseStudyId = (int) ($data['case_study_id'] ?? 0);
         if ($caseStudyId > 0 && $this->isTableQueryable('industry_listings')) {
             $selectColumns = ['id', 'category', 'pdf_url'];

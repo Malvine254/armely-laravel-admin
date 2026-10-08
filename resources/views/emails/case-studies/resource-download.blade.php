@@ -8,7 +8,7 @@
     <p style="margin:12px 0 0;color:#64748b;font-size:12px">Available until {{ $expiresAt }}</p>
 </div>
 @include('emails.partials.button', ['buttonUrl' => $downloadUrl, 'buttonLabel' => 'Download your resource'])
-<p style="margin:20px 0 0;color:#64748b;font-size:12px">This secure link expires in 1 hour. If it has expired, <a href="{{ route('case-studies.index') }}" style="color:#2f5597">request a fresh link</a>.</p>
+<p style="margin:20px 0 0;color:#64748b;font-size:12px">This secure link expires in 24 hours. If it has expired, <a href="{{ route('case-studies.index') }}" style="color:#2f5597">request a fresh link</a>.</p>
 <p style="margin:20px 0 0">Warm regards,<br><strong>Armely Team</strong></p>
 @endsection
 @section('footer')If you did not request this file, you can safely ignore this email.@endsection

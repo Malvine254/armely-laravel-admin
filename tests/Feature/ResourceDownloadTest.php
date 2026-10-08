@@ -2,8 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\Admin\TablesController;
 use App\Http\Controllers\CaseStudiesController;
+use App\Http\Controllers\ResourceController;
 use App\Http\Middleware\LogActivity;
+use App\Models\Admin;
+use App\Models\Resource;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -63,7 +67,7 @@ class ResourceDownloadTest extends TestCase
 
         $this->assertNotNull($details);
         parse_str(parse_url($details['download_url'], PHP_URL_QUERY), $query);
-        $this->assertSame(now()->addHour()->timestamp, (int) $query['expires']);
+        $this->assertSame(now()->addHours(24)->timestamp, (int) $query['expires']);
         $html = view('emails.case-studies.resource-download', [
             'name' => 'Visitor & Partner',
             'resourceTitle' => $details['resource_title'],
@@ -161,6 +165,100 @@ class ResourceDownloadTest extends TestCase
         $this->get(route('case-studies.index'))->assertOk()
             ->assertSee('Unable to download your resource.')
             ->assertSee('This download link is invalid or has expired.');
+    }
+
+    public function test_admin_downloads_both_resource_types_without_a_lead_form(): void
+    {
+        $this->actingAs(new Admin(['status' => 'active', 'role' => 'Admin']), 'admin');
+        foreach ([
+            route('admin.case-studies.download', ['caseStudy' => 3]),
+            route('admin.white-papers.download', ['paper' => 5]),
+        ] as $url) {
+            $response = $this->get($url)->assertRedirect();
+            $signedUrl = $response->headers->get('Location');
+            parse_str(parse_url($signedUrl, PHP_URL_QUERY), $query);
+            $this->assertSame(now()->addHours(24)->timestamp, (int) $query['expires']);
+            $this->get($signedUrl)->assertOk()->assertDownload(basename($this->pdfPath));
+        }
+    }
+
+    public function test_admin_preview_remains_available(): void
+    {
+        $this->actingAs(new Admin(['status' => 'active', 'role' => 'Admin']), 'admin');
+        $response = $this->get(route('admin.white-papers.download', ['paper' => 5, 'preview' => 1]))->assertRedirect();
+        $response = $this->get($response->headers->get('Location'))->assertOk();
+        $this->assertFalse($response->headers->has('Content-Disposition'));
+    }
+
+    public function test_guest_and_inactive_admin_cannot_use_admin_download_routes(): void
+    {
+        foreach ([
+            route('admin.case-studies.download', ['caseStudy' => 3]),
+            route('admin.white-papers.download', ['paper' => 5]),
+        ] as $url) {
+            $this->get($url)->assertRedirect('/admin/login');
+            $this->actingAs(new Admin(['status' => 'inactive', 'role' => 'Admin']), 'admin');
+            $this->get($url)->assertRedirect('/admin/login');
+        }
+    }
+
+    public function test_legacy_document_links_work_for_active_admins_but_remain_gated_for_visitors(): void
+    {
+        foreach ([
+            route('case-studies.legacy-doc', ['file' => basename($this->pdfPath)]),
+            route('white-papers.legacy-doc', ['file' => basename($this->pdfPath)]),
+        ] as $url) {
+            auth('admin')->logout();
+            $this->get($url)->assertRedirect(route('case-studies.index'))->assertSessionHasErrors('access');
+            $this->actingAs(new Admin(['status' => 'inactive', 'role' => 'Admin']), 'admin');
+            $this->get($url)->assertRedirect(route('case-studies.index'));
+            $this->actingAs(new Admin(['status' => 'active', 'role' => 'Admin']), 'admin');
+            $legacy = $this->get($url)->assertRedirect();
+            $signed = $this->get($legacy->headers->get('Location'))->assertRedirect();
+            $this->get($signed->headers->get('Location'))->assertOk()->assertDownload(basename($this->pdfPath));
+        }
+    }
+
+    public function test_legacy_admin_document_link_cannot_download_unregistered_files(): void
+    {
+        $this->actingAs(new Admin(['status' => 'active', 'role' => 'Admin']), 'admin');
+        $this->get(route('white-papers.legacy-doc', ['file' => 'unregistered.pdf']))->assertNotFound();
+    }
+
+    public function test_generated_download_link_works_after_23_hours_and_expires_after_24(): void
+    {
+        $controller = app(CaseStudiesController::class);
+        $method = new \ReflectionMethod($controller, 'buildDownloadDetails');
+        $urls = [
+            $method->invoke($controller, ['white_paper_id' => 5], 'visitor@example.com')['download_url'],
+            $method->invoke($controller, ['case_study_id' => 3], 'visitor@example.com')['download_url'],
+        ];
+        $this->travel(23)->hours();
+        foreach ($urls as $url) {
+            $this->get($url)->assertOk()->assertDownload(basename($this->pdfPath));
+        }
+        $this->travel(61)->minutes();
+        foreach ($urls as $url) {
+            $this->get($url)->assertRedirect(route('case-studies.index'))->assertSessionHasErrors('access');
+        }
+    }
+
+    public function test_pdf_resource_email_links_also_expire_after_24_hours(): void
+    {
+        $resource = new Resource(['slug' => 'guide', 'resource_type' => 'pdf']);
+        $resource->id = 10;
+        $controller = app(ResourceController::class);
+        $links = (new \ReflectionMethod($controller, 'permanentResourceAccessLinks'))->invoke($controller, $resource, []);
+        parse_str(parse_url($links['download_url'], PHP_URL_QUERY), $query);
+        $this->assertSame(now()->addHours(24)->timestamp, (int) $query['expires']);
+    }
+
+    public function test_admin_listing_keeps_pdf_url_when_the_legacy_pdf_column_is_empty(): void
+    {
+        $controller = app(TablesController::class);
+        $items = (new \ReflectionMethod($controller, 'listCaseStudyResources'))->invoke($controller, 100);
+        $paper = $items->first(fn ($item) => $item->resource_type === 'white_paper');
+        $this->assertSame(basename($this->pdfPath), $paper->pdf_url);
     }
 
     private function whitePaperUrl(): string

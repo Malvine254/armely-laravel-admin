@@ -2077,7 +2077,7 @@ textarea.lead-field {
 							<button type="button" class="case-locked-cta" data-open-case-modal>
 								<i class="fa fa-unlock-keyhole"></i> {{ $detailPrimaryActionLabel }}
 							</button>
-							<p class="case-locked-note">No phone number required. The link expires in 1 hour.</p>
+							<p class="case-locked-note">No phone number required. The link expires in 24 hours.</p>
 						</div>
 					</div>
 				</div>
@@ -2144,7 +2144,7 @@ textarea.lead-field {
 		</button>
 			<div class="case-form-status" id="caseFormStatus" aria-live="polite"></div>
 			<div class="case-direct-download" id="caseDirectDownload" aria-live="polite"></div>
-			<p class="case-form-note">We will send a secure access link to your work email. The link expires in 1 hour.</p>
+			<p class="case-form-note">We will send a secure access link to your work email. The link expires in 24 hours.</p>
 		</form>
 	</div>
 </div>

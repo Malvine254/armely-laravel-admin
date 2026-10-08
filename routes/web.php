@@ -748,6 +748,8 @@ Route::prefix('admin')->middleware(['admin', \App\Http\Middleware\ReindexMelaKno
     Route::delete('/mela/knowledge/schedule', [\App\Http\Controllers\Admin\MelaKnowledgeController::class, 'cancelSchedule'])->name('admin.mela.knowledge.schedule.cancel');
 
     // Resource Management
+    Route::get('/case-studies/{caseStudy}/download', [CaseStudiesController::class, 'adminCaseStudyDownload'])->name('admin.case-studies.download');
+    Route::get('/white-papers/{paper}/download', [CaseStudiesController::class, 'adminWhitePaperDownload'])->name('admin.white-papers.download');
     Route::get('/resources', [AdminResourceController::class, 'index'])->name('admin.resources.index');
     Route::get('/resources/create', [AdminResourceController::class, 'create'])->name('admin.resources.create');
     Route::post('/resources', [AdminResourceController::class, 'store'])->name('admin.resources.store');

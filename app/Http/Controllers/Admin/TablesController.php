@@ -405,7 +405,11 @@ class TablesController extends Controller
             $whitePaperQuery->selectRaw(($titleColumn ? $titleColumn : 'NULL') . ' as title');
             $whitePaperQuery->selectRaw(($bodyColumn ? $bodyColumn : 'NULL') . ' as body');
             $whitePaperQuery->selectRaw(($imageColumn ? $imageColumn : 'NULL') . ' as listing_image');
-            $whitePaperQuery->selectRaw(($pdfColumn ? $pdfColumn : 'NULL') . ' as pdf_url');
+            if ($this->columnExists('white_paper', 'pdf') && $this->columnExists('white_paper', 'pdf_url')) {
+                $whitePaperQuery->selectRaw("COALESCE(NULLIF(TRIM(pdf), ''), pdf_url) as pdf_url");
+            } else {
+                $whitePaperQuery->selectRaw(($pdfColumn ? $pdfColumn : 'NULL') . ' as pdf_url');
+            }
             $whitePaperQuery->selectRaw('NULL as category');
 
             if ($this->columnExists('white_paper', 'created_at')) {

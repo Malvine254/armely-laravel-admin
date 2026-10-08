@@ -8,6 +8,6 @@
 </div>
 @include('emails.partials.button', ['buttonUrl' => $downloadUrl, 'buttonLabel' => 'Download file now'])
 <p style="margin:16px 0"><a href="{{ $resourceUrl }}" style="color:#2f5597">View resource page</a></p>
-<p style="margin:20px 0 0;color:#64748b;font-size:12px">This secure download link expires in 1 hour.</p>
+<p style="margin:20px 0 0;color:#64748b;font-size:12px">This secure download link expires in 24 hours.</p>
 <p style="margin:16px 0 0;color:#475569">If you have questions or want related material, reply to this email and the Armely team can help.</p>
 @endsection

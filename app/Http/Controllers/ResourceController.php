@@ -771,7 +771,7 @@ class ResourceController extends Controller
         $pdfStyle = $this->isPdfStyleResource($resource);
 
         if ($pdfStyle && !empty($resource->id)) {
-            $expiresAt = now()->addHour();
+            $expiresAt = now()->addHours(24);
             return [
                 'resource_url' => $resourceUrl,
                 'download_url' => url(URL::temporarySignedRoute('resources.download', $expiresAt, ['slug' => $resource->slug], false)),

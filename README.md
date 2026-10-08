@@ -31,7 +31,8 @@ Ad hoc PHP diagnostics and one-off verification scripts should live in `test_php
 
 ## Resource downloads and email templates
 
-- Case study and white paper links are signed and expire after one hour. Expired or tampered links must be requested again; do not disable signature checks or change `APP_KEY` to troubleshoot them.
+- Newly generated case study, white paper, and PDF resource download links are signed and expire after 24 hours. Existing links keep their original expiry. Expired or tampered links must be requested again; do not disable signature checks or change `APP_KEY` to troubleshoot them.
+- Active admins can download case study and white paper attachments from the admin table and detail modal without submitting a lead form. Protected admin endpoints issue fresh signed links. Legacy document URLs also redirect active admins through these endpoints; anonymous and inactive users cannot use them to bypass gating.
 - Email URLs must use Blade's `{{ $url }}` syntax, not `{{ e($url) }}`. Blade escapes once already; escaping twice corrupts query separators and displays entities in text.
 - Legacy emailed links with `amp;`-encoded query keys are normalized before signature validation. Normalization does not extend expiry or bypass validation.
 - Download failures appear as an access alert on the Case Studies page. Missing files and remote retrieval failures also appear in the application logs.

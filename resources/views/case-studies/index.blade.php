@@ -693,7 +693,7 @@
 		<div class="case-lead-card">
 			<button type="button" class="case-modal-close" id="caseModalCloseBtn" aria-label="Close">&times;</button>
 			<h2 class="case-lead-title" id="caseStudyModalTitle">Request Secure Download Link</h2>
-			<p class="case-lead-subtitle">Complete this form and we will email a secure link that expires in 1 hour.</p>
+			<p class="case-lead-subtitle">Complete this form and we will email a secure link that expires in 24 hours.</p>
 			<div class="case-modal-selected" id="selectedCaseStudyLabel">Selected: Case Study</div>
 
 			<form class="form lead-form" method="post" action="{{ route('case-studies.lead.submit') }}">
