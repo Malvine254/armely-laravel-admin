@@ -65,7 +65,7 @@ class MelaAiPageTest extends TestCase
         $response->assertSee('<title>Mela Meeting Assistant | Microsoft Teams Meeting Automation</title>', false);
         $response->assertSee('Turn Teams Meetings into Actionable Planner Tasks - Instantly', false);
         $response->assertSee('Mela automatically transcribes, assigns tasks directly in Planner, and emails structured recaps so your team stays focused on execution', false);
-        $response->assertSee('Start 14-Day Free Pilot →', false);
+        $response->assertSee('Start 30-Day Free Trial →', false);
         $response->assertSee('Schedule a 15-Min Demo', false);
         $response->assertSee('Requires Teams Admin consent • Fast, guided 10-min setup', false);
         $response->assertSee('Turn Meeting Action Items into Microsoft Planner Tasks in One Click', false);
@@ -75,6 +75,12 @@ class MelaAiPageTest extends TestCase
         $response->assertSee('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0', false);
         $response->assertSee('Mela Meeting Assistant Demo', false);
         $response->assertDontSee('The Mela AI Collection', false);
+    }
+
+    public function test_short_mela_url_redirects_to_meeting_assistant(): void
+    {
+        $this->get('/mela')
+            ->assertRedirect(route('mela-meeting-assistant'));
     }
 
     public function test_solutions_menu_links_directly_to_the_viable_mela_product(): void

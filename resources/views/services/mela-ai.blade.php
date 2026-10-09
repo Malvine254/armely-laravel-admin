@@ -328,7 +328,7 @@
                 <div class="mela-service-actions">
                    <div class="mela-service-actions">
                         <a href="#mela-contact" class="mela-btn mela-btn-primary">
-                            Start 14-Day Free Pilot →
+                            Start 30-Day Free Trial →
                         </a>
 
                         <a href="#mela-contact" class="mela-btn btn btn-light">
