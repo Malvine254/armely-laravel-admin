@@ -137,6 +137,48 @@ class PopularCategoryImagesTest extends TestCase
         );
     }
 
+    public function test_desktop_tile_prefers_the_selected_lenovo_product_over_more_popular_computers(): void
+    {
+        for ($index = 0; $index < 30; $index++) {
+            Product::create([
+                'product_name' => 'Lenovo ThinkCentre desktop',
+                'tdsynnex_product_id' => (string) (80000000 + $index),
+                'quantity' => 1000,
+                'images' => [['imageUrl' => 'https://cdn.example.com/other-desktop.jpg']],
+            ]);
+        }
+        Product::create([
+            'product_name' => 'DESKTOP TC NEO 50S GEN 6 U7265 16G 512G',
+            'tdsynnex_sku_no' => '15349206',
+            'tdsynnex_product_id' => '15349206',
+            'quantity' => 30,
+            'images' => [['imageUrl' => 'https://cdn.example.com/15349206.jpg']],
+        ]);
+
+        $category = collect($this->categories())->firstWhere('slug', 'desktops-workstations');
+        $this->assertSame('15349206', $category['productId']);
+        $this->assertStringContainsString(base64_encode('https://cdn.example.com/15349206.jpg'), $category['imageUrl']);
+        $this->assertSame('02', $category['segment']);
+    }
+
+    public function test_missing_preferred_desktop_image_falls_back_to_another_valid_desktop(): void
+    {
+        Product::create([
+            'product_name' => 'DESKTOP TC NEO 50S GEN 6 U7265 16G 512G',
+            'tdsynnex_product_id' => '15349206',
+            'images' => [['imageUrl' => '/images/products/missing-preferred-desktop.jpg']],
+        ]);
+        Product::create([
+            'product_name' => 'Lenovo ThinkCentre desktop',
+            'tdsynnex_product_id' => '999998874',
+            'images' => [['imageUrl' => 'https://cdn.example.com/fallback-desktop.jpg']],
+        ]);
+
+        $category = collect($this->categories())->firstWhere('slug', 'desktops-workstations');
+        $this->assertSame('999998874', $category['productId']);
+        $this->assertStringContainsString(base64_encode('https://cdn.example.com/fallback-desktop.jpg'), $category['imageUrl']);
+    }
+
     public function test_saved_image_paths_are_normalized_only_when_the_file_exists(): void
     {
         $relative = 'images/products/category-test-' . uniqid() . '.jpg';

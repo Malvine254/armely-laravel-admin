@@ -291,7 +291,7 @@ class ProductController extends Controller
     /** Popular catalog categories with a representative in-stock product image. */
     public function popularCategories(): JsonResponse
     {
-        $categories = Cache::remember('storefront_popular_categories_v11_hardware-only', now()->addHour(), function () {
+        $categories = Cache::remember('storefront_popular_categories_v12_preferred-desktop', now()->addHour(), function () {
             $popular = [
                 [
                     'name' => 'Laptops & Notebooks', 'label' => 'Laptops', 'slug' => 'laptops-notebooks', 'segments' => ['01'],
@@ -315,6 +315,7 @@ class ProductController extends Controller
                 ],
                 [
                     'name' => 'Desktops & Workstations', 'label' => 'Desktops', 'slug' => 'desktops-workstations', 'segments' => ['02'],
+                    'preferred_product_id' => '15349206',
                     'include' => ['desktop', 'workstation', 'optiplex', 'thinkcentre', 'elitedesk', 'prodesk', 'all-in-one'],
                     'exclude' => [
                         'cable', 'adapter', 'mount', 'stand', 'memory', 'hard drive', 'keyboard', 'mouse', 'combo', 'webcam', 'headset',
@@ -336,6 +337,13 @@ class ProductController extends Controller
 
                     $query->where('is_hardware', true);
                     $this->applyPopularCategoryImageFilter($query, $category['include']);
+
+                    if (isset($category['preferred_product_id'])) {
+                        $query->orderByRaw(
+                            'CASE WHEN tdsynnex_sku_no = ? OR tdsynnex_product_id = ? THEN 0 ELSE 1 END',
+                            [$category['preferred_product_id'], $category['preferred_product_id']]
+                        );
+                    }
 
                     $products = $query
                         ->withSum('orderLineItems as units_sold', 'quantity')
