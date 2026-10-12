@@ -380,18 +380,18 @@ const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 100
 const DEFAULT_BROWSE_MAX_PRICE = 0
-const CURATED_CACHE_VERSION = 12
+const CURATED_CACHE_VERSION = 13
 // Bump whenever persisted catalog classification changes. This becomes part of
 // the URL so browsers cannot reuse an older publicly cached catalog response.
-const CATALOG_REQUEST_REVISION = 'strict-equipment-search-20261012-1'
+const CATALOG_REQUEST_REVISION = 'full-category-catalog-20261012-2'
 const ENABLE_SERVER_PREFETCH = true
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
 const PRODUCTS_RESULTS_HARD_TTL_MS = 24 * 60 * 60 * 1000
 const PRODUCTS_RESULTS_CACHE_PREFIX = 'products_results_cache_v17'
 const SIDEBAR_FACETS_CACHE_TTL_MS = 10 * 60 * 1000
-const SIDEBAR_VENDORS_STORAGE_KEY = 'products_sidebar_vendors_v2'
-const SIDEBAR_CATEGORIES_STORAGE_KEY = 'products_sidebar_categories_v2'
+const SIDEBAR_VENDORS_STORAGE_KEY = 'products_sidebar_vendors_v3'
+const SIDEBAR_CATEGORIES_STORAGE_KEY = 'products_sidebar_categories_v3'
 
 // Product responses are too large for localStorage. Clear legacy entries and
 // keep response caching in the bounded in-memory request cache instead.

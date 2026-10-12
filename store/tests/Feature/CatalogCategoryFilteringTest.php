@@ -24,6 +24,9 @@ class CatalogCategoryFilteringTest extends TestCase
         $pdo->sqliteCreateFunction('JSON_UNQUOTE', static fn ($value) => $value, 1);
         $pdo->sqliteCreateFunction('GREATEST', static fn (...$values) => max($values), -1);
         $pdo->sqliteCreateFunction('CONCAT_WS', static fn ($separator, ...$values) => implode($separator, array_filter($values, static fn ($value) => $value !== null)), -1);
+        $pdo->sqliteCreateFunction('CONCAT', static fn (...$values) => implode('', $values), -1);
+        $pdo->sqliteCreateFunction('CRC32', static fn ($value) => crc32($value), 1);
+        $pdo->sqliteCreateFunction('MOD', static fn ($value, $divisor) => $value % $divisor, 2);
         // SQLite raw numeric expressions have no column affinity; bind whole
         // price values as integers to reproduce MySQL numeric comparisons.
         DB::connection()->beforeExecuting(static function (string $sql, array &$bindings): void {
@@ -185,7 +188,7 @@ class CatalogCategoryFilteringTest extends TestCase
         Product::create(['product_name' => 'Laptop sleeve', 'category_segment' => '01', 'manufacturer' => 'Accessories Inc']);
         Product::create(['product_name' => 'LaserJet toner', 'category_segment' => '06', 'manufacturer' => 'Supplies Inc']);
         Product::create(['product_name' => 'Laptop', 'category_segment' => '01', 'is_available' => false]);
-        Cache::put('storefront_capped_product_ids_v8', Product::pluck('id')->all(), 1800);
+        Cache::put('storefront_capped_product_ids_v8', [], 1800);
         DB::table('categories')->insert([
             ['name' => 'Laptops', 'slug' => 'laptops', 'segment_code' => '01'],
             ['name' => 'Printers', 'slug' => 'printers', 'segment_code' => '06'],
@@ -293,5 +296,92 @@ class CatalogCategoryFilteringTest extends TestCase
 
         $this->assertSame(['model', 'description'], array_column($this->browse('W1480A')['records'], 'productId'));
         $this->assertSame(['percent'], array_column($this->browse('100%')['records'], 'productId'));
+    }
+
+    public function test_all_popular_categories_paginate_equipment_outside_the_default_browse_pool(): void
+    {
+        $method = new ReflectionMethod(ProductController::class, 'fetchPriceAvailabilityPageFromDatabaseUncached');
+        $controller = app(ProductController::class);
+        $names = ['01' => 'Lenovo laptop', '02' => 'Dell desktop', '03' => 'Samsung monitor', '04' => 'Cisco router', '06' => 'Canon printer'];
+        $pool = Product::create(['product_name' => 'General browse mouse', 'category_segment' => '09']);
+        Cache::put('storefront_capped_product_ids_v8', [$pool->id], 1800);
+        foreach ($names as $segment => $name) {
+            $segment = (string) $segment;
+            $expected = [];
+            for ($index = 0; $index < 3; $index++) {
+                $sku = $segment.'-equipment-'.$index;
+                $expected[] = $sku;
+                Product::create(['product_name' => $name.' '.$index, 'tdsynnex_product_id' => $sku, 'category_segment' => '99', 'storefront_rank' => $index]);
+            }
+            Product::create(['product_name' => $name.' unavailable', 'category_segment' => $segment, 'is_available' => false]);
+            Product::create(['product_name' => $name.' discontinued', 'category_segment' => $segment, 'is_discontinued' => true]);
+            Product::create(['product_name' => $name.' no stock', 'category_segment' => $segment, 'quantity' => 0]);
+            Product::create(['product_name' => $name.' low price', 'category_segment' => $segment, 'base_price' => 1]);
+            $first = $method->invoke($controller, '', null, null, null, true, 1, 2, [], true, true, 'hardware', $segment);
+            $second = $method->invoke($controller, '', null, null, null, true, 2, 2, [], true, true, 'hardware', $segment);
+            $this->assertSame(3, $first['total'], $segment);
+            $this->assertSame(3, $second['total'], $segment);
+            $this->assertTrue($first['has_more']);
+            $this->assertFalse($second['has_more']);
+            $this->assertSame($expected, array_column(array_merge($first['records'], $second['records']), 'productId'), $segment);
+            $this->assertSame(['has_images' => 0, 'no_images' => 3], $first['media_counts']);
+        }
+    }
+
+    public function test_unfiltered_browse_keeps_the_cap_while_brand_browsing_uses_the_full_catalog(): void
+    {
+        $pool = Product::create(['product_name' => 'Lenovo laptop', 'manufacturer' => 'Lenovo', 'tdsynnex_product_id' => 'pool', 'category_segment' => '01']);
+        Product::create(['product_name' => 'HP LaserJet printer', 'manufacturer' => 'HP', 'tdsynnex_product_id' => 'outside', 'category_segment' => '06']);
+        Cache::put('storefront_capped_product_ids_v8', [$pool->id], 1800);
+        $method = new ReflectionMethod(ProductController::class, 'fetchPriceAvailabilityPageFromDatabaseUncached');
+        $controller = app(ProductController::class);
+        $general = $method->invoke($controller, '', null, null, null, true, 1, 10, [], true, true, 'hardware', '');
+        $brand = $method->invoke($controller, '', null, null, null, true, 1, 10, ['HP'], true, true, 'hardware', '');
+        $this->assertSame(['pool'], array_column($general['records'], 'productId'));
+        $this->assertSame(1, $general['total']);
+        $this->assertSame(['outside'], array_column($brand['records'], 'productId'));
+        $this->assertSame(1, $brand['total']);
+    }
+
+    public function test_search_facets_include_database_equipment_outside_the_browse_pool(): void
+    {
+        Product::create(['product_name' => 'HP LaserJet Pro 4101 printer', 'manufacturer' => 'HP', 'category_segment' => '06']);
+        Product::create(['product_name' => 'Canon printer', 'manufacturer' => 'Canon', 'category_segment' => '06']);
+        Cache::put('storefront_capped_product_ids_v8', [], 1800);
+        $controller = app(ProductController::class);
+        $categories = (new ReflectionMethod(ProductController::class, 'computeCategoryGroupCounts'))
+            ->invoke($controller, true, 100.0, null, true, 'hardware', 'HP printers');
+        $this->assertSame(1, collect($categories)->firstWhere('value', '06')['count']);
+        $vendors = (new ReflectionMethod(ProductController::class, 'getCuratedDefaultBrowseVendors'))
+            ->invoke($controller, 50000, 100.0, null, true, true, 'hardware', 'HP printers', '06');
+        $this->assertSame(['HP' => 1], collect($vendors)->pluck('count', 'vendorName')->all());
+    }
+
+    public function test_large_category_totals_and_last_page_are_not_truncated_to_the_shared_pool(): void
+    {
+        $rows = [];
+        for ($index = 1; $index <= 1005; $index++) {
+            $rows[] = [
+                'product_name' => 'HP LaserJet printer '.$index,
+                'tdsynnex_product_id' => 'printer-'.$index,
+                'category_segment' => '06',
+                'storefront_rank' => $index,
+            ];
+        }
+        foreach (array_chunk($rows, 200) as $chunk) {
+            DB::table('products')->insert($chunk);
+        }
+        Cache::put('storefront_capped_product_ids_v8', Product::orderBy('id')->limit(1000)->pluck('id')->all(), 1800);
+        $method = new ReflectionMethod(ProductController::class, 'fetchPriceAvailabilityPageFromDatabaseUncached');
+        $controller = app(ProductController::class);
+        $first = $method->invoke($controller, '', null, null, null, true, 1, 100, [], true, true, 'hardware', '06');
+        $last = $method->invoke($controller, '', null, null, null, true, 11, 100, [], true, true, 'hardware', '06');
+        $this->assertSame(1005, $first['total']);
+        $this->assertSame(1005, $last['total']);
+        $this->assertCount(100, $first['records']);
+        $this->assertCount(5, $last['records']);
+        $this->assertTrue($first['has_more']);
+        $this->assertFalse($last['has_more']);
+        $this->assertSame(['printer-1001', 'printer-1002', 'printer-1003', 'printer-1004', 'printer-1005'], array_column($last['records'], 'productId'));
     }
 }

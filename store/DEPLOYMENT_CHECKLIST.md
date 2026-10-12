@@ -83,6 +83,13 @@
   images, stock quantity and personalization. Navbar searches start a fresh
   search; sidebar categories refine the current search and show readable,
   selected category names for both code and slug deep links.
+- Popular category and brand pages paginate the full eligible supplier database,
+  not just the shared capped general-browse pool. Category/menu and brand counts
+  include equipment outside that pool, including equipment without photos when
+  the existing missing-image setting permits it. General unfiltered browsing
+  retains its configured cap. Availability, stock, discontinuation, minimum
+  price, hardware matching and explicit user filters remain enforced; this
+  expands visibility of existing rows and does not import new products.
 - Categories and recommendations remain usable when local images are missing;
   a neutral placeholder is preferable to an unrelated product photo.
 - Product photos are resolved consistently on the landing, catalog, and detail

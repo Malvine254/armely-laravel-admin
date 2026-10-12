@@ -568,8 +568,8 @@ watch(
 )
 
 const productCategories = ref([])
-const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v9_strict_equipment'
-const MENU_CATEGORIES_REQUEST_REVISION = 'strict-equipment-search-20261012-1'
+const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v10_full_catalog'
+const MENU_CATEGORIES_REQUEST_REVISION = 'full-category-catalog-20261012-2'
 const MENU_CATEGORIES_SOFT_TTL_MS = 15 * 60 * 1000
 const MENU_CATEGORIES_HARD_TTL_MS = 7 * 24 * 60 * 60 * 1000
 

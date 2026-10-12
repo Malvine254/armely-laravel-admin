@@ -1022,7 +1022,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 31,
+                'v' => 32,
                 'price_version' => Cache::get('catalog:price_version', '1'),
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
@@ -1109,7 +1109,7 @@ class ProductController extends Controller
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
         $cappedProductIds = null;
 
-        if ($curatedItMix && empty($search)) {
+        if ($curatedItMix && empty($search) && trim($category) === '' && empty($selectedVendors)) {
             $cappedProductIds = $this->storefrontCappedProductIds();
             if (empty($cappedProductIds)) {
                 return [
@@ -2408,9 +2408,11 @@ class ProductController extends Controller
 
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
         $this->applyCuratedDefaultBrowseFilters($query);
-        $cappedProductIds = $this->storefrontCappedProductIds();
-        if (!empty($cappedProductIds)) {
-            $query->whereIn('id', $cappedProductIds);
+        if (trim((string) ($filters['category'] ?? '')) === '' && trim((string) ($filters['search'] ?? '')) === '') {
+            $cappedProductIds = $this->storefrontCappedProductIds();
+            if (!empty($cappedProductIds)) {
+                $query->whereIn('id', $cappedProductIds);
+            }
         }
 
         if (($filters['hide_zero'] ?? true) === true) {
@@ -2567,7 +2569,7 @@ class ProductController extends Controller
                     $vendorCacheKey = sprintf(
                         'pa_vendor_counts:%s',
                         md5(json_encode([
-                            'v' => 5,
+                            'v' => 6,
                             'curated_it_mix' => $curatedItMix,
                             'min_price' => $minPrice,
                             'max_price' => $maxPrice,
@@ -2637,7 +2639,7 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v17:search-equipment', 1800, function () {
+            $data = Cache::remember('menu_categories:v18:full-category-catalog', 1800, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -2647,11 +2649,6 @@ class ProductController extends Controller
                     ->get();
 
                 if ($parents->isEmpty()) {
-                    return [];
-                }
-
-                $cappedProductIds = $this->storefrontCappedProductIds();
-                if (empty($cappedProductIds)) {
                     return [];
                 }
 
@@ -2668,7 +2665,6 @@ class ProductController extends Controller
                 $manufacturersBySegment = [];
                 foreach ($parentSegments as $segment) {
                     $manufacturerQuery = Product::query()
-                        ->whereIn('id', $cappedProductIds)
                         ->where('vendor_id', 'TD SYNNEX');
                     $this->applySidebarFacetProductFilters(
                         $manufacturerQuery,
@@ -2789,7 +2785,7 @@ class ProductController extends Controller
             $cacheKey = sprintf(
                 'pa_category_counts:%s',
                 md5(json_encode([
-                    'v' => 6,
+                    'v' => 7,
                     'hide_zero' => $hideZero,
                     'min_price' => $minPrice,
                     'max_price' => $maxPrice,
@@ -2844,11 +2840,6 @@ class ProductController extends Controller
         }
 
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
-        $cappedProductIds = $this->storefrontCappedProductIds();
-        if (empty($cappedProductIds)) {
-            return [];
-        }
-        $query->whereIn('id', $cappedProductIds);
         $this->applySidebarFacetProductFilters($query, $hideZero, $minPrice, $maxPrice, $catalogClean, $productType, $search, $selectedVendors);
 
         $result = [];
@@ -2930,15 +2921,6 @@ class ProductController extends Controller
         $this->applyCategorySegmentFilterToQuery($query, $category);
 
         // Facets cover the same catalog, including products without images.
-
-        if (
-            trim($search) === ''
-            && empty($selectedVendors)
-            && trim($category) === ''
-            && $this->normalizeProductType($productType) === 'hardware'
-        ) {
-            $this->applyPriorityItProductFilterToQuery($query);
-        }
     }
 
     private function applyCatalogCleanFilterToQuery(\Illuminate\Database\Eloquent\Builder $query): void
@@ -3229,7 +3211,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_default_browse_vendors:%s',
             md5(json_encode([
-                'v' => 5,
+                'v' => 6,
                 'min_price' => $minPrice,
                 'max_price' => $maxPrice,
                 'hide_zero' => $hideZero,
@@ -3245,11 +3227,6 @@ class ProductController extends Controller
 
         return Cache::remember($cacheKey, 300, function () use ($minPrice, $maxPrice, $hideZero, $catalogClean, $productType, $search, $category) {
             $query = Product::query()->where('vendor_id', 'TD SYNNEX');
-            $cappedProductIds = $this->storefrontCappedProductIds();
-            if (empty($cappedProductIds)) {
-                return [];
-            }
-            $query->whereIn('id', $cappedProductIds);
             $this->applySidebarFacetProductFilters($query, $hideZero, $minPrice, $maxPrice, $catalogClean, $productType, $search, [], $category);
 
             $rows = $query
