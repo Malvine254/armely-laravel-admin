@@ -52,6 +52,7 @@ class AzureGraphMailService
         }
 
         $candidate = trim($candidate);
+        $candidate = preg_replace('#^/?store/#', '', $candidate);
         return preg_match('#^https?://#i', $candidate)
             ? $candidate
             : $this->marketingStoreUrl() . '/' . ltrim($candidate, '/');
@@ -86,7 +87,7 @@ class AzureGraphMailService
                 return $stored;
             }
         } catch (\Throwable $e) {
-            // Keep mail service resilient if app_settings table is temporarily unavailable.
+            Log::warning('Mail integration settings unavailable; checking configured environment fallback', ['setting' => $settingKey]);
         }
 
         return $fallback;
@@ -1664,12 +1665,23 @@ class AzureGraphMailService
 
     private function isConfigured(): bool
     {
-        $config = $this->getAzureConfig();
+        $health = $this->configurationHealth();
+        if (!$health['configured']) {
+            Log::warning('Azure Graph mail is not configured', ['missing_fields' => $health['missing_fields']]);
+        }
+        return $health['configured'];
+    }
 
-        return !empty($config['tenant_id'])
-            && !empty($config['client_id'])
-            && !empty($config['client_secret'])
-            && !empty($config['from_email']);
+    public function configurationHealth(): array
+    {
+        $config = $this->getAzureConfig();
+        $missing = [];
+        foreach (['tenant_id', 'client_id', 'client_secret', 'from_email'] as $key) {
+            if (trim((string) $config[$key]) === '') {
+                $missing[] = $key;
+            }
+        }
+        return ['configured' => $missing === [], 'missing_fields' => $missing];
     }
 
     private function sendEmail(string $toEmail, string $subject, string $htmlBody, string $textBody): bool
@@ -1686,6 +1698,8 @@ class AzureGraphMailService
 
             $token = $this->getAccessToken();
             if (!$token) {
+                $this->recordDelivery(['accepted' => false, 'provider_code' => 'token_unavailable', 'attempted_at' => now()->toISOString()]);
+                Log::warning('Azure Graph send blocked: access token unavailable');
                 return false;
             }
 
@@ -1696,9 +1710,7 @@ class AzureGraphMailService
             $fromName = (string) ($azure['from_name'] ?? config('mail.from.name', 'Armely Store'));
             $url = 'https://graph.microsoft.com/v1.0/users/' . rawurlencode($fromEmail) . '/sendMail';
 
-            $response = Http::withToken($token)
-                ->acceptJson()
-                ->post($url, [
+            $payload = [
                     'message' => [
                         'subject' => $subject,
                         'from' => [
@@ -1726,15 +1738,33 @@ class AzureGraphMailService
                         ],
                     ],
                     'saveToSentItems' => true,
-                ]);
+                ];
+            $send = fn (string $accessToken) => Http::withToken($accessToken)->acceptJson()
+                ->connectTimeout(10)->timeout(30)->post($url, $payload);
+            $response = $send($token);
+            if ($response->status() === 401) {
+                $freshToken = $this->getAccessToken(true);
+                if ($freshToken) {
+                    $response = $send($freshToken);
+                }
+            }
 
             if ($response->successful()) {
+                $this->recordDelivery([
+                    'accepted' => true, 'status' => $response->status(), 'attempted_at' => now()->toISOString(),
+                ]);
                 return true;
             }
 
             Log::warning('Azure Graph sendMail failed', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'provider_code' => $response->json('error.code'),
+            ]);
+            $this->recordDelivery([
+                'accepted' => false,
+                'status' => $response->status(),
+                'provider_code' => $response->json('error.code'),
+                'attempted_at' => now()->toISOString(),
             ]);
 
             if ($this->isRecipientDeliveryFailure($response->status(), $response->body())) {
@@ -1751,6 +1781,15 @@ class AzureGraphMailService
     private function normalizeEmail(string $email): string
     {
         return strtolower(trim($email));
+    }
+
+    private function recordDelivery(array $result): void
+    {
+        try {
+            AppSetting::setValue('lifecycle.mail.last_delivery', $result);
+        } catch (\Throwable $error) {
+            Log::error('Could not record mail delivery diagnostics', ['error' => $error->getMessage()]);
+        }
     }
 
     private function withSubjectPrefix(string $subject): string
@@ -1799,10 +1838,6 @@ class AzureGraphMailService
         ];
 
         if (in_array($domain, $disposableDomains, true)) {
-            return false;
-        }
-
-        if (!checkdnsrr($domain, 'MX') && !checkdnsrr($domain, 'A')) {
             return false;
         }
 
@@ -2009,7 +2044,7 @@ class AzureGraphMailService
 
         $productName = trim((string) ($product->product_name ?? 'Product'));
         $partNumber = trim((string) ($product->mfg_part_no ?? ''));
-        $productId = (string) ($product->id ?? '');
+        $productId = (string) ($product->tdsynnex_sku_no ?: $product->tdsynnex_product_id ?: $product->id);
 
         $safeName = e((string) ($user->name ?: 'Customer'));
         $safePrevious = '$' . number_format($previousPrice, 2);
@@ -2178,7 +2213,7 @@ class AzureGraphMailService
         $safeName = e((string) ($user->name ?: 'Customer'));
         $productName = trim((string) ($product->product_name ?? 'Product'));
         $priceLabel = $currentPrice > 0 ? ('$' . number_format($currentPrice, 2)) : 'Unavailable';
-        $productUrl = $this->marketingStoreUrl() . '/products/' . rawurlencode((string) ($product->id ?? ''));
+        $productUrl = $this->marketingStoreUrl() . '/products/' . rawurlencode((string) ($product->tdsynnex_sku_no ?: $product->tdsynnex_product_id ?: $product->id));
         $unsubscribeUrl = $this->marketingUnsubscribeUrl($user, 'browse_reminders');
         $unsubscribeHtml = $this->marketingUnsubscribeHtml($unsubscribeUrl);
         $unsubscribeText = $this->marketingUnsubscribeText($unsubscribeUrl);
@@ -2243,7 +2278,7 @@ class AzureGraphMailService
         $safeName = e((string) ($user->name ?: 'Customer'));
         $productName = trim((string) ($product->product_name ?? 'Product'));
         $priceLabel = $currentPrice > 0 ? ('$' . number_format($currentPrice, 2)) : 'Unavailable';
-        $productUrl = $this->marketingStoreUrl() . '/products/' . rawurlencode((string) ($product->id ?? ''));
+        $productUrl = $this->marketingStoreUrl() . '/products/' . rawurlencode((string) ($product->tdsynnex_sku_no ?: $product->tdsynnex_product_id ?: $product->id));
         $unsubscribeUrl = $this->marketingUnsubscribeUrl($user, 'browse_reminders');
         $unsubscribeHtml = $this->marketingUnsubscribeHtml($unsubscribeUrl);
         $unsubscribeText = $this->marketingUnsubscribeText($unsubscribeUrl);
@@ -2282,6 +2317,32 @@ class AzureGraphMailService
         return $this->sendEmail($user->email, "Favorite Reminder: {$productName}", $html, $text);
     }
 
+    public function sendSearchReminderEmail(User $user, string $term, array $products): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+        $name = e($user->name ?: 'Customer');
+        $safeTerm = e($term);
+        $grid = $this->buildMarketingProductGrid($products);
+        $unsubscribe = $this->marketingUnsubscribeUrl($user, 'browse_reminders');
+        $searchUrl = $this->marketingStoreUrl() . '/products?q=' . rawurlencode($term);
+        $html = $this->buildModernNotificationEmail(
+            'Products Matching Your Recent Search',
+            "<p>Hello {$name},</p><p>You recently searched for <strong>{$safeTerm}</strong>. Here are available products matching that search.</p>"
+                . $grid . $this->marketingUnsubscribeHtml($unsubscribe),
+            'Continue Your Search',
+            $searchUrl,
+            'You can manage browsing reminders in your account email preferences.'
+        );
+        return $this->sendEmail(
+            $user->email,
+            'Products matching your recent search',
+            $html,
+            "Products matching {$term}: {$searchUrl}\n" . $this->marketingUnsubscribeText($unsubscribe)
+        );
+    }
+
     private function buildMarketingProductGrid(array $products): string
     {
         $items = [];
@@ -2294,7 +2355,7 @@ class AzureGraphMailService
                 'mfg_part_no' => (string) ($product->mfg_part_no ?? ''),
                 'unit_price' => \App\Support\OfferPricing::sellPrice($product),
                 'image_url' => $this->productImageUrl($product),
-                'product_url' => $this->marketingStoreUrl() . '/products/' . rawurlencode((string) $product->id),
+                'product_url' => $this->marketingStoreUrl() . '/products/' . rawurlencode((string) ($product->tdsynnex_sku_no ?: $product->tdsynnex_product_id ?: $product->id)),
             ];
         }
 
@@ -2359,8 +2420,9 @@ class AzureGraphMailService
     {
         try {
             return app(UserEmailPreferenceService::class)->unsubscribeUrl($user, $scope);
-        } catch (\Throwable) {
-            return '';
+        } catch (\Throwable $error) {
+            Log::error('Cannot generate required marketing unsubscribe link', ['error' => $error->getMessage()]);
+            throw $error;
         }
     }
 
@@ -2455,45 +2517,56 @@ class AzureGraphMailService
         ]);
     }
 
-    private function getAccessToken(): ?string
+    private function getAccessToken(bool $refresh = false): ?string
     {
         $azure = $this->getAzureConfig();
         $tenantId = (string) ($azure['tenant_id'] ?? '');
         $clientId = (string) ($azure['client_id'] ?? '');
         $clientSecret = (string) ($azure['client_secret'] ?? '');
 
-        $cacheKey = 'azure_graph_mail_access_token:' . sha1($tenantId . '|' . $clientId);
+        $cacheKey = 'azure_graph_mail_access_token:' . sha1($tenantId . '|' . $clientId . '|' . hash('sha256', $clientSecret));
 
-        return Cache::remember($cacheKey, now()->addMinutes(50), function () use ($tenantId, $clientId, $clientSecret) {
-            try {
-                if ($tenantId === '' || $clientId === '' || $clientSecret === '') {
-                    return null;
-                }
-
-                $url = "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token";
-
-                $response = Http::asForm()
-                    ->acceptJson()
-                    ->post($url, [
-                        'client_id' => $clientId,
-                        'client_secret' => $clientSecret,
-                        'scope' => 'https://graph.microsoft.com/.default',
-                        'grant_type' => 'client_credentials',
-                    ]);
-
-                if (!$response->successful()) {
-                    Log::warning('Azure Graph token request failed', [
-                        'status' => $response->status(),
-                        'body' => $response->body(),
-                    ]);
-                    return null;
-                }
-
-                return $response->json('access_token');
-            } catch (\Throwable $e) {
-                Log::warning('Azure Graph token exception: ' . $e->getMessage());
+        if ($refresh) {
+            Cache::forget($cacheKey);
+        }
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+        try {
+            if ($tenantId === '' || $clientId === '' || $clientSecret === '') {
                 return null;
             }
-        });
+
+            $url = "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token";
+            $response = Http::asForm()
+                ->acceptJson()
+                ->connectTimeout(10)
+                ->timeout(30)
+                ->retry(3, 500, throw: false)
+                ->post($url, [
+                    'client_id' => $clientId,
+                    'client_secret' => $clientSecret,
+                    'scope' => 'https://graph.microsoft.com/.default',
+                    'grant_type' => 'client_credentials',
+                ]);
+            if (!$response->successful()) {
+                Log::warning('Azure Graph token request failed', [
+                    'status' => $response->status(),
+                    'provider_code' => $response->json('error'),
+                ]);
+                return null;
+            }
+            $token = $response->json('access_token');
+            $expiresIn = (int) $response->json('expires_in', 3600);
+            if (!is_string($token) || $token === '' || $expiresIn <= 60) {
+                Log::warning('Azure Graph token response missing valid token or expiry');
+                return null;
+            }
+            Cache::put($cacheKey, $token, now()->addSeconds($expiresIn - 60));
+            return $token;
+        } catch (\Throwable $e) {
+            Log::warning('Azure Graph token exception: ' . $e->getMessage());
+            return null;
+        }
     }
 }

@@ -13,6 +13,7 @@ class UserCartSnapshot extends Model
         'item_count',
         'total_quantity',
         'last_synced_at',
+        'revision',
     ];
 
     protected function casts(): array
@@ -20,6 +21,7 @@ class UserCartSnapshot extends Model
         return [
             'items' => 'array',
             'last_synced_at' => 'datetime',
+            'revision' => 'integer',
         ];
     }
 }

@@ -2,6 +2,82 @@
 
 ## Pre-Deployment
 
+### Durable carts and lifecycle email
+
+- Run `php artisan migrate --force` from the **store application**, not the
+  parent admin app. Account carts require the new snapshot `revision` column.
+- Authenticated carts restore from the database on every login/device. Guest
+  carts use compact 30-day cookies plus a browser detail cache. Login/signup
+  merges overlapping lines using the **larger quantity**, not a sum. Guest
+  cookies are cleared only after the account save is confirmed.
+- Failed saves retain the device copy and show a retry state. Concurrent-device
+  edits show an explicit choice rather than silently overwriting another cart.
+  Pending accounts can preserve carts; suspended accounts remain blocked.
+- The legacy authenticated behavior snapshot endpoint now also requires a
+  revision; stale frontends cannot silently overwrite a restored account cart.
+  Deploy the frontend build and backend together.
+- Reminder delivery uses **Microsoft Graph**, not `MAIL_MAILER`. Configure the
+  tenant, client ID, secret and sender mailbox through admin integrations or
+  `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and `FROM_EMAIL`.
+  The app registration needs Graph application `Mail.Send` permission with
+  tenant admin consent and authorization to send from that mailbox.
+- Run `php artisan lifecycle:doctor` for read-only table/configuration,
+  scheduler and queue checks. It does not print secrets or send mail.
+  A missing/stale scheduler run is a warning, not a healthy result.
+- Install a **once-per-minute cron against store/artisan**. Browse, cart,
+  search-interest and price-drop campaigns execute synchronously from that
+  scheduler; they do not require a database queue worker. Other queued jobs,
+  including invoice reminders, still require a worker.
+- Search reminders use opted-in stored search profiles for active accounts,
+  wait at least 24 hours, and consider searches within seven days. All search
+  words must match a real available product. Carted, subsequently quoted or
+  purchased products are excluded. Browse email preferences, quiet hours,
+  unsubscribe, one campaign send/day, two lifecycle sends/day and a 12-hour
+  spacing rule are preserved. Failed transport does not mark a reminder sent.
+- Graph 202 means **accepted**, not delivered. Check Exchange message trace,
+  mailbox restrictions and spam placement before claiming production delivery.
+  Do not run a production scheduler or test-send against customer addresses as
+  a smoke test.
+- Recipient syntax and existing suppression rules are checked locally; Graph
+  validates delivery eligibility. Transient local DNS failures must not block
+  otherwise valid email addresses before a Graph request is attempted.
+- Validate from the store directory with:
+  `php vendor/bin/phpunit --filter "BehaviorFavoriteReminderTest|EmailPreferenceLifecycleTest"`
+  and `node --test tests/js/cartPersistence.test.mjs tests/js/cartStore.test.mjs`.
+
+### Storefront image and category checks
+
+- Popular category photos must come from matching hardware, not consumables,
+  accessories, licenses, or ambiguous all-in-one printer products.
+- Categories and recommendations remain usable when local images are missing;
+  a neutral placeholder is preferable to an unrelated product photo.
+- Product photos are resolved consistently on the landing, catalog, and detail
+  pages. Supplier/CDN paths stay external; Armely product paths use the active
+  `/store` mount locally and in production.
+- Build from the `store` directory with `npm run build` and deploy the resulting
+  public build assets along with the PHP changes. The category cache key is
+  versioned so old representative images are not reused.
+- Verify category navigation, favorites, and loading-error retry states.
+- Recommendations use the existing personalization preference. With consent,
+  recent/frequent searches (up to three, within 90 days) query the catalog
+  directly; up to two quote-cart, favorite, or recently viewed products seed
+  related-product suggestions. Results retain API relevance, interleave
+  interests, exclude unavailable/discontinued/unpriced and already-carted
+  items, and do not require photos.
+- New visitors or visitors opting out see explicitly general suggestions.
+  Personalized empty results are not filled with unrelated products.
+  Preference changes refresh recommendations immediately; stale in-flight
+  requests cannot restore personalized results after opt-out.
+- Recently viewed products are fetched by ID, not restricted to the first
+  catalog pages. Existing server search profiles work across signed-in
+  sessions; browsing, favorites, and cart signals use the current browser's
+  existing stores. No new tracking or recommendation database is required.
+- Recommendation regression command:
+  `node --test tests/js/productRecommendations.test.mjs`.
+- Regression commands from the `store` directory:
+  `php vendor/bin/phpunit --filter "CatalogTaxonomyTest|PopularCategoryImagesTest|ProductImageUrlExtractionTest"`
+  and `node --test tests/js/productImages.test.mjs`.
+
 - [ ] Backup current database
   ```bash
   php artisan backup:run
@@ -51,7 +127,7 @@ npm install && npm run build
 
 ### Step 2: Database Setup
 ```bash
-# Run any new migrations (should be none, but just in case)
+# Run required migrations, including cart revision protection
 php artisan migrate
 
 # Verify products table
@@ -86,7 +162,7 @@ php artisan queue:work &
 php artisan schedule:work &
 
 # Option 2: Production (add to crontab)
-# */5 * * * * cd /path/to/project && php artisan schedule:run >> /dev/null 2>&1
+# * * * * * cd /path/to/project/store && php artisan schedule:run >> /path/to/scheduler.log 2>&1
 
 # Option 3: systemd timer
 # Create /etc/systemd/system/laravel-scheduler.service

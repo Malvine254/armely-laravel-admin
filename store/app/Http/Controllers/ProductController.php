@@ -291,7 +291,7 @@ class ProductController extends Controller
     /** Popular catalog categories with a representative in-stock product image. */
     public function popularCategories(): JsonResponse
     {
-        $categories = Cache::remember('storefront_popular_categories_v8_validated-images', now()->addHour(), function () {
+        $categories = Cache::remember('storefront_popular_categories_v9_representative-images', now()->addHour(), function () {
             $popular = [
                 [
                     'name' => 'Laptops & Notebooks', 'label' => 'Laptops', 'slug' => 'laptops-notebooks', 'segments' => ['01'],
@@ -316,7 +316,7 @@ class ProductController extends Controller
                 [
                     'name' => 'Desktops & Workstations', 'label' => 'Desktops', 'slug' => 'desktops-workstations', 'segments' => ['02'],
                     'include' => ['desktop', 'workstation', 'optiplex', 'thinkcentre', 'elitedesk', 'prodesk', 'all-in-one'],
-                    'exclude' => ['cable', 'adapter', 'mount', 'stand', 'memory', 'hard drive', 'keyboard', 'mouse', 'combo', 'webcam', 'headset'],
+                    'exclude' => ['cable', 'adapter', 'mount', 'stand', 'memory', 'hard drive', 'keyboard', 'mouse', 'combo', 'webcam', 'headset', 'printer', 'scanner', 'multifunction', 'laserjet', 'inkjet'],
                 ],
                 ['name' => 'Software', 'label' => 'Software', 'slug' => 'software', 'product_type' => 'software'],
             ];
@@ -328,21 +328,21 @@ class ProductController extends Controller
                         ->where('is_available', true)
                         ->where('is_discontinued', false)
                         ->where('quantity', '>', 0)
-                        ->whereRaw($this->preferredDbPriceSql() . ' > 0')
-                        ->whereRaw($this->hasUsableProductImageSql());
+                        ->whereRaw($this->preferredDbPriceSql() . ' > 0');
 
                     if (($category['product_type'] ?? '') === 'software') {
                         $query->where('is_hardware', false);
                     } else {
+                        $query->where('is_hardware', true);
                         $this->applyPopularCategoryImageFilter(
                             $query,
-                            (array) ($category['include'] ?? []),
-                            (array) ($category['exclude'] ?? [])
+                            (array) ($category['include'] ?? [])
                         );
                     }
 
                     $products = $query
                         ->withSum('orderLineItems as units_sold', 'quantity')
+                        ->orderByRaw('CASE WHEN ' . $this->hasUsableProductImageSql() . ' THEN 0 ELSE 1 END')
                         ->orderByRaw("CASE WHEN
                             UPPER(COALESCE(manufacturer, '')) LIKE '%DELL%'
                             OR UPPER(COALESCE(manufacturer, '')) LIKE '%HP%'
@@ -359,8 +359,15 @@ class ProductController extends Controller
                         ->orderByDesc('quantity')
                         ->orderByDesc('created_at')
                         ->orderByDesc('id')
-                        ->limit(25)
-                        ->get();
+                        ->lazy(100)
+                        ->filter(fn (Product $product): bool => ($category['product_type'] ?? '') === 'software'
+                            || CatalogTaxonomy::isRepresentativeProduct(
+                                (string) $product->product_name,
+                                $category['include'],
+                                $category['exclude']
+                            ))
+                        ->take(25)
+                        ->collect();
 
                     if ($products->isEmpty()) {
                         return null;
@@ -399,18 +406,13 @@ class ProductController extends Controller
 
     private function applyPopularCategoryImageFilter(
         \Illuminate\Database\Eloquent\Builder $query,
-        array $include,
-        array $exclude
+        array $include
     ): void {
         $query->where(function ($match) use ($include) {
             foreach ($include as $keyword) {
                 $match->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", ['%' . strtolower($keyword) . '%']);
             }
         });
-
-        foreach ($exclude as $keyword) {
-            $query->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE ?", ['%' . strtolower($keyword) . '%']);
-        }
     }
 
     private function applySpecialPricingToProductList(array $products, ?User $user): array
@@ -1572,6 +1574,14 @@ class ProductController extends Controller
         return max($total, $minimum);
     }
 
+    public function cartProductPayload(Product $product, User $user): array
+    {
+        return $this->customerPricingService->applyToProductPayload(
+            $this->mapPriceAvailabilityDatabaseProduct($product),
+            $user
+        );
+    }
+
     private function mapPriceAvailabilityDatabaseProduct(Product $product): array
     {
         $spec = is_array($product->specifications) ? $product->specifications : [];
@@ -2111,7 +2121,14 @@ class ProductController extends Controller
             if (is_string($image)) {
                 $url = trim($image);
             } elseif (is_array($image)) {
-                $url = trim((string) ($image['imageUrl'] ?? $image['url'] ?? ''));
+                $url = trim((string) ($image['imageUrl'] ?? $image['url'] ?? $image['imagePath'] ?? ''));
+            }
+
+            if (str_starts_with($url, 'images/') || str_starts_with($url, 'store/images/')) {
+                $url = '/' . $url;
+            }
+            if (str_starts_with($url, '/store/images/')) {
+                $url = substr($url, strlen('/store'));
             }
 
             if (!$this->isValidImageUrl($url) || isset($seen[$url])) {

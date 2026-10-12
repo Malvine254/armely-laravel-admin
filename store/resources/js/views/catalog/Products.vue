@@ -312,7 +312,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { usePricingSettings } from '../../composables/usePricingSettings'
 import { trackSearchTerm, hasTrackingConsent, getSearchProfileTerms, getSearchSuggestions, loadSearchProfile } from '../../services/searchInsights'
 import api from '../../services/api'
-import { buildStoreUrl, resolveProductImageUrl } from '../../services/runtimeConfig'
+import { buildStoreUrl, getProductImageUrls } from '../../services/runtimeConfig'
 import { buildProductsLocation, parseProductsRouteFilters } from '../../services/productRoute'
 import { isSupplierOrderable } from '../../services/productAvailability'
 import Navbar from '../../components/Navbar.vue'
@@ -2310,39 +2310,7 @@ const getProductMetaSecondary = (product) => {
 }
 
 const getPrimaryImageUrl = (product) => {
-  const candidates = []
-
-  const appendUrl = (value) => {
-    const rawUrl = String(value || '').trim()
-    if (!rawUrl) return
-    candidates.push(resolveProductImageUrl(rawUrl))
-  }
-
-  const appendImages = (images) => {
-    if (!Array.isArray(images)) return
-
-    images.forEach((image) => {
-      if (typeof image === 'string') {
-        appendUrl(image)
-        return
-      }
-
-      if (image && typeof image === 'object') {
-        appendUrl(image.imageUrl || image.imageURL || image.image_url || image.url || image.thumbnailUrl)
-      }
-    })
-  }
-
-  appendImages(product?.productImages)
-  appendImages(product?.images)
-  appendUrl(product?.image_url)
-  appendUrl(product?.thumbnailUrl)
-  appendUrl(product?.thumbnail)
-
-  if (candidates.length === 0) return ''
-
-  const localCandidate = candidates.find((url) => url.startsWith('/images/') || url.includes('/images/products/'))
-  return localCandidate || candidates[0]
+  return getProductImageUrls(product)[0] || ''
 }
 
 const buildProductHoverDetails = (product) => {

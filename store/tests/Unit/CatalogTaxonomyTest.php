@@ -7,6 +7,33 @@ use PHPUnit\Framework\TestCase;
 
 class CatalogTaxonomyTest extends TestCase
 {
+    public function test_representative_images_reject_consumables_and_ambiguous_all_in_one_products(): void
+    {
+        $include = ['desktop', 'workstation', 'thinkcentre', 'all-in-one'];
+        $exclude = ['printer', 'scanner', 'multifunction', 'keyboard', 'stand'];
+        foreach ([
+            'Lexmark all-in-one toner cartridge',
+            'HP all-in-one printer',
+            'Desktop replacement memory',
+            'Desktop support license',
+            'Desktop stand',
+            'All-in-one ribbon supplies',
+            'Desktop keyboard',
+        ] as $name) {
+            $this->assertFalse(CatalogTaxonomy::isRepresentativeProduct($name, $include, $exclude), $name);
+        }
+        $this->assertTrue(CatalogTaxonomy::isRepresentativeProduct('Lenovo ThinkCentre all-in-one PC', $include, $exclude));
+        $this->assertTrue(CatalogTaxonomy::isRepresentativeProduct('HP desktop workstation', $include, $exclude));
+    }
+
+    public function test_representative_matching_does_not_confuse_word_fragments_with_accessories(): void
+    {
+        $this->assertTrue(CatalogTaxonomy::isRepresentativeProduct('Samsung monitor', ['monitor'], ['arm']));
+        $this->assertFalse(CatalogTaxonomy::isRepresentativeProduct('Monitor arm', ['monitor'], ['arm']));
+        $this->assertFalse(CatalogTaxonomy::isRepresentativeProduct('Monitoring software', ['monitor'], []));
+        $this->assertTrue(CatalogTaxonomy::isRepresentativeProduct('Wireless access-point', ['access point'], []));
+    }
+
     public function test_memory_terms_match_as_words_instead_of_substrings(): void
     {
         $this->assertSame('Memory & Storage Upgrades', CatalogTaxonomy::inferCategoryName('', 'Kingston 32GB DDR5 RAM memory module', ''));

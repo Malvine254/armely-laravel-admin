@@ -71,12 +71,16 @@ class Kernel extends ConsoleKernel
             ->name('nightly-price-sync')
             ->withoutOverlapping();
 
-        $schedule->job(\App\Jobs\ProcessPriceDropAlertsJob::class, 'default', 'database')
+        $schedule->call(function (): void {
+            \App\Jobs\ProcessPriceDropAlertsJob::dispatchSync();
+        })
             ->hourly()
             ->name('process-price-drop-alerts')
             ->withoutOverlapping();
 
-        $schedule->job(\App\Jobs\ProcessReminderSubscriptionsJob::class, 'default', 'database')
+        $schedule->call(function (): void {
+            \App\Jobs\ProcessReminderSubscriptionsJob::dispatchSync();
+        })
             ->everyThirtyMinutes()
             ->name('process-reminder-subscriptions')
             ->withoutOverlapping();

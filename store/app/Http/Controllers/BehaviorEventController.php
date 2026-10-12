@@ -27,11 +27,13 @@ class BehaviorEventController extends Controller
         ]);
 
         [$identityKey, $userId, $newToken] = $this->identity($request);
+        $product = $this->resolveProduct((int) $validated['product_id']);
+        abort_if(!$product, 422, 'The viewed product could not be found.');
 
         UserProductView::create([
             'identity_key' => $identityKey,
             'user_id' => $userId,
-            'product_id' => (int) $validated['product_id'],
+            'product_id' => (int) $product->id,
             'viewed_at' => isset($validated['viewed_at']) ? now()->parse($validated['viewed_at']) : now(),
         ]);
 
@@ -53,6 +55,15 @@ class BehaviorEventController extends Controller
     }
 
     public function syncCartSnapshot(Request $request): JsonResponse
+    {
+        if ($request->user('sanctum')) {
+            return app(CartController::class)->update($request);
+        }
+
+        return $this->persistCartSnapshot($request);
+    }
+
+    public function persistCartSnapshot(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'items' => ['present', 'array', 'max:300'],
@@ -88,6 +99,7 @@ class BehaviorEventController extends Controller
             ]);
             if ($cartChanged) {
                 $snapshot->last_synced_at = now();
+                $snapshot->revision = ((int) $snapshot->revision) + 1;
             }
             $snapshot->save();
         } else {
@@ -98,6 +110,7 @@ class BehaviorEventController extends Controller
                 'item_count' => count($normalizedItems),
                 'total_quantity' => $totalQuantity,
                 'last_synced_at' => now(),
+                'revision' => 1,
             ]);
         }
 
@@ -169,17 +182,21 @@ class BehaviorEventController extends Controller
         ]);
 
         [$identityKey, $userId, $newToken] = $this->identity($request);
+        $product = $this->resolveProduct((int) $validated['product_id']);
+        abort_if(!$product, 422, 'The saved product could not be found.');
 
         UserFavoriteEvent::create([
             'identity_key' => $identityKey,
             'user_id' => $userId,
-            'product_id' => (int) $validated['product_id'],
+            'product_id' => (int) $product->id,
             'event_type' => (string) $validated['event_type'],
             'metadata' => (array) ($validated['metadata'] ?? []),
             'event_at' => isset($validated['event_at']) ? now()->parse($validated['event_at']) : now(),
         ]);
 
-        if (in_array((string) $validated['event_type'], ['add', 'toggle'], true)) {
+        $adding = (string) $validated['event_type'] === 'add'
+            || ((string) $validated['event_type'] === 'toggle' && data_get($validated, 'metadata.state') === 'on');
+        if ($adding) {
             $this->upsertPriceAlertSubscription($identityKey, $userId, (int) $validated['product_id'], 'favorite');
             $this->upsertReminderSubscription(
                 $identityKey,
@@ -196,7 +213,8 @@ class BehaviorEventController extends Controller
             );
         }
 
-        if ((string) $validated['event_type'] === 'remove') {
+        if ((string) $validated['event_type'] === 'remove'
+            || ((string) $validated['event_type'] === 'toggle' && data_get($validated, 'metadata.state') === 'off')) {
             $this->deactivateReminderSubscription($identityKey, $userId, 'favorite_product', (int) $validated['product_id']);
         }
 
@@ -351,14 +369,9 @@ class BehaviorEventController extends Controller
 
     private function resolveProduct(int $productReference): ?Product
     {
-        return Product::query()
-            ->where(function ($query) use ($productReference) {
-                $query->where('id', $productReference)
-                    ->orWhere('tdsynnex_product_id', $productReference)
-                    ->orWhere('tdsynnex_sku_no', (string) $productReference);
-            })
-            ->orderByDesc('updated_at')
-            ->first();
+        return Product::where('tdsynnex_sku_no', (string) $productReference)->first()
+            ?? Product::where('tdsynnex_product_id', $productReference)->first()
+            ?? Product::find($productReference);
     }
 
     private function identity(Request $request): array
@@ -415,6 +428,15 @@ class BehaviorEventController extends Controller
                 'identity_key' => $userIdentity,
                 'user_id' => $userId,
             ]);
+            PriceAlertSubscription::where('identity_key', $guestIdentity)
+                ->whereNull('user_id')->get()->each(function (PriceAlertSubscription $guest) use ($userIdentity, $userId): void {
+                    $existing = PriceAlertSubscription::where('user_id', $userId)->where('product_id', $guest->product_id)->first();
+                    if ($existing) {
+                        $guest->delete();
+                    } else {
+                        $guest->update(['identity_key' => $userIdentity, 'user_id' => $userId]);
+                    }
+                });
 
             ReminderSubscription::query()
                 ->where('identity_key', $guestIdentity)

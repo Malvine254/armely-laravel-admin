@@ -112,7 +112,9 @@ return Application::configure(basePath: dirname(__DIR__))
             ->name('process-order-journey-reminders')
             ->withoutOverlapping();
 
-        $schedule->job(\App\Jobs\ProcessPriceDropAlertsJob::class, 'default', 'database')
+        $schedule->call(function (): void {
+            \App\Jobs\ProcessPriceDropAlertsJob::dispatchSync();
+        })
             ->hourly()
             ->name('process-price-drop-alerts')
             ->withoutOverlapping();

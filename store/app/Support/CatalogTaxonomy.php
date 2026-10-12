@@ -4,6 +4,35 @@ namespace App\Support;
 
 class CatalogTaxonomy
 {
+    public const REPRESENTATIVE_IMAGE_EXCLUSIONS = [
+        'cartridge', 'toner', 'ink', 'ribbon', 'drum', 'printhead', 'paper',
+        'replacement', 'refill', 'maintenance kit', 'supply', 'supplies',
+        'warranty', 'support', 'license', 'subscription', 'service',
+    ];
+
+    public static function isRepresentativeProduct(string $name, array $include, array $exclude): bool
+    {
+        $text = ' ' . self::normalizedSearchText($name) . ' ';
+        $matches = static fn (string $keyword): bool => str_contains(
+            $text,
+            ' ' . self::normalizedSearchText($keyword) . ' '
+        );
+
+        foreach (array_merge(self::REPRESENTATIVE_IMAGE_EXCLUSIONS, $exclude) as $keyword) {
+            if ($matches($keyword)) {
+                return false;
+            }
+        }
+
+        foreach ($include as $keyword) {
+            if ($matches($keyword)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Curated category set from B2B_Hardware_Catalog_2000SKUs.xlsx.
      * segment_codes are internal browse filter codes used by the store APIs.

@@ -54,7 +54,7 @@ class UserEmailPreferenceService
             return false;
         }
 
-        if (in_array($triggerType, ['viewed_product', 'favorite_product'], true) && !$pref->browse_reminders_enabled) {
+        if (in_array($triggerType, ['viewed_product', 'favorite_product', 'searched_products'], true) && !$pref->browse_reminders_enabled) {
             return false;
         }
 

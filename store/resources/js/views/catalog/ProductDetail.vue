@@ -690,7 +690,7 @@ import { useCartStore } from '../../stores/cartStore'
 import { useFavoritesStore } from '../../stores/favoritesStore'
 import { useAuthStore } from '../../stores/authStore'
 import Navbar from '../../components/Navbar.vue'
-import { API_BASE_URL, buildStoreUrl } from '../../services/runtimeConfig'
+import { API_BASE_URL, buildStoreUrl, getProductImageUrls, resolveProductImageUrl } from '../../services/runtimeConfig'
 import { usePricingSettings } from '../../composables/usePricingSettings'
 import api from '../../services/api'
 import { rememberViewedProduct } from '../../services/recentlyViewed'
@@ -1147,40 +1147,7 @@ const getProductMetaSecondary = (item) => {
 }
 
 const getPrimaryImageUrl = (item) => {
-  const candidates = []
-
-  const appendUrl = (value) => {
-    const rawUrl = String(value || '').trim()
-    if (!rawUrl) return
-    const url = rawUrl.startsWith('/images/') ? buildStoreUrl(rawUrl) : rawUrl
-    candidates.push(url)
-  }
-
-  const appendImages = (images) => {
-    if (!Array.isArray(images)) return
-
-    images.forEach((image) => {
-      if (typeof image === 'string') {
-        appendUrl(image)
-        return
-      }
-
-      if (image && typeof image === 'object') {
-        appendUrl(image.imageUrl || image.imageURL || image.image_url || image.url || image.thumbnailUrl)
-      }
-    })
-  }
-
-  appendImages(item?.productImages)
-  appendImages(item?.images)
-  appendUrl(item?.image_url)
-  appendUrl(item?.thumbnailUrl)
-  appendUrl(item?.thumbnail)
-
-  if (candidates.length === 0) return ''
-
-  const localCandidate = candidates.find((url) => url.startsWith('/images/') || url.includes('/images/products/'))
-  return localCandidate || candidates[0]
+  return getProductImageUrls(item)[0] || ''
 }
 
 const getProductVendor = (item) => {
@@ -1221,39 +1188,19 @@ const normalizeImages = (source) => {
     if (typeof entry === 'string') {
       url = entry.trim()
     } else if (entry && typeof entry === 'object') {
-      url = String(entry.imageUrl || entry.url || '').trim()
+      url = String(entry.imageUrl || entry.imageURL || entry.image_url || entry.imagePath || entry.url || '').trim()
     }
 
     if (!url || seen.has(url)) return
     seen.add(url)
-    urls.push(url)
+    urls.push(resolveProductImageUrl(url))
   })
 
   return urls
 }
 
 const normalizedImages = computed(() => {
-  if (!product.value) return []
-
-  const urls = normalizeImages(product.value.productImages)
-  if (urls.length > 0) {
-    return [...urls].sort((left, right) => {
-      const leftLocal = left.startsWith('/images/') || left.includes('/images/products/')
-      const rightLocal = right.startsWith('/images/') || right.includes('/images/products/')
-      if (leftLocal === rightLocal) return 0
-      return leftLocal ? -1 : 1
-    })
-  }
-
-  const imageFallback = normalizeImages(product.value.images)
-  if (imageFallback.length > 0) return imageFallback
-
-  const primary = getPrimaryImageUrl(product.value)
-  if (primary) {
-    return [primary]
-  }
-
-  return []
+  return getProductImageUrls(product.value)
 })
 
 const productDescription = computed(() => {

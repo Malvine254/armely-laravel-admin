@@ -191,7 +191,7 @@ const normalizeProfile = (profile) => ({
 
 const readProfile = () => cachedProfile
 
-export const loadSearchProfile = async (force = false) => {
+export const loadSearchProfile = async (force = false, { throwOnError = false } = {}) => {
   if (!hasTrackingConsent()) {
     cachedProfile = getDefaultProfile()
     return cachedProfile
@@ -203,7 +203,11 @@ export const loadSearchProfile = async (force = false) => {
       cachedProfile = normalizeProfile(response.data?.data)
       return cachedProfile
     })
-    .catch(() => cachedProfile)
+    .catch((error) => {
+      console.warn('Failed to load search profile:', error)
+      if (throwOnError) throw error
+      return cachedProfile
+    })
     .finally(() => { profileLoadPromise = null })
 
   return profileLoadPromise

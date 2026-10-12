@@ -33,15 +33,16 @@ class ProcessPriceDropAlertsJob implements ShouldQueue
         $now = now();
         $scanned = 0;
         $sent = 0;
+        $failed = 0;
 
         PriceAlertSubscription::query()
             ->where('is_active', true)
             ->with([
-                'product:id,product_name,mfg_part_no,base_price,sale_price,is_on_sale,offer_source',
+                'product:id,tdsynnex_product_id,tdsynnex_sku_no,product_name,mfg_part_no,images,base_price,sale_price,is_on_sale,offer_source',
                 'user:id,name,email,status',
             ])
             ->orderBy('id')
-            ->chunkById(200, function ($subscriptions) use (&$scanned, &$sent, $mailer, $preferences, $now) {
+            ->chunkById(200, function ($subscriptions) use (&$scanned, &$sent, &$failed, $mailer, $preferences, $now) {
                 foreach ($subscriptions as $subscription) {
                     $scanned++;
 
@@ -86,7 +87,7 @@ class ProcessPriceDropAlertsJob implements ShouldQueue
                         continue;
                     }
 
-                    if (!$preferences->underDailySendCap($user, 'price_drop_alert', 3, $now)) {
+                    if (!$preferences->canSendLifecycleMarketing($user, 'price_drop_alert', 1, 2, 12, $now)) {
                         continue;
                     }
 
@@ -100,6 +101,7 @@ class ProcessPriceDropAlertsJob implements ShouldQueue
                     );
 
                     if (!$emailSent) {
+                        $failed++;
                         continue;
                     }
 
@@ -126,6 +128,7 @@ class ProcessPriceDropAlertsJob implements ShouldQueue
         AppSetting::setValue('lifecycle.price_drop.last_metrics', [
             'scanned' => $scanned,
             'sent' => $sent,
+            'delivery_failed' => $failed,
             'processed_at' => $now->toISOString(),
         ]);
 

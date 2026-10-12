@@ -9,7 +9,6 @@
         <svg v-else-if="productIcon === 'database'" class="mx-auto mb-2 h-16 w-16 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 2.16-9 4.5S7.03 12 12 12s9-2.16 9-4.5S16.97 3 12 3zm0 5c-3.314 0-6-1.343-6-3s2.686-3 6-3 6 1.343 6 3-2.686 3-6 3zm0 7c-4.97 0-9 2.16-9 4.5S7.03 24 12 24s9-2.16 9-4.5-4.03-4.5-9-4.5zm0 5c-3.314 0-6-1.343-6-3s2.686-3 6-3 6 1.343 6 3-2.686 3-6 3z"/></svg>
         <svg v-else class="mx-auto mb-2 h-16 w-16 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
         <p class="text-xs text-gray-500">Image not available</p>
-        <p class="mt-1 break-all px-2 font-mono text-[11px] text-gray-600">Save as: {{ expectedImageFileName }}</p>
       </div>
     </div>
 
@@ -52,7 +51,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { usePricingSettings } from '../composables/usePricingSettings'
 import { isSupplierOrderable } from '../services/productAvailability'
 
@@ -66,6 +65,7 @@ const props = defineProps({
 defineEmits(['view', 'quote', 'favorite', 'share'])
 
 const imageFailed = ref(false)
+watch(() => props.image, () => { imageFailed.value = false })
 const pricingReady = ref(false)
 const { loadPricingSettings, convertFromUsd, formatWithCurrency } = usePricingSettings()
 onMounted(async () => { await loadPricingSettings(); pricingReady.value = true })
@@ -83,10 +83,6 @@ const formattedMsrp = computed(() => formatWithCurrency(convertFromUsd(msrp.valu
 const sku = computed(() => String(props.product.mfgPartNo || props.product.mfg_part_no || props.product.tdsynnexSkuNo || props.product.skuNo || 'N/A'))
 const vendor = computed(() => String(props.product.vendorName || props.product.manufacturer || props.product.vendorId || 'N/A'))
 const hoverDetails = computed(() => [props.product.productName, `SKU: ${sku.value}`, `Vendor: ${vendor.value}`, basePrice.value > 0 ? `Price: ${formattedPrice.value}` : ''].filter(Boolean).join('\n'))
-const expectedImageFileName = computed(() => {
-  const source = String(props.product.productId || props.product.id || sku.value || 'product')
-  return `${source.trim().replace(/[^a-z0-9._-]+/gi, '-').replace(/^-+|-+$/g, '') || 'product'}.jpg`
-})
 const quantity = computed(() => { const value = Number(props.product.availableQuantity ?? props.product.totalQuantity ?? props.product.quantity ?? props.product.qty); return Number.isFinite(value) ? Math.max(0, value) : null })
 const outOfStock = computed(() => props.product.isAvailable === false || (quantity.value === 0 && !isSupplierOrderable(props.product)))
 const stockLabel = computed(() => isSupplierOrderable(props.product) && quantity.value === 0 ? 'Supplier orderable' : outOfStock.value ? 'Out of stock' : quantity.value === null ? 'Stock: Check availability' : `Stock: ${quantity.value}`)

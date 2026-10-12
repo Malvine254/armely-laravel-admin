@@ -67,10 +67,6 @@ class EnsureUserIsActive
             return 'account_unavailable';
         }
 
-        if (is_null($user->email_verified_at)) {
-            return 'email_not_verified';
-        }
-
         if ($company->status === 'inactive') {
             return 'company_suspended';
         }
@@ -79,6 +75,9 @@ class EnsureUserIsActive
             return 'user_suspended';
         }
 
+        if (is_null($user->email_verified_at)) {
+            return 'email_not_verified';
+        }
         if ($company->status !== 'approved') {
             return 'company_not_approved';
         }
@@ -103,6 +102,10 @@ class EnsureUserIsActive
     private function isPendingAllowedRequest(Request $request): bool
     {
         $path = trim((string) $request->path(), '/');
+
+        if (str_ends_with($path, 'api/v1/cart') || str_ends_with($path, 'api/v1/cart/merge')) {
+            return true;
+        }
 
         if ($request->isMethod('GET') && str_ends_with($path, 'api/v1/activities')) {
             return true;

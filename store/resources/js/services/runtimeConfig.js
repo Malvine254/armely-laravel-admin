@@ -53,13 +53,14 @@ const detectRuntimeBasePath = () => {
   return '/'
 }
 
-const configuredBasePath = import.meta.env.VITE_APP_BASE_PATH || ''
+const runtimeEnv = import.meta.env || {}
+const configuredBasePath = runtimeEnv.VITE_APP_BASE_PATH || ''
 
 // Prefer the live browser location so one build works both at a local root and
 // under the production /store subpath. Environment values remain the SSR/build
 // fallback when window is unavailable.
 export const APP_BASE_PATH = normalizeBasePath(
-  detectRuntimeBasePath() || configuredBasePath || import.meta.env.BASE_URL || '/'
+  detectRuntimeBasePath() || configuredBasePath || runtimeEnv.BASE_URL || '/'
 )
 
 export const buildStoreUrl = (path = '') => {
@@ -185,6 +186,8 @@ export const resolveProductImageUrl = (value) => {
     const currentHost = current.hostname.toLowerCase()
     const isLocal = currentHost === '127.0.0.1' || currentHost === 'localhost'
     const parsed = new URL(rawValue, current.origin)
+    const projectHosts = [currentHost, 'localhost', '127.0.0.1', 'armely.com', 'www.armely.com']
+    if (!projectHosts.includes(parsed.hostname.toLowerCase())) return rawValue
     const storeImageMarker = '/store/images/products/'
     const rootImageMarker = '/images/products/'
     let productPath = ''
@@ -214,6 +217,29 @@ export const resolveProductImageUrl = (value) => {
   } catch {
     return rawValue
   }
+}
+
+export const getProductImageUrls = (product) => {
+  const values = [
+    ...(Array.isArray(product?.productImages) ? product.productImages : []),
+    ...(Array.isArray(product?.images) ? product.images : []),
+    product?.imageUrl,
+    product?.image_url,
+    product?.thumbnailUrl,
+    product?.thumbnail,
+  ]
+  const urls = values.map(value => resolveProductImageUrl(
+    typeof value === 'string'
+      ? value
+      : value?.imageUrl || value?.imageURL || value?.image_url || value?.imagePath || value?.url || value?.thumbnailUrl || ''
+  )).filter(Boolean)
+  const isLocalProductImage = url => url.includes('/images/products/') && (
+    url.startsWith('/')
+    || (typeof window !== 'undefined' && url.startsWith(`${window.location.origin}/`))
+  )
+  return [...new Set(urls)].sort((left, right) =>
+    Number(isLocalProductImage(right)) - Number(isLocalProductImage(left))
+  )
 }
 
 const detectRuntimeApiBaseUrl = () => {
@@ -298,7 +324,7 @@ const normalizeApiBaseUrl = (value) => {
 }
 
 export const API_BASE_URL = normalizeApiBaseUrl(
-  shouldUseConfiguredApiBaseUrl(import.meta.env.VITE_API_URL)
-    ? import.meta.env.VITE_API_URL
+  shouldUseConfiguredApiBaseUrl(runtimeEnv.VITE_API_URL)
+    ? runtimeEnv.VITE_API_URL
     : detectRuntimeApiBaseUrl()
 )

@@ -31,7 +31,8 @@
         <div class="mb-7 flex items-end justify-between gap-4">
           <div>
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-[#2F5597]">Selected for business</p>
-            <h2 class="mt-1 text-2xl font-extrabold text-[#102a52] sm:text-3xl">Recommended Products</h2>
+            <h2 class="mt-1 text-2xl font-extrabold text-[#102a52] sm:text-3xl">{{ personalizedRecommendations ? 'Recommended for You' : 'Recommended Products' }}</h2>
+            <p class="mt-2 text-sm text-slate-600">{{ recommendationDescription }}</p>
           </div>
           <router-link :to="{ name: 'products' }" class="text-sm font-bold text-[#2F5597] hover:underline">View all products</router-link>
         </div>
@@ -39,9 +40,15 @@
         <div v-if="loading" class="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <div v-for="i in 8" :key="i" class="min-h-[248px] animate-pulse rounded-xl border border-slate-200 bg-white"></div>
         </div>
-        <div v-else class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <ProductCard v-for="product in recommended" :key="product.productId" :product="product" :image="productImage(product)" @view="viewProduct" @quote="addToQuote" @favorite="toggleFavorite" @share="shareProduct" />
+        <div v-else-if="loadError" role="alert" class="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-600">
+          <p>{{ loadError }}</p>
+          <button type="button" class="mt-3 font-semibold text-[#2F5597] underline" @click="loadProducts">Try again</button>
         </div>
+        <div v-else-if="recommended.length" class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <ProductCard v-for="product in recommended" :key="product.productId" :product="product" :image="productImage(product)" :favorite="favoritesStore.isFavorite(product.productId)" @view="viewProduct" @quote="addToQuote" @favorite="toggleFavorite" @share="shareProduct" />
+        </div>
+        <p v-else class="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-600">{{ personalizedRecommendations ? 'No available products match your recent interests right now. Try a new search or send us a custom request.' : 'No recommended products are available right now. Browse the catalog or send us a custom request.' }}</p>
+        <p v-if="recommendationNotice" role="status" class="mt-3 text-sm text-slate-600">{{ recommendationNotice }}</p>
       </section>
 
       <section class="bg-[#102a52] py-14 text-white">
@@ -65,7 +72,7 @@
         <h2 class="text-2xl font-extrabold text-[#102a52] sm:text-3xl">Recently Viewed</h2>
         <p class="mt-1 text-sm text-slate-600">Continue where you left off.</p>
         <div class="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <ProductCard v-for="product in recentProducts" :key="product.productId" :product="product" :image="productImage(product)" @view="viewProduct" @quote="addToQuote" @favorite="toggleFavorite" @share="shareProduct" />
+          <ProductCard v-for="product in recentProducts" :key="product.productId" :product="product" :image="productImage(product)" :favorite="favoritesStore.isFavorite(product.productId)" @view="viewProduct" @quote="addToQuote" @favorite="toggleFavorite" @share="shareProduct" />
         </div>
       </section>
 
@@ -117,30 +124,40 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cartStore'
 import { useToastStore } from '../stores/toastStore'
 import { useAuthStore } from '../stores/authStore'
+import { useFavoritesStore } from '../stores/favoritesStore'
 import Navbar from '../components/Navbar.vue'
 import PopularCategories from '../components/PopularCategories.vue'
 import ProductCard from '../components/ProductCard.vue'
 import api from '../services/api'
-import { resolveProductImageUrl } from '../services/runtimeConfig'
+import { getProductImageUrls } from '../services/runtimeConfig'
 import { buildProductsLocation } from '../services/productRoute'
 import { getRecentlyViewedIds } from '../services/recentlyViewed'
 import { usePricingSettings } from '../composables/usePricingSettings'
 import { isSupplierOrderable } from '../services/productAvailability'
+import { hasTrackingConsent, loadSearchProfile } from '../services/searchInsights'
+import { loadProductRecommendations } from '../services/productRecommendations'
 
 const router = useRouter()
 const route = useRoute()
 const cartStore = useCartStore()
 const toastStore = useToastStore()
 const authStore = useAuthStore()
+const favoritesStore = useFavoritesStore()
 const { loadPricingSettings } = usePricingSettings()
 const recommended = ref([])
 const recentProducts = ref([])
 const loading = ref(true)
+const loadError = ref('')
+const personalizedRecommendations = ref(false)
+const recommendationDescription = ref('Explore products selected for business procurement.')
+const recommendationNotice = ref('')
+let loadVersion = 0
+let recentLoadVersion = 0
 const showProcurementForm = ref(false)
 const procurementSubmitting = ref(false)
 const procurementError = ref('')
@@ -163,10 +180,6 @@ const businessNeeds = [
   { title: 'Printing', description: 'Printers, scanners, supplies, and document workflow hardware.', symbol: '▤', category: 'Printers & Scanners' },
 ]
 
-const recordsFrom = response => {
-  const data = response?.data?.data || {}
-  return Array.isArray(data.records) ? data.records : (Array.isArray(data) ? data : [])
-}
 const productLink = product => ({ name: 'product-detail', params: { id: product.productId } })
 const productVendor = product => String(product.vendorName || product.manufacturer || product.vendorId || 'Armely').replace('TD SYNNEX', product.manufacturer || 'Featured')
 const productSku = product => String(product.mfgPartNo || product.mfg_part_no || product.tdsynnexSkuNo || product.skuNo || 'N/A')
@@ -190,27 +203,33 @@ const addToQuote = product => {
 }
 const viewProduct = product => router.push(productLink(product))
 const toggleFavorite = product => {
-  toastStore.addToast(`Open ${product.productName} to manage favorites`, 'info')
-  viewProduct(product)
+  if (!authStore.isAuthenticated) {
+    toastStore.addToast('Please log in to add items to favorites', 'info')
+    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
+  const added = favoritesStore.toggleFavorite(product)
+  if (added === null) {
+    toastStore.addToast('Account suspended: favorites are read-only', 'error')
+    return
+  }
+  toastStore.addToast(`${added ? 'Added' : 'Removed'} "${product.productName}" ${added ? 'to' : 'from'} favorites`, added ? 'success' : 'info')
 }
 const shareProduct = async product => {
   const url = new URL(router.resolve(productLink(product)).href, window.location.origin).toString()
-  if (navigator.share) await navigator.share({ title: product.productName, url })
-  else {
-    await navigator.clipboard.writeText(url)
-    toastStore.addToast('Product link copied', 'success')
+  try {
+    if (navigator.share) await navigator.share({ title: product.productName, url })
+    else {
+      await navigator.clipboard.writeText(url)
+      toastStore.addToast('Product link copied', 'success')
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') return
+    console.error('Failed to share product:', error)
+    toastStore.addToast('Could not share this product. Please copy the link from its product page.', 'error')
   }
 }
-const productImage = product => {
-  const images = [...(product?.productImages || []), ...(product?.images || [])]
-  const first = images[0]
-  return resolveProductImageUrl(typeof first === 'string' ? first : first?.imagePath || first?.imageUrl || product?.image_url || product?.thumbnailUrl || '')
-}
-const productMsrp = product => Number(product?.msrp || product?.regularPrice || product?.productPrice?.[0]?.msrp || 0)
-const hasGenuineMsrpSaving = product => {
-  const customerPrice = Number(product?.productPrice?.[0]?.rsPrice || 0)
-  return customerPrice > 0 && productMsrp(product) > customerPrice + 0.005
-}
+const productImage = product => getProductImageUrls(product)[0] || ''
 const openNeed = need => router.push(buildProductsLocation(need.category ? { category: need.category } : { q: need.query }))
 const openProcurementRequest = () => {
   if (!authStore.isAuthenticated) {
@@ -249,26 +268,82 @@ const submitProcurementRequest = async () => {
   }
 }
 
-onMounted(async () => {
+const loadProducts = async () => {
+  const version = ++loadVersion
+  loading.value = true
+  loadError.value = ''
+  recommendationNotice.value = ''
+  recommended.value = []
+  personalizedRecommendations.value = false
+  recommendationDescription.value = 'Explore products selected for business procurement.'
+  const personalizationEnabled = hasTrackingConsent()
+  const recentIds = getRecentlyViewedIds()
+  const cartIds = cartStore.items.map(product => product.productId)
+  const favoriteIds = authStore.isAuthenticated ? favoritesStore.items.map(product => product.productId) : []
   try {
     await loadPricingSettings()
-    const responses = await Promise.all([1, 2, 3, 4].map(page => api.get('/products', {
-      params: { hide_zero_price: true, catalog_clean: true, page, per_page: 100 },
-    })))
-    const rows = responses.flatMap(recordsFrom)
-    const withImages = rows.filter(product => productImage(product))
-    const discounted = withImages.filter(hasGenuineMsrpSaving)
-    recommended.value = [...discounted, ...withImages.filter(product => !hasGenuineMsrpSaving(product))]
-      .filter((product, index, products) => products.findIndex(item => String(item.productId) === String(product.productId)) === index)
-      .slice(0, 8)
-    const recentIds = getRecentlyViewedIds()
-    recentProducts.value = recentIds.map(id => rows.find(product => String(product.productId) === id)).filter(Boolean).slice(0, 6)
-    if (authStore.isAuthenticated && route.query.procurement === '1') {
-      showProcurementForm.value = true
-      router.replace({ name: 'home' })
-    }
+    const profile = personalizationEnabled ? await loadSearchProfile(true, { throwOnError: true }) : { terms: [] }
+    if (version !== loadVersion) return
+    const result = await loadProductRecommendations({
+      get: (url, options) => api.get(url, options),
+      searchTerms: profile.terms,
+      viewedIds: recentIds,
+      favoriteIds,
+      cartIds,
+      personalizationEnabled,
+    })
+    if (version !== loadVersion) return
+    recommended.value = result.products
+    personalizedRecommendations.value = result.personalized
+    recommendationDescription.value = result.personalized
+      ? result.basedOnSearch
+        ? 'Based on your recent searches and shopping interests.'
+        : 'Similar products based on your browsing, favorites, and quote cart.'
+      : 'Explore products selected for business procurement.'
+    recommendationNotice.value = result.partialFailure ? 'Some suggestions could not be loaded. Showing the recommendations available now.' : ''
+  } catch (error) {
+    if (version !== loadVersion) return
+    console.error('Failed to load storefront products:', error)
+    loadError.value = 'We could not load recommended products. Please try again.'
   } finally {
-    loading.value = false
+    if (version === loadVersion) loading.value = false
   }
+}
+
+const loadRecentProducts = async () => {
+  const version = ++recentLoadVersion
+  const ids = getRecentlyViewedIds()
+  const results = await Promise.allSettled(ids.map(id => api.get(`/products/${encodeURIComponent(id)}`)))
+  if (version !== recentLoadVersion) return
+  recentProducts.value = results.flatMap(result => {
+    if (result.status === 'fulfilled') {
+      const product = result.value.data?.data
+      return product?.productId ? [product] : []
+    }
+    if (result.reason.response?.status !== 404) console.warn('Could not refresh a recently viewed product:', result.reason)
+    return []
+  })
+}
+
+watch(() => authStore.user?.id, () => {
+  loadProducts()
+  loadRecentProducts()
+})
+watch(() => cartStore.cartLoading, (loading, previous) => {
+  if (previous && !loading) loadProducts()
+})
+onMounted(() => {
+  if (authStore.isAuthenticated && route.query.procurement === '1') {
+    showProcurementForm.value = true
+    router.replace({ name: 'home' })
+  }
+  loadProducts()
+  loadRecentProducts()
+  window.addEventListener('cookie-preferences-updated', loadProducts)
+})
+onUnmounted(() => {
+  loadVersion++
+  recentLoadVersion++
+  window.removeEventListener('cookie-preferences-updated', loadProducts)
 })
 </script>

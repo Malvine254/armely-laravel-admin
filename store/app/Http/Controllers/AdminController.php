@@ -4746,8 +4746,8 @@ class AdminController extends Controller
             $priceDropLastRun = AppSetting::getValue('lifecycle.price_drop.last_run_at', null);
             $remindersLastRun = AppSetting::getValue('lifecycle.reminders.last_run_at', null);
 
-            $priceDropLagMinutes = $priceDropLastRun ? now()->diffInMinutes(Carbon::parse((string) $priceDropLastRun)) : null;
-            $remindersLagMinutes = $remindersLastRun ? now()->diffInMinutes(Carbon::parse((string) $remindersLastRun)) : null;
+            $priceDropLagMinutes = $priceDropLastRun ? abs(now()->diffInMinutes(Carbon::parse((string) $priceDropLastRun))) : null;
+            $remindersLagMinutes = $remindersLastRun ? abs(now()->diffInMinutes(Carbon::parse((string) $remindersLastRun))) : null;
 
             $pendingJobs = null;
             $failedJobs = null;
@@ -4758,15 +4758,17 @@ class AdminController extends Controller
                 $failedJobs = DB::table('failed_jobs')->count();
             }
 
-            $schedulerHealthy = ($priceDropLagMinutes === null || $priceDropLagMinutes <= 90)
-                && ($remindersLagMinutes === null || $remindersLagMinutes <= 90);
+            $schedulerHealthy = $priceDropLagMinutes !== null && $priceDropLagMinutes <= 90
+                && $remindersLagMinutes !== null && $remindersLagMinutes <= 90;
+            $mailHealth = app(\App\Services\AzureGraphMailService::class)->configurationHealth();
 
             $queueHealthy = $failedJobs === null ? true : $failedJobs < 50;
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'overall_status' => ($schedulerHealthy && $queueHealthy) ? 'healthy' : 'warning',
+                    'overall_status' => ($schedulerHealthy && $queueHealthy && $mailHealth['configured']) ? 'healthy' : 'warning',
+                    'mail' => array_merge($mailHealth, ['last_delivery' => AppSetting::getValue('lifecycle.mail.last_delivery', null)]),
                     'scheduler' => [
                         'price_drop_last_run_at' => $priceDropLastRun,
                         'price_drop_lag_minutes' => $priceDropLagMinutes,

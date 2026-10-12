@@ -80,6 +80,28 @@ class SearchProfileController extends Controller
     {
         $user = $request->user('sanctum');
         if ($user) {
+            $token = (string) $request->cookie(self::COOKIE_NAME);
+            if (preg_match('/^[a-f0-9-]{36}$/i', $token)) {
+                $guest = SearchProfile::where('identity_key', 'guest:'.hash('sha256', $token))->whereNull('user_id')->first();
+                if ($guest) {
+                    $profile = SearchProfile::firstOrCreate(['identity_key' => 'user:'.$user->id], [
+                        'user_id' => $user->id, 'terms' => [],
+                    ]);
+                    $terms = collect($profile->terms ?: [])->keyBy('termKey');
+                    foreach ($guest->terms ?: [] as $entry) {
+                        $key = $entry['termKey'] ?? '';
+                        if ($key === '') {
+                            continue;
+                        }
+                        $existing = $terms->get($key);
+                        if (!$existing || strcmp($entry['lastSearched'] ?? '', $existing['lastSearched'] ?? '') > 0) {
+                            $terms->put($key, $entry);
+                        }
+                    }
+                    $profile->update(['terms' => $terms->sortByDesc('lastSearched')->take(self::MAX_TERMS)->values()->all()]);
+                    $guest->delete();
+                }
+            }
             return ['user:'.$user->getAuthIdentifier(), $user->getAuthIdentifier(), null];
         }
 

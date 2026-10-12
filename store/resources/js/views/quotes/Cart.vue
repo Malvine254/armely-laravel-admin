@@ -53,8 +53,19 @@
         </button>
       </div>
 
+      <div v-if="cartStore.cartSyncError" role="alert" class="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+        <p>{{ cartStore.cartSyncError }}</p>
+        <div v-if="cartStore.cartConflict" class="mt-3 flex gap-3">
+          <button type="button" :disabled="cartStore.cartLoading" class="font-semibold underline" @click="cartStore.resolveCartConflict(false)">Use saved account cart</button>
+          <button type="button" :disabled="cartStore.cartLoading" class="font-semibold underline" @click="cartStore.resolveCartConflict(true)">Keep this device's cart</button>
+        </div>
+        <button v-else type="button" :disabled="cartStore.cartLoading" class="mt-3 font-semibold underline" @click="cartStore.retryCartSync()">Retry saving</button>
+      </div>
+      <p v-if="cartStore.cartLoading" role="status" class="mb-6 text-sm text-slate-600">Restoring your saved cart...</p>
+      <p v-else-if="cartStore.cartSyncing" role="status" class="mb-6 text-sm text-slate-600">Saving your cart to your account...</p>
+
       <!-- Empty State -->
-      <div v-if="cartStore.isEmpty" class="bg-white rounded-lg shadow-lg p-12 text-center">
+      <div v-if="cartStore.isEmpty && !cartStore.cartLoading" class="bg-white rounded-lg shadow-lg p-12 text-center">
         <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
         </svg>
@@ -66,7 +77,7 @@
       </div>
 
       <!-- Cart Items -->
-      <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div v-else-if="!cartStore.isEmpty" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Items List -->
         <div class="lg:col-span-2">
           <div class="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -175,7 +186,7 @@
               </button>
               <button
                 @click="requestQuote()"
-                :disabled="isSubmittingQuote"
+                :disabled="isSubmittingQuote || cartStore.cartLoading"
                 class="w-full px-4 py-3 border-2 font-semibold rounded-lg transition inline-flex items-center justify-center gap-2 disabled:cursor-wait"
                 :style="isSubmittingQuote
                   ? 'border-color:#2F5597;background-color:#2F5597;color:white;'
@@ -830,6 +841,10 @@ const goToAccountForProfile = () => {
 
 const requestQuote = async (shippingConfirmed = false) => {
   if (isSubmittingQuote.value) return
+  if (cartStore.cartLoading) {
+    toastStore.addToast('Please wait until your saved cart has been restored.', 'info')
+    return
+  }
 
   if (authStore.isRestricted) {
     toastStore.addToast('Account suspended: requesting quotes is disabled', 'error')

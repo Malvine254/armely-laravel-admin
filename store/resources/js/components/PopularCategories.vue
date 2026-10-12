@@ -21,6 +21,10 @@
       </div>
 
       <!-- Categories -->
+      <div v-else-if="loadError" role="alert" class="text-center text-sm text-slate-600">
+        <p>{{ loadError }}</p>
+        <button type="button" class="mt-3 font-semibold text-[#2F5597] underline" @click="loadCategories">Try again</button>
+      </div>
       <div v-else-if="categories.length" class="popular-category-list">
         <button
           v-for="category in categories"
@@ -70,33 +74,25 @@ const router = useRouter()
 const categories = ref([])
 const loading = ref(true)
 const failedCategoryImages = ref({})
+const loadError = ref('')
 
 // The API validates local files and selects a current representative product.
 // Do not override it with filenames that may not exist in a deployment.
 const getCategoryImage = category => resolveProductImageUrl(category.imageUrl)
 
 const browseCategory = category => {
-  const searchTerms = {
-    'laptops-notebooks': 'laptop',
-    'printers-scanners': 'printer',
-    'monitors-displays': 'monitor',
-    networking: 'networking',
-    'desktops-workstations': 'desktop',
-  }
-
   router.push(
     buildProductsLocation({
-      q: searchTerms[category.slug] || category.label,
       productType: category.productType || 'hardware',
-      category: category.segment || undefined,
-      minPrice: 0,
-      maxPrice: 0,
-      page: 1,
+      category: category.segment || category.category || undefined,
     })
   )
 }
 
-onMounted(async () => {
+const loadCategories = async () => {
+  loading.value = true
+  loadError.value = ''
+  failedCategoryImages.value = {}
   try {
     const response = await api.get('/products/popular-categories')
 
@@ -105,9 +101,11 @@ onMounted(async () => {
       : []
   } catch (error) {
     console.error('Failed to load popular product categories:', error)
+    loadError.value = 'We could not load popular categories. Please try again.'
     categories.value = []
   } finally {
     loading.value = false
   }
-})
+}
+onMounted(loadCategories)
 </script>

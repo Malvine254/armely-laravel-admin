@@ -11,6 +11,15 @@ const visitorToken = () => {
   return token
 }
 
+export const getBehaviorVisitorToken = () => {
+  try {
+    return visitorToken()
+  } catch (error) {
+    console.warn('Browser storage prevented linking guest shopping activity:', error)
+    return null
+  }
+}
+
 const postSafe = async (url, payload) => {
   try {
     await api.post(url, { ...payload, visitor_token: visitorToken() }, { _skipAuthRedirect: true })

@@ -105,6 +105,9 @@ Route::prefix('v1')->group(function () {
     Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
     Route::get('/shares/public/cart/{token}', [QuoteOrderInvoiceController::class, 'getPublicSharedCart']);
     Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
+        Route::get('/cart', [\App\Http\Controllers\CartController::class, 'show']);
+        Route::put('/cart', [\App\Http\Controllers\CartController::class, 'update'])->middleware('throttle:120,1');
+        Route::post('/cart/merge', [\App\Http\Controllers\CartController::class, 'merge'])->middleware('throttle:60,1');
         Route::post('/product-sourcing-requests', [ProductSourcingRequestController::class, 'store'])
             ->middleware('throttle:10,1');
         Route::post('/products/{productId}/reviews', [ReviewController::class, 'store']);

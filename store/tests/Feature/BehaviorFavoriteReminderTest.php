@@ -89,6 +89,7 @@ class BehaviorFavoriteReminderTest extends TestCase
             $table->unsignedInteger('item_count')->default(0);
             $table->unsignedInteger('total_quantity')->default(0);
             $table->timestamp('last_synced_at');
+            $table->unsignedInteger('revision')->default(0);
             $table->timestamps();
         });
 
@@ -171,6 +172,69 @@ class BehaviorFavoriteReminderTest extends TestCase
         $this->assertFalse((bool) $subscription->is_active);
     }
 
+    public function test_supplier_identifiers_are_canonicalized_for_browse_and_favorite_events(): void
+    {
+        $user = User::create(['name' => 'Buyer', 'email' => 'buyer@example.com', 'password' => 'password']);
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/behavior/product-view', ['product_id' => 9001])->assertOk();
+        $this->postJson('/api/v1/behavior/favorite-event', ['product_id' => 9001, 'event_type' => 'add'])->assertOk();
+        $this->assertDatabaseHas('user_product_views', ['product_id' => 101, 'user_id' => $user->id]);
+        $this->assertDatabaseHas('user_favorite_events', ['product_id' => 101, 'user_id' => $user->id]);
+        $this->assertDatabaseHas('reminder_subscriptions', ['product_id' => 101, 'trigger_type' => 'viewed_product']);
+        $this->postJson('/api/v1/behavior/favorite-event', [
+            'product_id' => 9001, 'event_type' => 'toggle', 'metadata' => ['state' => 'off'],
+        ])->assertOk();
+        $this->assertDatabaseHas('reminder_subscriptions', ['product_id' => 101, 'trigger_type' => 'favorite_product', 'is_active' => false]);
+    }
+
+    public function test_account_cart_restores_merges_max_quantity_rejects_stale_writes_and_ignores_forged_prices(): void
+    {
+        $this->withoutMiddleware(\App\Http\Middleware\EnsureUserIsActive::class);
+        $user = User::create(['name' => 'Buyer', 'email' => 'cart-buyer@example.com', 'password' => 'password']);
+        $this->actingAs($user, 'sanctum')->getJson('/api/v1/cart')->assertOk()->assertJsonPath('data.revision', 0);
+        $this->putJson('/api/v1/cart', [
+            'revision' => 0, 'items' => [['productId' => '9001', 'quantity' => 4, 'productPrice' => [['rsPrice' => 0.01]]]],
+        ])->assertOk()->assertJsonPath('data.revision', 1)->assertJsonPath('data.items.0.productPrice.0.rsPrice', 1100);
+        $this->postJson('/api/v1/cart/merge', ['items' => [['productId' => '9001', 'quantity' => 2]]])
+            ->assertOk()->assertJsonPath('data.items.0.quantity', 4)->assertJsonPath('data.revision', 1);
+        $this->postJson('/api/v1/cart/merge', ['items' => [['productId' => '9001', 'quantity' => 6]]])
+            ->assertOk()->assertJsonPath('data.items.0.quantity', 6)->assertJsonPath('data.revision', 2);
+        $this->putJson('/api/v1/cart', ['revision' => 1, 'items' => []])->assertStatus(409);
+        $this->postJson('/api/v1/behavior/cart-snapshot', ['items' => []])->assertUnprocessable();
+        $this->postJson('/api/v1/behavior/cart-snapshot', ['revision' => 1, 'items' => []])->assertStatus(409);
+        $this->getJson('/api/v1/cart')->assertOk()->assertJsonPath('data.items.0.quantity', 6);
+        $other = User::create(['name' => 'Other', 'email' => 'other@example.com', 'password' => 'password']);
+        $this->actingAs($other, 'sanctum')->getJson('/api/v1/cart')->assertOk()->assertJsonPath('data.items', []);
+        $this->actingAs($user, 'sanctum')->putJson('/api/v1/cart', ['revision' => 2, 'items' => []])
+            ->assertOk()->assertJsonPath('data.items', [])->assertJsonPath('data.revision', 3);
+        $this->assertDatabaseHas('reminder_subscriptions', ['user_id' => $user->id, 'trigger_type' => 'abandoned_cart', 'is_active' => false]);
+    }
+
+    public function test_missing_cart_products_are_retained_and_guest_behavior_is_claimed_during_merge(): void
+    {
+        $this->withoutMiddleware(\App\Http\Middleware\EnsureUserIsActive::class);
+        $token = 'guest-cart-test-token-123456';
+        $this->postJson('/api/v1/behavior/product-view', ['product_id' => 9001, 'visitor_token' => $token])->assertOk();
+        $user = User::create(['name' => 'Buyer', 'email' => 'merge@example.com', 'password' => 'password']);
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/cart/merge', [
+            'items' => [['productId' => 'missing-product', 'quantity' => 2]], 'visitor_token' => $token,
+        ])->assertOk()->assertJsonPath('data.items.0.productId', 'missing-product')
+            ->assertJsonPath('data.items.0.isAvailable', false)->assertJsonPath('data.items.0.quantity', 2);
+        $this->assertDatabaseHas('user_product_views', ['identity_key' => 'user:'.$user->id, 'product_id' => 101]);
+    }
+
+    public function test_pending_users_can_save_carts_but_suspension_takes_priority(): void
+    {
+        $user = new User(['name' => 'Pending', 'status' => 'pending', 'email_verified_at' => null]);
+        $user->setRelation('company', (object) ['status' => 'pending']);
+        $request = \Illuminate\Http\Request::create('/api/v1/cart', 'PUT');
+        $request->setUserResolver(fn () => $user);
+        $middleware = new \App\Http\Middleware\EnsureUserIsActive;
+        $next = fn () => response()->json(['allowed' => true]);
+        $this->assertSame(200, $middleware->handle($request, $next)->getStatusCode());
+        $user->status = 'suspended';
+        $this->assertSame(403, $middleware->handle($request, $next)->getStatusCode());
+    }
+
     public function test_identical_cart_heartbeat_does_not_restart_reminder_and_empty_cart_deactivates_it(): void
     {
         $user = User::query()->create([
@@ -181,7 +245,7 @@ class BehaviorFavoriteReminderTest extends TestCase
             'role' => 'customer',
         ]);
 
-        $payload = ['items' => [['productId' => 9001, 'quantity' => 2]]];
+        $payload = ['revision' => 0, 'items' => [['productId' => '9001', 'quantity' => 2]]];
         $this->actingAs($user, 'sanctum')->postJson('/api/v1/behavior/cart-snapshot', $payload)->assertOk();
 
         $subscription = ReminderSubscription::query()->where('trigger_type', 'abandoned_cart')->firstOrFail();
@@ -189,12 +253,13 @@ class BehaviorFavoriteReminderTest extends TestCase
         $subscription->update(['metadata' => ['sequence_stage' => 1]]);
 
         $this->travel(30)->minutes();
+        $payload['revision'] = 1;
         $this->actingAs($user, 'sanctum')->postJson('/api/v1/behavior/cart-snapshot', $payload)->assertOk();
 
         $this->assertSame($originalSyncedAt, \DB::table('user_cart_snapshots')->value('last_synced_at'));
         $this->assertSame(1, (int) $subscription->fresh()->metadata['sequence_stage']);
 
-        $this->actingAs($user, 'sanctum')->postJson('/api/v1/behavior/cart-snapshot', ['items' => []])->assertOk();
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/behavior/cart-snapshot', ['items' => [], 'revision' => 1])->assertOk();
         $this->assertFalse((bool) $subscription->fresh()->is_active);
     }
 
@@ -226,7 +291,7 @@ class BehaviorFavoriteReminderTest extends TestCase
 
         $this->actingAs($user, 'sanctum')
             ->withUnencryptedCookie('armely_behavior_visitor', $visitorToken)
-            ->postJson('/api/v1/behavior/cart-snapshot', ['items' => [], 'visitor_token' => $visitorToken])
+            ->postJson('/api/v1/behavior/cart-snapshot', ['items' => [], 'visitor_token' => $visitorToken, 'revision' => 0])
             ->assertOk();
 
         $this->assertDatabaseHas('reminder_subscriptions', [

@@ -4,6 +4,8 @@ namespace App\Jobs;
 
 use App\Models\AppSetting;
 use App\Models\Product;
+use App\Models\SearchProfile;
+use App\Models\Order;
 use App\Models\Quote;
 use App\Models\ReminderSubscription;
 use App\Models\UserCartSnapshot;
@@ -44,11 +46,15 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
             'viewed_sent' => 0,
             'favorite_scanned' => 0,
             'favorite_sent' => 0,
+            'search_scanned' => 0,
+            'search_sent' => 0,
+            'delivery_failed' => 0,
         ];
 
         $this->processAbandonedCartReminders($mailer, $preferences, $now, $metrics);
         $this->processViewedProductReminders($mailer, $preferences, $now, $metrics);
         $this->processFavoriteProductReminders($mailer, $preferences, $now, $metrics);
+        $this->processSearchReminders($mailer, $preferences, $now, $metrics);
 
         AppSetting::setValue('lifecycle.reminders.last_run_at', $now->toISOString());
         AppSetting::setValue('lifecycle.reminders.last_metrics', array_merge($metrics, [
@@ -144,6 +150,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
 
                     $sent = $mailer->sendAbandonedCartReminderEmail($user, $items, $lastSyncedAt);
                     if (!$sent) {
+                        $metrics['delivery_failed']++;
                         continue;
                     }
 
@@ -204,7 +211,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                     }
 
                     $latestView = UserProductView::query()
-                        ->where('product_id', (int) $subscription->product_id)
+                        ->whereIn('product_id', $this->productEventReferences((int) $subscription->product_id))
                         ->where(function ($query) use ($subscription) {
                             $query->where('identity_key', (string) $subscription->identity_key);
                             if ($subscription->user_id) {
@@ -273,6 +280,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
 
                     $sent = $mailer->sendViewedProductReminderEmail($user, $product, $viewedAt, $price);
                     if (!$sent) {
+                        $metrics['delivery_failed']++;
                         continue;
                     }
 
@@ -334,7 +342,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                     }
 
                     $latestFavoriteEvent = UserFavoriteEvent::query()
-                        ->where('product_id', (int) $subscription->product_id)
+                        ->whereIn('product_id', $this->productEventReferences((int) $subscription->product_id))
                         ->where(function ($query) use ($subscription) {
                             $query->where('identity_key', (string) $subscription->identity_key);
                             if ($subscription->user_id) {
@@ -401,6 +409,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
 
                     $sent = $mailer->sendFavoriteProductReminderEmail($user, $product, $favoritedAt, $price);
                     if (!$sent) {
+                        $metrics['delivery_failed']++;
                         continue;
                     }
 
@@ -488,7 +497,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                 'unit_price' => $unitPrice,
                 'line_total' => $unitPrice > 0 ? round($unitPrice * $quantity, 2) : 0.0,
                 'image_url' => $this->productImageUrl($product),
-                'product_url' => $this->publicStoreUrl() . '/products/' . rawurlencode((string) $product->id),
+                'product_url' => $this->publicStoreUrl() . '/products/' . rawurlencode((string) ($product->tdsynnex_sku_no ?: $product->tdsynnex_product_id ?: $product->id)),
             ];
         }
 
@@ -544,12 +553,16 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
             return false;
         }
 
-        return Quote::query()
+        $quotes = Quote::query()
             ->where('user_id', $userId)
             ->where('created_at', '>=', $since)
             ->whereNotIn('status', ['cancelled', 'rejected'])
-            ->get(['items'])
-            ->contains(function (Quote $quote) use ($references): bool {
+            ->get(['items']);
+        $orders = Order::query()->where('user_id', $userId)->where('created_at', '>=', $since)
+            ->whereNotIn('status', ['cancelled', 'refunded'])->get(['items']);
+
+        return $quotes->concat($orders)
+            ->contains(function ($quote) use ($references): bool {
                 foreach ((array) ($quote->items ?? []) as $item) {
                     $line = is_array($item) ? $item : [];
                     foreach (['product_id', 'productId', 'id', 'sku', 'partNumber', 'mfg_part_no', 'mfgPartNo'] as $key) {
@@ -579,6 +592,76 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
         }
 
         return false;
+    }
+
+    private function processSearchReminders(
+        AzureGraphMailService $mailer,
+        UserEmailPreferenceService $preferences,
+        Carbon $now,
+        array &$metrics
+    ): void {
+        SearchProfile::whereNotNull('user_id')->with('user:id,name,email,status')
+            ->chunkById(100, function ($profiles) use ($mailer, $preferences, $now, &$metrics): void {
+                foreach ($profiles as $profile) {
+                    $metrics['search_scanned']++;
+                    $user = $profile->user;
+                    if (!$user || $user->status !== 'active' || !$preferences->shouldSendReminder($user, 'searched_products', $now)) {
+                        continue;
+                    }
+                    $entries = collect($profile->terms ?: [])->sortByDesc('lastSearched')->take(3);
+                    foreach ($entries as $entry) {
+                        $term = trim((string) ($entry['term'] ?? ''));
+                        try {
+                            $searchedAt = Carbon::parse($entry['lastSearched'] ?? '');
+                        } catch (\InvalidArgumentException $error) {
+                            Log::warning('Skipping malformed search reminder date', ['profile_id' => $profile->id]);
+                            continue;
+                        }
+                        if (mb_strlen($term) < 2 || $searchedAt->greaterThan($now->copy()->subDay())
+                            || $searchedAt->lessThan($now->copy()->subDays(7))) {
+                            continue;
+                        }
+                        $key = 'search:' . $user->id . ':' . hash('sha256', mb_strtolower($term) . '|' . $searchedAt->toISOString());
+                        if ($preferences->wasIdempotencyKeySent($key)) {
+                            continue;
+                        }
+                        $query = Product::where('is_available', true)->where('is_discontinued', false)->where('quantity', '>', 0);
+                        $words = preg_split('/\s+/u', mb_strtolower($term), -1, PREG_SPLIT_NO_EMPTY);
+                        foreach ($words as $word) {
+                            $query->where(function ($query) use ($word): void {
+                                $pattern = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $word) . '%';
+                                $query->whereRaw("LOWER(COALESCE(product_name, '')) LIKE ? ESCAPE '!'", [$pattern])
+                                    ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ? ESCAPE '!'", [$pattern]);
+                            });
+                        }
+                        $cart = UserCartSnapshot::where('user_id', $user->id)->first();
+                        $products = $query->orderByDesc('quantity')->limit(30)->get()->filter(function (Product $product) use ($user, $searchedAt, $cart): bool {
+                            return OfferPricing::sellPrice($product) > 0
+                                && (!$cart || !$this->cartContainsProduct((array) $cart->items, $product))
+                                && !$this->hasRequestedQuoteSince((int) $user->id, [(int) $product->id], $searchedAt);
+                        })->take(3)->values()->all();
+                        if ($products === [] || !$preferences->canSendLifecycleMarketing($user, 'search_reminder', 1, 2, 12, $now)) {
+                            continue;
+                        }
+                        if (!$mailer->sendSearchReminderEmail($user, $term, $products)) {
+                            $metrics['delivery_failed']++;
+                            break;
+                        }
+                        $preferences->markIdempotencyKeySent($user, $key, ['trigger_type' => 'searched_products']);
+                        $preferences->markMarketingSent($user, 'search_reminder', ['profile_id' => $profile->id]);
+                        $metrics['search_sent']++;
+                        break;
+                    }
+                }
+            });
+    }
+
+    private function productEventReferences(int $productId): array
+    {
+        $product = Product::find($productId);
+        return array_values(array_unique(array_filter([
+            $productId, $product?->tdsynnex_product_id, $product?->tdsynnex_sku_no,
+        ], fn ($id) => is_numeric($id) && (int) $id > 0)));
     }
 
     private function cooldownElapsed(?Carbon $lastNotifiedAt, int $cooldownMinutes, Carbon $now): bool
