@@ -16,6 +16,24 @@ const SEGMENT_FILTERS = Object.fromEntries(
   Object.entries(FILTER_SEGMENTS).map(([key, segment]) => [segment, key])
 )
 
+const categoryKey = value => String(value || '').trim().toLowerCase()
+const categorySlug = value => categoryKey(value).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+export const categoryFilterMatches = (category, selection) => {
+  const key = categoryKey(selection)
+  return key !== '' && [category?.name, category?.value, category?.slug, category?.segment_code, categorySlug(category?.name)]
+    .some(value => categoryKey(value) === key)
+}
+
+export const resolveCategoryFilterValue = (selection, categories = []) => {
+  const category = categories.find(item => categoryFilterMatches(item, selection))
+  return String(category?.value || selection || '').trim()
+}
+
+export const categoryFilterLabel = (selection, categories = []) => {
+  return categories.find(item => categoryFilterMatches(item, selection))?.name || String(selection || '')
+}
+
 export const buildProductsLocation = (filters = {}) => {
   const filterPath = []
   const searchQuery = String(filters.q || '').trim()

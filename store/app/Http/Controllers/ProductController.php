@@ -1022,7 +1022,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 30,
+                'v' => 31,
                 'price_version' => Cache::get('catalog:price_version', '1'),
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
@@ -1184,160 +1184,57 @@ class ProductController extends Controller
         $searchOrderBindings = [];
 
         if (!empty($search)) {
-            $searchTerm  = trim((string) $search);
-            $rawTerms    = array_values(array_filter(preg_split('/\s+/', $searchTerm)));
-            $lowerTerms  = array_values(array_filter(array_map(
-                static fn ($term) => strtolower(trim((string) $term, " \t\n\r\0\x0B,.;:!?()[]{}\"'")),
-                $rawTerms
-            )));
-            $stopTerms = ['a', 'an', 'and', 'at', 'by', 'for', 'from', 'in', 'of', 'on', 'the', 'to', 'up', 'with'];
-            $meaningfulTerms = array_values(array_unique(array_filter(
-                $lowerTerms,
-                static fn ($term) => strlen($term) > 1 && !in_array($term, $stopTerms, true)
-            )));
-            if (empty($meaningfulTerms)) {
-                $meaningfulTerms = $lowerTerms;
+            $searchTerm = trim((string) $search);
+            $meaningfulTerms = CatalogTaxonomy::searchTerms($searchTerm);
+            $this->applySearchFilterToQuery($query, $searchTerm);
+
+            $lowerFull = strtolower($searchTerm);
+            $equipmentSegment = CatalogTaxonomy::equipmentSearchSegment($searchTerm);
+            $rules = $equipmentSegment !== null ? CatalogTaxonomy::hardwareCategoryRules($equipmentSegment) : null;
+            $equipmentScore = $rules !== null
+                ? "CASE WHEN is_hardware = 1 AND LOWER(COALESCE(product_name,'')) REGEXP ? AND LOWER(COALESCE(product_name,'')) NOT REGEXP ? THEN 500 ELSE 0 END"
+                : '0';
+            $equipmentBindings = $rules !== null
+                ? [CatalogTaxonomy::keywordPattern($rules['include']), CatalogTaxonomy::keywordPattern($rules['exclude'])]
+                : [];
+            $tokenScoreParts = [];
+            $tokenScoreBindings = [];
+            foreach ($meaningfulTerms as $term) {
+                $tokenScoreParts[] = "CASE WHEN LOWER(CONCAT_WS(' ', COALESCE(product_name,''), COALESCE(description,''), COALESCE(mfg_part_no,''), COALESCE(manufacturer,''))) LIKE ? THEN 35 ELSE 0 END";
+                $tokenScoreBindings[] = '%' . $term . '%';
             }
-            // Terms ≥ 4 chars can use MySQL FULLTEXT; shorter ones need LIKE.
-            $longTerms   = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) >= 4));
-            $shortTerms  = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) < 4));
-            $hasSpecialTokenChars = (bool) array_filter($rawTerms, fn ($t) => preg_match('/[^a-z0-9]/i', (string) $t));
-            // Token-by-token LIKE matching is deliberate: the previous FULLTEXT/manufacturer
-            // OR branch let one manufacturer token bypass the rest of a multi-word search.
-            $useFt       = false;
-
-            if ($useFt) {
-                // Build a boolean-mode query where EVERY long term is required (+).
-                // Also emit a de-pluralised stem so "laptops" also matches "laptop".
-                $boolParts = [];
-                foreach ($longTerms as $t) {
-                    $stem = (preg_match('/s$/i', $t) && strlen($t) > 4) ? substr($t, 0, -1) : $t;
-                    $boolParts[] = $stem !== $t
-                        ? '+(' . $stem . '* ' . $t . '*)' // OR-group so either form satisfies the term
-                        : '+' . $t . '*';
+            $tokenScoreExpr = $tokenScoreParts ? ' + ' . implode(' + ', $tokenScoreParts) : '';
+            $modelScoreParts = [];
+            $modelScoreBindings = [];
+            foreach ($meaningfulTerms as $term) {
+                // Exact model matches must lead even when they have no image.
+                if (preg_match('/[a-z]/i', $term) && preg_match('/\d/', $term)) {
+                    $modelScoreParts[] = "CASE WHEN LOWER(CONCAT_WS(' ', COALESCE(product_name,''), COALESCE(mfg_part_no,''), COALESCE(tdsynnex_product_id,''), CAST(COALESCE(tdsynnex_sku_no, 0) AS CHAR))) LIKE ? THEN 550 ELSE 0 END";
+                    $modelScoreBindings[] = '%' . $term . '%';
                 }
-                $boolQuery = implode(' ', $boolParts);
-
-                // Long terms: FULLTEXT hit OR manufacturer LIKE (catches brand searches like "HP").
-                $query->where(function ($q) use ($boolQuery, $longTerms) {
-                    $q->whereRaw(
-                        'MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)',
-                        [$boolQuery]
-                    );
-                    foreach ($longTerms as $t) {
-                        $q->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", ['%' . $t . '%']);
-                    }
-                });
-
-                // Short terms (e.g. "HP") must additionally appear in at least one column.
-                foreach ($shortTerms as $t) {
-                    $like = '%' . $t . '%';
-                    $query->where(function ($q) use ($like) {
-                        $q->whereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
-                          ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
-                          ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", [$like]);
-                    });
-                }
-
-                // Relevance scoring: product_name exact/prefix > contains > manufacturer > FT score.
-                $lowerFull  = strtolower($searchTerm);
-                $searchOrderExpr = "(
-                    CASE WHEN LOWER(COALESCE(product_name,'')) LIKE ? THEN 300 ELSE 0 END +
-                    CASE WHEN LOWER(COALESCE(product_name,'')) LIKE ? THEN 150 ELSE 0 END +
-                    CASE WHEN LOWER(COALESCE(manufacturer,''))  LIKE ? THEN  40 ELSE 0 END +
-                    MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE) * 10
-                ) DESC";
-                $searchOrderBindings = [
-                    $lowerFull . '%',       // product_name starts with term  → 300
-                    '%' . $lowerFull . '%', // product_name contains term     → 150
-                    '%' . $lowerFull . '%', // manufacturer contains term     →  40
-                    $boolQuery,             // FT relevance score × 10
-                ];
-            } else {
-                // LIKE fallback — every term must appear in at least one column.
-                $addTermMatch = static function ($target, string $t, string $boolean = 'and'): void {
-                    $variants = match ($t) {
-                        'laptop', 'laptops' => ['laptop', 'notebook', 'chromebook'],
-                        'desktop', 'desktops' => ['desktop', 'workstation', 'optiplex', 'thinkcentre', 'elitedesk', 'prodesk'],
-                        'printer', 'printers' => ['printer', 'multifunction', 'laserjet', 'inkjet'],
-                        'monitor', 'monitors', 'display', 'displays' => ['monitor', 'display'],
-                        'network', 'networking' => ['network', 'switch', 'router', 'firewall', 'access point', 'wireless ap'],
-                        default => [$t],
-                    };
-
-                    $method = $boolean === 'or' ? 'orWhere' : 'where';
-                    $target->{$method}(function ($q) use ($variants) {
-                        foreach ($variants as $variant) {
-                            $like = '%' . $variant . '%';
-                            $q->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
-                              ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
-                              ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
-                              ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", [$like])
-                              ->orWhereRaw("LOWER(COALESCE(tdsynnex_product_id, '')) LIKE ?", [$like])
-                              ->orWhereRaw("CAST(COALESCE(tdsynnex_sku_no, 0) AS CHAR) LIKE ?", [$like]);
-                        }
-                    });
-                };
-
-                $addTermMatch($query, $meaningfulTerms[0]);
-                if (count($meaningfulTerms) > 1) {
-                    $query->where(function ($remainingQuery) use ($meaningfulTerms, $addTermMatch) {
-                        foreach (array_slice($meaningfulTerms, 1) as $term) {
-                            $addTermMatch($remainingQuery, $term, 'or');
-                        }
-                    });
-                }
-
-                $lowerFull = strtolower($searchTerm);
-                $categoryBoostSegment = match ($lowerFull) {
-                    'laptop', 'laptops' => '01',
-                    'desktop', 'desktops' => '02',
-                    'monitor', 'monitors', 'display', 'displays' => '03',
-                    'network', 'networking' => '04',
-                    'printer', 'printers', 'scanner', 'scanners' => '06',
-                    default => '__none__',
-                };
-                $tokenScoreParts = [];
-                $tokenScoreBindings = [];
-                foreach ($meaningfulTerms as $term) {
-                    $tokenScoreParts[] = "CASE WHEN LOWER(CONCAT_WS(' ', COALESCE(product_name,''), COALESCE(description,''), COALESCE(mfg_part_no,''), COALESCE(manufacturer,''))) LIKE ? THEN 35 ELSE 0 END";
-                    $tokenScoreBindings[] = '%' . $term . '%';
-                }
-                $tokenScoreExpr = $tokenScoreParts ? ' + ' . implode(' + ', $tokenScoreParts) : '';
-                $modelScoreParts = [];
-                $modelScoreBindings = [];
-                foreach ($meaningfulTerms as $term) {
-                    // Mixed letter/number tokens are usually model identifiers
-                    // (for example RB14250). They must outrank generic brand/name
-                    // matches even when the exact product has no supplier image.
-                    if (preg_match('/[a-z]/i', $term) && preg_match('/\d/', $term)) {
-                        $modelScoreParts[] = "CASE WHEN LOWER(CONCAT_WS(' ', COALESCE(product_name,''), COALESCE(mfg_part_no,''), COALESCE(tdsynnex_product_id,''), CAST(COALESCE(tdsynnex_sku_no, 0) AS CHAR))) LIKE ? THEN 550 ELSE 0 END";
-                        $modelScoreBindings[] = '%' . $term . '%';
-                    }
-                }
-                $modelScoreExpr = $modelScoreParts ? ' + ' . implode(' + ', $modelScoreParts) : '';
-                $searchOrderExpr = "(
-                    CASE WHEN COALESCE(category_segment, '') = ? THEN 500 ELSE 0 END +
-                    CASE WHEN CAST(COALESCE(tdsynnex_sku_no, 0) AS CHAR) = ? THEN 700 ELSE 0 END +
-                    CASE WHEN LOWER(COALESCE(tdsynnex_product_id,'')) = ? THEN 680 ELSE 0 END +
-                    CASE WHEN LOWER(COALESCE(mfg_part_no,'')) = ? THEN 650 ELSE 0 END +
-                    CASE WHEN LOWER(COALESCE(product_name,'')) LIKE ? THEN 300 ELSE 0 END +
-                    CASE WHEN LOWER(COALESCE(product_name,'')) LIKE ? THEN 150 ELSE 0 END +
-                    CASE WHEN LOWER(COALESCE(manufacturer,''))  LIKE ? THEN  80 ELSE 0 END{$tokenScoreExpr}{$modelScoreExpr} -
-                    CASE WHEN LOWER(COALESCE(product_name,'')) REGEXP '(cable|cord|adapter|mount|stand|riser|dock|case|sleeve|bag|backpack|cartridge|toner|keyboard|mouse|warranty|license|privacy|laptop ps|screen protector|replacement|battery|cooling pad|charger|charging cart|power supply|serial port|parallel port|usb port|kvm|lock)' THEN 400 ELSE 0 END
-                ) DESC";
-                $searchOrderBindings = [
-                    $categoryBoostSegment,
-                    $lowerFull,
-                    $lowerFull,
-                    $lowerFull,
-                    $lowerFull . '%',
-                    '%' . $lowerFull . '%',
-                    '%' . $lowerFull . '%',
-                    ...$tokenScoreBindings,
-                    ...$modelScoreBindings,
-                ];
             }
+            $modelScoreExpr = $modelScoreParts ? ' + ' . implode(' + ', $modelScoreParts) : '';
+            $searchOrderExpr = "(
+                {$equipmentScore} +
+                CASE WHEN CAST(COALESCE(tdsynnex_sku_no, 0) AS CHAR) = ? THEN 700 ELSE 0 END +
+                CASE WHEN LOWER(COALESCE(tdsynnex_product_id,'')) = ? THEN 680 ELSE 0 END +
+                CASE WHEN LOWER(COALESCE(mfg_part_no,'')) = ? THEN 650 ELSE 0 END +
+                CASE WHEN LOWER(COALESCE(product_name,'')) LIKE ? THEN 300 ELSE 0 END +
+                CASE WHEN LOWER(COALESCE(product_name,'')) LIKE ? THEN 150 ELSE 0 END +
+                CASE WHEN LOWER(COALESCE(manufacturer,'')) LIKE ? THEN 80 ELSE 0 END{$tokenScoreExpr}{$modelScoreExpr} -
+                CASE WHEN LOWER(COALESCE(product_name,'')) REGEXP '(cable|cord|adapter|mount|stand|riser|dock|case|sleeve|bag|backpack|cartridge|toner|keyboard|mouse|warranty|license|privacy|laptop ps|screen protector|replacement|battery|cooling pad|charger|charging cart|power supply|serial port|parallel port|usb port|kvm|lock)' THEN 400 ELSE 0 END
+            ) DESC";
+            $searchOrderBindings = [
+                ...$equipmentBindings,
+                $lowerFull,
+                $lowerFull,
+                $lowerFull,
+                $lowerFull . '%',
+                '%' . $lowerFull . '%',
+                '%' . $lowerFull . '%',
+                ...$tokenScoreBindings,
+                ...$modelScoreBindings,
+            ];
         }
 
         if (!empty($selectedVendors)) {
@@ -2670,7 +2567,7 @@ class ProductController extends Controller
                     $vendorCacheKey = sprintf(
                         'pa_vendor_counts:%s',
                         md5(json_encode([
-                            'v' => 4,
+                            'v' => 5,
                             'curated_it_mix' => $curatedItMix,
                             'min_price' => $minPrice,
                             'max_price' => $maxPrice,
@@ -2740,7 +2637,7 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v16:strict-hardware', 1800, function () {
+            $data = Cache::remember('menu_categories:v17:search-equipment', 1800, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -2892,7 +2789,7 @@ class ProductController extends Controller
             $cacheKey = sprintf(
                 'pa_category_counts:%s',
                 md5(json_encode([
-                    'v' => 5,
+                    'v' => 6,
                     'hide_zero' => $hideZero,
                     'min_price' => $minPrice,
                     'max_price' => $maxPrice,
@@ -3058,84 +2955,26 @@ class ProductController extends Controller
             return;
         }
 
-        $rawTerms   = array_values(array_filter(preg_split('/\s+/', $searchTerm)));
-        $lowerTerms = array_values(array_filter(array_map(
-            static fn ($term) => strtolower(trim((string) $term, " \t\n\r\0\x0B,.;:!?()[]{}\"'")),
-            $rawTerms
-        )));
-        $stopTerms = ['a', 'an', 'and', 'at', 'by', 'for', 'from', 'in', 'of', 'on', 'the', 'to', 'up', 'with'];
-        $meaningfulTerms = array_values(array_unique(array_filter(
-            $lowerTerms,
-            static fn ($term) => strlen($term) > 1 && !in_array($term, $stopTerms, true)
-        )));
-        if (empty($meaningfulTerms)) {
-            $meaningfulTerms = $lowerTerms;
-        }
-        $longTerms  = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) >= 4));
-        $shortTerms = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) < 4));
-        $hasSpecialTokenChars = (bool) array_filter($rawTerms, fn ($t) => preg_match('/[^a-z0-9]/i', (string) $t));
-        $useFt      = false;
-
-        if ($useFt) {
-            $boolParts = [];
-            foreach ($longTerms as $t) {
-                $stem        = (preg_match('/s$/i', $t) && strlen($t) > 4) ? substr($t, 0, -1) : $t;
-                $boolParts[] = $stem !== $t
-                    ? '+(' . $stem . '* ' . $t . '*)'
-                    : '+' . $t . '*';
-            }
-            $boolQuery = implode(' ', $boolParts);
-
-            $query->where(function ($q) use ($boolQuery, $longTerms) {
-                $q->whereRaw(
-                    'MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)',
-                    [$boolQuery]
-                );
-                foreach ($longTerms as $t) {
-                    $q->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", ['%' . $t . '%']);
-                }
-            });
-
-            foreach ($shortTerms as $t) {
-                $like = '%' . $t . '%';
-                $query->where(function ($q) use ($like) {
-                    $q->whereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
-                      ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
-                      ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", [$like]);
-                });
-            }
-            return;
+        $equipmentSegment = CatalogTaxonomy::equipmentSearchSegment($searchTerm);
+        if ($equipmentSegment !== null) {
+            $this->applyCategorySegmentFilterToQuery($query, $equipmentSegment);
         }
 
-        // LIKE fallback — every term must appear in at least one column.
-        $addTermMatch = static function ($target, string $term, string $boolean = 'and'): void {
-            $variants = match ($term) {
-                'laptop', 'laptops' => ['laptop', 'notebook', 'chromebook'],
-                'desktop', 'desktops' => ['desktop', 'workstation', 'optiplex', 'thinkcentre', 'elitedesk', 'prodesk'],
-                'printer', 'printers' => ['printer', 'multifunction', 'laserjet', 'inkjet'],
-                'monitor', 'monitors', 'display', 'displays' => ['monitor', 'display'],
-                'network', 'networking' => ['network', 'switch', 'router', 'firewall', 'access point', 'wireless ap'],
-                default => [$term],
-            };
-            $method = $boolean === 'or' ? 'orWhere' : 'where';
-            $target->{$method}(function ($q) use ($variants) {
+        foreach (CatalogTaxonomy::searchTerms($searchTerm) as $term) {
+            if ($equipmentSegment !== null && CatalogTaxonomy::searchCategorySegment($term) === $equipmentSegment
+                && !in_array($term, ['scanner', 'scanners', 'router', 'routers', 'switch', 'switches'], true)) {
+                continue;
+            }
+            $variants = CatalogTaxonomy::searchVariants($term);
+            $query->where(function ($matches) use ($variants): void {
                 foreach ($variants as $variant) {
-                    $like = '%' . $variant . '%';
-                    $q->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
-                      ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
-                      ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
-                      ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", [$like])
-                      ->orWhereRaw("LOWER(COALESCE(tdsynnex_product_id, '')) LIKE ?", [$like])
-                      ->orWhereRaw("CAST(COALESCE(tdsynnex_sku_no, 0) AS CHAR) LIKE ?", [$like]);
-                }
-            });
-        };
-
-        $addTermMatch($query, $meaningfulTerms[0]);
-        if (count($meaningfulTerms) > 1) {
-            $query->where(function ($remainingQuery) use ($meaningfulTerms, $addTermMatch) {
-                foreach (array_slice($meaningfulTerms, 1) as $term) {
-                    $addTermMatch($remainingQuery, $term, 'or');
+                    $like = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $variant) . '%';
+                    $matches->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ? ESCAPE '!'", [$like])
+                        ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ? ESCAPE '!'", [$like])
+                        ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ? ESCAPE '!'", [$like])
+                        ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ? ESCAPE '!'", [$like])
+                        ->orWhereRaw("LOWER(COALESCE(tdsynnex_product_id, '')) LIKE ? ESCAPE '!'", [$like])
+                        ->orWhereRaw("CAST(COALESCE(tdsynnex_sku_no, 0) AS CHAR) LIKE ? ESCAPE '!'", [$like]);
                 }
             });
         }
@@ -3276,6 +3115,13 @@ class ProductController extends Controller
         ));
 
         if (empty($segments)) {
+            $name = CatalogTaxonomy::normalizeCategoryName($category);
+            if ($name !== null) {
+                $segments = [CatalogTaxonomy::segmentCodeForCategory($name)];
+            }
+        }
+
+        if (empty($segments)) {
             $menuCategory = Category::query()
                 ->whereNull('parent_id')
                 ->where(function ($categoryQuery) use ($category) {
@@ -3289,6 +3135,11 @@ class ProductController extends Controller
                     array_map('trim', explode(',', (string) $menuCategory->segment_code))
                 ));
             }
+        }
+
+        if (count($segments) === 1 && CatalogTaxonomy::hardwareCategoryRules($segments[0]) !== null) {
+            $query->orderByDesc('is_storefront_pinned')
+                ->orderByRaw('COALESCE(storefront_rank, 4294967295) ASC');
         }
 
         if (!in_array('07', $segments, true)) {
@@ -3378,7 +3229,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_default_browse_vendors:%s',
             md5(json_encode([
-                'v' => 4,
+                'v' => 5,
                 'min_price' => $minPrice,
                 'max_price' => $maxPrice,
                 'hide_zero' => $hideZero,

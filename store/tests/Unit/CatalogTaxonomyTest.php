@@ -50,6 +50,18 @@ class CatalogTaxonomyTest extends TestCase
         $this->assertNull(CatalogTaxonomy::hardwareCategoryRules('05'));
     }
 
+    public function test_search_intent_distinguishes_equipment_from_requested_supplies(): void
+    {
+        $this->assertSame(['hp', 'printer', '4101'], CatalogTaxonomy::searchTerms(' HP printer for 4101 '));
+        $this->assertSame(['the'], CatalogTaxonomy::searchTerms('the'));
+        $this->assertSame('06', CatalogTaxonomy::equipmentSearchSegment('HP printers 4101'));
+        $this->assertNull(CatalogTaxonomy::equipmentSearchSegment('HP printer toner'));
+        $this->assertNull(CatalogTaxonomy::equipmentSearchSegment('laptop batteries'));
+        $this->assertNull(CatalogTaxonomy::equipmentSearchSegment('printer router'));
+        $this->assertSame(['router'], CatalogTaxonomy::searchVariants('routers'));
+        $this->assertSame(['scanner', 'imageformula'], CatalogTaxonomy::searchVariants('scanners'));
+    }
+
     public function test_common_storage_abbreviations_are_classified_correctly(): void
     {
         $this->assertSame('Memory & Storage Upgrades', CatalogTaxonomy::inferCategoryName('', 'Samsung 2TB NVMe SSD', ''));

@@ -313,7 +313,7 @@ import { usePricingSettings } from '../../composables/usePricingSettings'
 import { trackSearchTerm, hasTrackingConsent, getSearchProfileTerms, getSearchSuggestions, loadSearchProfile } from '../../services/searchInsights'
 import api from '../../services/api'
 import { buildStoreUrl, getProductImageUrls } from '../../services/runtimeConfig'
-import { buildProductsLocation, parseProductsRouteFilters } from '../../services/productRoute'
+import { buildProductsLocation, parseProductsRouteFilters, resolveCategoryFilterValue } from '../../services/productRoute'
 import { isSupplierOrderable } from '../../services/productAvailability'
 import Navbar from '../../components/Navbar.vue'
 import ProductCard from '../../components/ProductCard.vue'
@@ -380,18 +380,18 @@ const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 100
 const DEFAULT_BROWSE_MAX_PRICE = 0
-const CURATED_CACHE_VERSION = 11
+const CURATED_CACHE_VERSION = 12
 // Bump whenever persisted catalog classification changes. This becomes part of
 // the URL so browsers cannot reuse an older publicly cached catalog response.
-const CATALOG_REQUEST_REVISION = 'image-first-catalog-10000-20260903-4'
+const CATALOG_REQUEST_REVISION = 'strict-equipment-search-20261012-1'
 const ENABLE_SERVER_PREFETCH = true
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
 const PRODUCTS_RESULTS_HARD_TTL_MS = 24 * 60 * 60 * 1000
 const PRODUCTS_RESULTS_CACHE_PREFIX = 'products_results_cache_v17'
 const SIDEBAR_FACETS_CACHE_TTL_MS = 10 * 60 * 1000
-const SIDEBAR_VENDORS_STORAGE_KEY = 'products_sidebar_vendors_v1'
-const SIDEBAR_CATEGORIES_STORAGE_KEY = 'products_sidebar_categories_v1'
+const SIDEBAR_VENDORS_STORAGE_KEY = 'products_sidebar_vendors_v2'
+const SIDEBAR_CATEGORIES_STORAGE_KEY = 'products_sidebar_categories_v2'
 
 // Product responses are too large for localStorage. Clear legacy entries and
 // keep response caching in the bounded in-memory request cache instead.
@@ -1204,7 +1204,11 @@ const filteredProducts = computed(() => {
     })
   }
   
-  return rankProductsByPersonalization(filtered)
+  // Explicit searches and categories must preserve the server's relevance and
+  // merchandising priority instead of being reordered by unrelated history.
+  return searchQuery.value.trim() || filters.categories.length > 0
+    ? filtered
+    : rankProductsByPersonalization(filtered)
 })
 
 const requiresClientSideFiltering = computed(() => {
@@ -1282,7 +1286,10 @@ const paginatedProducts = computed(() => {
       if (cmp !== 0) return mode === 'name_asc' ? cmp : -cmp
       return left.index - right.index
     }
-    // relevance: stock rank first, then personalization order
+    if (searchQuery.value.trim() || currentFilters.value.categories.length > 0) {
+      return left.index - right.index
+    }
+    // General browsing: stock rank first, then personalization order.
     const rankDiff = getStockRank(left.item) - getStockRank(right.item)
     if (rankDiff !== 0) return rankDiff
     return left.index - right.index
@@ -1690,8 +1697,7 @@ const performSearch = async (resetPage = true, background = false) => {
 
       if (currentFilters.value.categories.length > 0) {
         const selectedCategoryName = currentFilters.value.categories[0]
-        const categoryEntry = availableCategories.value.find(c => c.name === selectedCategoryName)
-        params.category = categoryEntry?.value || selectedCategoryName
+        params.category = resolveCategoryFilterValue(selectedCategoryName, availableCategories.value)
       }
 
       const selectedImageStatuses = currentFilters.value.mediaStatuses
@@ -1874,6 +1880,7 @@ const fetchVendors = async () => {
       && !requiresClientForFilters(currentFilters.value)
 
     const vendorParams = {
+      catalog_revision: CATALOG_REQUEST_REVISION,
       curated_it_mix: true,
       hide_zero_price: true,
       catalog_clean: true,
@@ -1899,8 +1906,7 @@ const fetchVendors = async () => {
 
     if (currentFilters.value.categories.length > 0) {
       const selectedCategoryName = currentFilters.value.categories[0]
-      const categoryEntry = availableCategories.value.find(c => c.name === selectedCategoryName)
-      vendorParams.category = categoryEntry?.value || selectedCategoryName
+      vendorParams.category = resolveCategoryFilterValue(selectedCategoryName, availableCategories.value)
     }
 
     const response = await api.get('/vendors', { params: vendorParams })
@@ -2111,8 +2117,7 @@ const prefetchPage = (page) => {
   }
   if (currentFilters.value.categories.length > 0) {
     const selectedCategoryName = currentFilters.value.categories[0]
-    const categoryEntry = availableCategories.value.find(c => c.name === selectedCategoryName)
-    params.category = categoryEntry?.value || selectedCategoryName
+    params.category = resolveCategoryFilterValue(selectedCategoryName, availableCategories.value)
   }
   if (isDefaultBrowse && Number(currentFilters.value.priceMin || 0) <= 0) {
     params.min_price = DEFAULT_BROWSE_MIN_PRICE
@@ -2554,7 +2559,7 @@ watch(
       && !hasLifecycleQuery
       && !hasMediaQuery
 
-    let nextVendors = currentFilters.value.vendors
+    let nextVendors = []
     if (isStandaloneSearch) {
       nextVendors = []
     } else if (hasVendorQuery) {
@@ -2568,14 +2573,14 @@ watch(
       }
     }
 
-    let nextCategories = currentFilters.value.categories
+    let nextCategories = []
     if (isStandaloneSearch) {
       nextCategories = []
     } else if (hasCategoryQuery) {
       nextCategories = newCategory ? [String(newCategory)] : []
     }
 
-    let nextLifecycleStatuses = currentFilters.value.lifecycleStatuses
+    let nextLifecycleStatuses = []
     if (isStandaloneSearch) {
       nextLifecycleStatuses = []
     } else if (hasLifecycleQuery) {
@@ -2584,7 +2589,7 @@ watch(
         : []
     }
 
-    let nextMediaStatuses = currentFilters.value.mediaStatuses
+    let nextMediaStatuses = []
     if (isStandaloneSearch) {
       nextMediaStatuses = []
     } else if (hasMediaQuery) {

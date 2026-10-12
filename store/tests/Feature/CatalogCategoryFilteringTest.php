@@ -23,6 +23,7 @@ class CatalogCategoryFilteringTest extends TestCase
         $pdo->sqliteCreateFunction('regexp', static fn (string $pattern, string $value): int => preg_match('/'.$pattern.'/i', $value), 2);
         $pdo->sqliteCreateFunction('JSON_UNQUOTE', static fn ($value) => $value, 1);
         $pdo->sqliteCreateFunction('GREATEST', static fn (...$values) => max($values), -1);
+        $pdo->sqliteCreateFunction('CONCAT_WS', static fn ($separator, ...$values) => implode($separator, array_filter($values, static fn ($value) => $value !== null)), -1);
         // SQLite raw numeric expressions have no column affinity; bind whole
         // price values as integers to reproduce MySQL numeric comparisons.
         DB::connection()->beforeExecuting(static function (string $sql, array &$bindings): void {
@@ -48,6 +49,7 @@ class CatalogCategoryFilteringTest extends TestCase
             $table->boolean('is_discontinued')->default(false);
             $table->boolean('is_hardware')->default(true);
             $table->boolean('is_storefront_pinned')->default(false);
+            $table->integer('storefront_rank')->nullable();
             $table->integer('quantity')->default(10);
             $table->decimal('base_price')->default(500);
             $table->decimal('supplier_regular_price')->nullable();
@@ -208,5 +210,88 @@ class CatalogCategoryFilteringTest extends TestCase
         $vendors = (new ReflectionMethod(ProductController::class, 'getCuratedDefaultBrowseVendors'))
             ->invoke($controller, 50000, 100.0, null, true, false, 'hardware', '', '01');
         $this->assertSame(['HP' => 1, 'LENOVO' => 1], collect($vendors)->pluck('count', 'vendorName')->sortKeys()->all());
+    }
+
+    private function browse(string $search = '', string $category = ''): array
+    {
+        return (new ReflectionMethod(ProductController::class, 'fetchPriceAvailabilityPageFromDatabaseUncached'))
+            ->invoke(app(ProductController::class), $search, null, null, null, true, 1, 10, [], false, false, 'hardware', $category);
+    }
+
+    public function test_printer_category_rejects_the_production_camera_extender_and_microphone(): void
+    {
+        $printer = Product::create(['product_name' => 'WASP WPL305 TT LABEL PRINTER', 'tdsynnex_product_id' => '1035358', 'category_segment' => '06']);
+        foreach ([
+            'CONNECT FOUR REMOTE DEVICES TO A LOCAL COMPUTER UP TO 330FT AWAY OVER A SINGLE P',
+            'JABRA CAM IQ - CONNECTIVITY TECHNOLOGY: WIRED - 1920 X 1080',
+            'SLX-D+ DIGITAL 2-CHANNEL WIRELESS MICROPHONE',
+        ] as $name) {
+            Product::create(['product_name' => $name, 'category_segment' => '06']);
+        }
+        $result = $this->browse('', '06');
+        $this->assertSame(['1035358'], array_column($result['records'], 'productId'));
+        $this->assertSame(1, $result['total']);
+        $this->assertSame([$printer->id], $this->filtered('06')->pluck('id')->all());
+    }
+
+    public function test_generic_printer_search_finds_equipment_not_supplies_or_description_only_matches(): void
+    {
+        Product::create(['product_name' => 'HP OfficeJet Pro 9135', 'manufacturer' => 'HP', 'category_segment' => '99', 'tdsynnex_product_id' => 'officejet']);
+        Product::create(['product_name' => 'Canon imageCLASS MF654', 'manufacturer' => 'Canon', 'category_segment' => '99', 'tdsynnex_product_id' => 'canon']);
+        Product::create(['product_name' => 'HP LaserJet toner cartridge', 'manufacturer' => 'HP', 'category_segment' => '06']);
+        Product::create(['product_name' => 'USB extender', 'description' => 'Connect printers and scanners remotely', 'category_segment' => '06']);
+        Product::create(['product_name' => 'Jabra camera', 'category_segment' => '06']);
+
+        $this->assertSame(['canon', 'officejet'], array_column($this->browse('printers')['records'], 'productId'));
+        $this->assertSame(['officejet'], array_column($this->browse('HP printers')['records'], 'productId'));
+    }
+
+    public function test_multi_word_search_requires_all_terms_in_results_and_facets(): void
+    {
+        $wanted = Product::create(['product_name' => 'HP LaserJet Pro MFP 4101', 'manufacturer' => 'HP', 'tdsynnex_product_id' => '4101']);
+        Product::create(['product_name' => 'HP OfficeJet printer 9010', 'manufacturer' => 'HP']);
+        Product::create(['product_name' => 'Canon LaserJet 4101 printer', 'manufacturer' => 'Canon']);
+        Product::create(['product_name' => 'HP LaserJet 4101 toner', 'manufacturer' => 'HP']);
+        $result = $this->browse('HP printer 4101');
+        $this->assertSame(['4101'], array_column($result['records'], 'productId'));
+
+        $query = Product::query();
+        (new ReflectionMethod(ProductController::class, 'applySearchFilterToQuery'))
+            ->invoke(app(ProductController::class), $query, 'HP printer 4101');
+        $this->assertSame([$wanted->id], $query->pluck('id')->all());
+    }
+
+    public function test_explicit_consumable_search_and_exact_part_numbers_remain_available(): void
+    {
+        Product::create(['product_name' => 'HP LaserJet 4101 toner cartridge', 'manufacturer' => 'HP', 'tdsynnex_product_id' => 'toner', 'mfg_part_no' => 'W1480A']);
+        Product::create(['product_name' => 'HP LaserJet Pro MFP 4101', 'manufacturer' => 'HP', 'tdsynnex_product_id' => 'printer']);
+        Product::create(['product_name' => 'Canon LaserJet toner', 'manufacturer' => 'Canon']);
+
+        $this->assertSame(['toner'], array_column($this->browse('HP printer toner')['records'], 'productId'));
+        $this->assertSame(['toner'], array_column($this->browse('W1480A')['records'], 'productId'));
+        $this->assertSame([], $this->browse('HP printer toner', '06')['records']);
+    }
+
+    public function test_category_merchandising_priority_leads_images_and_newness_but_not_exact_searches(): void
+    {
+        Product::create(['product_name' => 'Canon printer', 'tdsynnex_product_id' => 'ranked', 'category_segment' => '06', 'storefront_rank' => 1]);
+        Product::create(['product_name' => 'HP printer', 'tdsynnex_product_id' => 'pinned', 'category_segment' => '06', 'is_storefront_pinned' => true]);
+        Product::create(['product_name' => 'Epson printer', 'tdsynnex_product_id' => 'new', 'category_segment' => '06', 'images' => [['imageUrl' => 'https://cdn.example.com/printer.jpg']]]);
+
+        foreach (['06', 'printers-scanners', 'Printers & Scanners'] as $category) {
+            $this->assertSame(['pinned', 'ranked', 'new'], array_column($this->browse('', $category)['records'], 'productId'));
+        }
+        $this->assertSame(['new'], array_column($this->browse('Epson printer', '06')['records'], 'productId'));
+    }
+
+    public function test_search_wildcards_are_literal_and_model_matches_lead_description_matches(): void
+    {
+        Product::create(['product_name' => 'LaserJet W1480A', 'tdsynnex_product_id' => 'model']);
+        Product::create(['product_name' => 'Other item', 'description' => 'Compatible with W1480A', 'tdsynnex_product_id' => 'description', 'images' => [['imageUrl' => 'https://cdn.example.com/other.jpg']]]);
+        Product::create(['product_name' => '100% printer', 'tdsynnex_product_id' => 'percent']);
+        Product::create(['product_name' => '1000 printer', 'tdsynnex_product_id' => 'not-percent']);
+
+        $this->assertSame(['model', 'description'], array_column($this->browse('W1480A')['records'], 'productId'));
+        $this->assertSame(['percent'], array_column($this->browse('100%')['records'], 'productId'));
     }
 }

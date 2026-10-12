@@ -26,7 +26,7 @@
         </div>
         <!-- Category Filter Badges -->
         <div v-for="cat in filters.categories" :key="cat" class="flex items-center gap-1 px-3 py-1 rounded-full text-sm" style="background-color: #cce4f4; color: #2F5597;">
-          <span>{{ cat }}</span>
+          <span>{{ categoryFilterLabel(cat, categories) }}</span>
           <button @click="removeCategory(cat)" class="hover:font-semibold">×</button>
         </div>
         <div v-if="filters.productType" class="flex items-center gap-1 px-3 py-1 rounded-full text-sm" style="background-color: #cce4f4; color: #2F5597;">
@@ -110,8 +110,8 @@
           <div class="facet-section-scroll min-w-0 space-y-2 pr-2" :class="compact ? 'max-h-24' : 'max-h-72'">
             <label v-for="category in filteredCategories" :key="category.name" class="flex min-w-0 items-center gap-3 cursor-pointer" :title="category.name">
               <input 
-                :checked="filters.categories.includes(category.name)" 
-                @change="toggleCategory(category.name)"
+                :checked="filters.categories.some(selection => categoryFilterMatches(category, selection))"
+                @change="toggleCategory(category)"
                 type="radio" 
                 name="category"
                 class="w-4 h-4 rounded-full border-gray-300 cursor-pointer" style="accent-color: #2F5597;"
@@ -246,6 +246,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { categoryFilterLabel, categoryFilterMatches } from '../services/productRoute'
 
 const props = defineProps({
   vendors: {
@@ -451,10 +452,10 @@ const removeVendor = (vendor) => {
 }
 
 const toggleCategory = (category) => {
-  if (filters.value.categories.includes(category)) {
+  if (filters.value.categories.some(selection => categoryFilterMatches(category, selection))) {
     filters.value.categories = []
   } else {
-    filters.value.categories = [category]
+    filters.value.categories = [category.value || category.name]
   }
   applyFilters()
 }

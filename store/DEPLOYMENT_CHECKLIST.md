@@ -68,7 +68,21 @@
   counts must exclude accessories and unavailable equipment. Other categories
   retain their existing tagged and untagged keyword matching.
 - Browse, category-count, menu, vendor and featured-offer caches are versioned
-  for this correction. This backend-only change requires no new frontend build.
+  for this correction. Deploy both PHP changes and the latest frontend build;
+  frontend catalog/menu revisions also invalidate previously cached responses.
+- Printer-category regression checks must reject the mislabelled StarTech USB
+  extender `15325364`, Jabra Cam IQ `15325109`, and wireless microphones. A
+  label printer such as Wasp WPL305 `1035358` is valid equipment.
+- Generic equipment searches (for example `HP printers`) use the same strict
+  type rules. Every meaningful search term is required; `HP printer 4101`
+  must not return unrelated HP models or Canon equipment. Explicit supply
+  searches (`HP printer toner`) and exact part-number searches remain available
+  outside equipment-only category filters.
+- Category browsing honors pinned products and configured storefront rank
+  before image presence/newness. Search/model relevance takes priority over
+  images, stock quantity and personalization. Navbar searches start a fresh
+  search; sidebar categories refine the current search and show readable,
+  selected category names for both code and slug deep links.
 - Categories and recommendations remain usable when local images are missing;
   a neutral placeholder is preferable to an unrelated product photo.
 - Product photos are resolved consistently on the landing, catalog, and detail

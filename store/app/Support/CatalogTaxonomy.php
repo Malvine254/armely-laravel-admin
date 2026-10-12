@@ -50,6 +50,70 @@ class CatalogTaxonomy
         return '(^|[^[:alnum:]])('.implode('|', $phrases).')([^[:alnum:]]|$)';
     }
 
+    /** @return array<string> */
+    public static function searchTerms(string $search): array
+    {
+        $terms = preg_split('/\s+/', mb_strtolower(trim($search))) ?: [];
+        $terms = array_map(static fn (string $term): string => trim($term, " \t\n\r\0\x0B,.;:!?()[]{}\"'"), $terms);
+        $stopWords = ['a', 'an', 'and', 'at', 'by', 'for', 'from', 'in', 'of', 'on', 'the', 'to', 'up', 'with'];
+
+        $meaningful = array_values(array_unique(array_filter($terms, static fn (string $term): bool => $term !== '' && ! in_array($term, $stopWords, true))));
+
+        return $meaningful !== [] ? $meaningful : array_values(array_unique(array_filter($terms, static fn (string $term): bool => $term !== '')));
+    }
+
+    public static function searchCategorySegment(string $term): ?string
+    {
+        return match ($term) {
+            'laptop', 'laptops', 'notebook', 'notebooks' => '01',
+            'desktop', 'desktops', 'workstation', 'workstations' => '02',
+            'monitor', 'monitors', 'display', 'displays' => '03',
+            'network', 'networking', 'router', 'routers', 'switch', 'switches' => '04',
+            'printer', 'printers', 'scanner', 'scanners' => '06',
+            default => null,
+        };
+    }
+
+    /** @return array<string> */
+    public static function searchVariants(string $term): array
+    {
+        return match ($term) {
+            'laptop', 'laptops', 'notebook', 'notebooks',
+            'desktop', 'desktops', 'workstation', 'workstations',
+            'monitor', 'monitors', 'display', 'displays',
+            'printer', 'printers' => self::hardwareCategoryRules(self::searchCategorySegment($term))['include'],
+            'scanner', 'scanners' => ['scanner', 'imageformula'],
+            'router', 'routers' => ['router'],
+            'switch', 'switches' => ['switch'],
+            'network', 'networking' => self::hardwareCategoryRules('04')['include'],
+            default => [$term],
+        };
+    }
+
+    public static function equipmentSearchSegment(string $search): ?string
+    {
+        $terms = self::searchTerms($search);
+        $segment = null;
+        foreach ($terms as $term) {
+            $candidate = self::searchCategorySegment($term);
+            if ($candidate !== null) {
+                if ($segment !== null && $segment !== $candidate) {
+                    return null;
+                }
+                $segment = $candidate;
+            }
+        }
+        if ($segment === null) {
+            return null;
+        }
+        $rules = self::hardwareCategoryRules($segment);
+        if (preg_match('/'.self::keywordPattern(array_merge($rules['exclude'], ['ink', 'supply', 'supplies', 'kit', 'parts'])).'/i', $search)) {
+            return null;
+        }
+
+        return $segment;
+    }
+
     public const REPRESENTATIVE_IMAGE_EXCLUSIONS = [
         'cartridge', 'toner', 'ink', 'ribbon', 'drum', 'printhead', 'paper',
         'replacement', 'refill', 'maintenance kit', 'supply', 'supplies',
