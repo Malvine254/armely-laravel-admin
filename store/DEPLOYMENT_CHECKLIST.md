@@ -94,6 +94,13 @@
   pool. Verify `media/Has%20Reviews` with no reviews: total zero, empty-state
   message and no pagination. Reviewed products remain visible while review
   statistics load. Empty out-of-range pages must not fabricate catalog totals.
+- `VITE_SHOW_IMAGE_FILTERS=true` enables Has Images and No Images in the
+  Reviews & Images sidebar, including counts and selected filter badges.
+  Setting it to false hides both options and removes their selections.
+  Vite flags are build-time settings: run `npm run build` after changing the
+  environment value, then deploy the manifest and generated assets. PHP cache
+  clearing alone does not rebuild this flag. To return No Images products,
+  also enable the backend `STOREFRONT_SHOW_PRODUCTS_WITHOUT_IMAGES` setting.
 - Categories and recommendations remain usable when local images are missing;
   a neutral placeholder is preferable to an unrelated product photo.
 - Product photos are resolved consistently on the landing, catalog, and detail

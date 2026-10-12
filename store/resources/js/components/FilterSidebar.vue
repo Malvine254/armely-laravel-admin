@@ -194,7 +194,7 @@
     <!-- Review Rating Filter -->
     <div v-if="!compact" class="mb-6 pb-6 border-b border-gray-200">
       <button @click="toggleSection('media')" class="flex items-center justify-between w-full mb-3">
-        <h4 class="font-semibold text-gray-900">Review Rating</h4>
+        <h4 class="font-semibold text-gray-900">{{ showImageFilters ? 'Reviews & Images' : 'Review Rating' }}</h4>
         <svg class="w-4 h-4 text-gray-500" :class="{ 'rotate-180': openSections.media }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
         </svg>
@@ -297,7 +297,7 @@ const props = defineProps({
 
 const emit = defineEmits(['filter-change', 'clear-all'])
 const visibleMediaOptions = computed(() => props.mediaOptions.filter(
-  (status) => !['Has Images', 'No Images'].includes(status.name)
+  (status) => props.showImageFilters || !['Has Images', 'No Images'].includes(status.name)
 ))
 const DEFAULT_MIN_PRICE = Number(import.meta.env.VITE_MIN_PRICE ?? 100)
 const DEFAULT_MAX_PRICE = 0
@@ -326,7 +326,7 @@ const syncFromActiveFilters = (source = {}) => {
     categories: Array.isArray(next.categories) ? [...next.categories] : [],
     lifecycleStatuses: Array.isArray(next.lifecycleStatuses) ? [...next.lifecycleStatuses] : [],
     mediaStatuses: Array.isArray(next.mediaStatuses)
-      ? next.mediaStatuses.filter((status) => !['Has Images', 'No Images'].includes(status))
+      ? next.mediaStatuses.filter((status) => props.showImageFilters || !['Has Images', 'No Images'].includes(status))
       : []
   }
 }

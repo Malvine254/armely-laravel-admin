@@ -380,10 +380,10 @@ const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 100
 const DEFAULT_BROWSE_MAX_PRICE = 0
-const CURATED_CACHE_VERSION = 14
+const CURATED_CACHE_VERSION = 15
 // Bump whenever persisted catalog classification changes. This becomes part of
 // the URL so browsers cannot reuse an older publicly cached catalog response.
-const CATALOG_REQUEST_REVISION = 'filtered-pagination-20261012-3'
+const CATALOG_REQUEST_REVISION = 'image-filters-20261012-4'
 const ENABLE_SERVER_PREFETCH = true
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
@@ -792,6 +792,13 @@ const reviewRatingOptions = computed(() => {
     { name: '3 Stars & Up', count: threePlus },
     { name: 'Has Reviews', count: hasReviews },
   ]
+
+  if (SHOW_IMAGE_FILTERS) {
+    options.push(
+      { name: 'Has Images', count: hasImages },
+      { name: 'No Images', count: noImages },
+    )
+  }
 
   return options
 })
