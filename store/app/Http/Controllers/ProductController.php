@@ -291,7 +291,7 @@ class ProductController extends Controller
     /** Popular catalog categories with a representative in-stock product image. */
     public function popularCategories(): JsonResponse
     {
-        $categories = Cache::remember('storefront_popular_categories_v9_representative-images', now()->addHour(), function () {
+        $categories = Cache::remember('storefront_popular_categories_v11_hardware-only', now()->addHour(), function () {
             $popular = [
                 [
                     'name' => 'Laptops & Notebooks', 'label' => 'Laptops', 'slug' => 'laptops-notebooks', 'segments' => ['01'],
@@ -316,9 +316,13 @@ class ProductController extends Controller
                 [
                     'name' => 'Desktops & Workstations', 'label' => 'Desktops', 'slug' => 'desktops-workstations', 'segments' => ['02'],
                     'include' => ['desktop', 'workstation', 'optiplex', 'thinkcentre', 'elitedesk', 'prodesk', 'all-in-one'],
-                    'exclude' => ['cable', 'adapter', 'mount', 'stand', 'memory', 'hard drive', 'keyboard', 'mouse', 'combo', 'webcam', 'headset', 'printer', 'scanner', 'multifunction', 'laserjet', 'inkjet'],
+                    'exclude' => [
+                        'cable', 'adapter', 'mount', 'stand', 'memory', 'hard drive', 'keyboard', 'mouse', 'combo', 'webcam', 'headset',
+                        'printer', 'scanner', 'multifunction', 'laserjet', 'inkjet',
+                        'switch', 'router', 'firewall', 'access point', 'network hub', 'managed', 'unmanaged',
+                        'ethernet', 'gigabit', 'poe', 'sfp', 'kvm', 'nas', 'ups',
+                    ],
                 ],
-                ['name' => 'Software', 'label' => 'Software', 'slug' => 'software', 'product_type' => 'software'],
             ];
 
             return collect($popular)
@@ -330,15 +334,8 @@ class ProductController extends Controller
                         ->where('quantity', '>', 0)
                         ->whereRaw($this->preferredDbPriceSql() . ' > 0');
 
-                    if (($category['product_type'] ?? '') === 'software') {
-                        $query->where('is_hardware', false);
-                    } else {
-                        $query->where('is_hardware', true);
-                        $this->applyPopularCategoryImageFilter(
-                            $query,
-                            (array) ($category['include'] ?? [])
-                        );
-                    }
+                    $query->where('is_hardware', true);
+                    $this->applyPopularCategoryImageFilter($query, $category['include']);
 
                     $products = $query
                         ->withSum('orderLineItems as units_sold', 'quantity')
@@ -360,8 +357,7 @@ class ProductController extends Controller
                         ->orderByDesc('created_at')
                         ->orderByDesc('id')
                         ->lazy(100)
-                        ->filter(fn (Product $product): bool => ($category['product_type'] ?? '') === 'software'
-                            || CatalogTaxonomy::isRepresentativeProduct(
+                        ->filter(fn (Product $product): bool => CatalogTaxonomy::isRepresentativeProduct(
                                 (string) $product->product_name,
                                 $category['include'],
                                 $category['exclude']
@@ -389,8 +385,8 @@ class ProductController extends Controller
                         'name' => $category['name'],
                         'label' => $category['label'],
                         'slug' => $category['slug'],
-                        'category' => array_key_exists('product_type', $category) ? null : $category['name'],
-                        'productType' => $category['product_type'] ?? null,
+                        'category' => $category['name'],
+                        'productType' => null,
                         'segment' => (string) ($category['segments'][0] ?? ''),
                         'imageUrl' => $imageUrl,
                         'productId' => (string) ($product->tdsynnex_sku_no ?? $product->tdsynnex_product_id ?? $product->id),

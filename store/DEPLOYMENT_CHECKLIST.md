@@ -49,6 +49,12 @@
 
 - Popular category photos must come from matching hardware, not consumables,
   accessories, licenses, or ambiguous all-in-one printer products.
+- Desktop image candidates also exclude networking form factors: products
+  such as `CBS110 UNMANAGED 8-PORT GE, DESKTOP, EXT PS` are desktop switches,
+  not desktop computers. Cache version v11 invalidates prior selections.
+- Popular-product cards show only Laptops, Printers, Monitors, Networking and
+  Desktops. The Software card is removed; software catalog access elsewhere
+  is unchanged.
 - Categories and recommendations remain usable when local images are missing;
   a neutral placeholder is preferable to an unrelated product photo.
 - Product photos are resolved consistently on the landing, catalog, and detail

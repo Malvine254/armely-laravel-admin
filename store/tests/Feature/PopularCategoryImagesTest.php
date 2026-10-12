@@ -82,6 +82,38 @@ class PopularCategoryImagesTest extends TestCase
         $this->assertSame('02', $category['segment']);
     }
 
+    public function test_desktop_networking_form_factors_cannot_supply_the_desktop_image(): void
+    {
+        foreach ([
+            'CBS110 UNMANAGED 8-PORT GE, DESKTOP, EXT PS',
+            'Cisco desktop managed switch',
+            'Desktop gigabit Ethernet hub',
+            'Desktop wireless router',
+            'Desktop KVM',
+            'Desktop firewall appliance',
+        ] as $index => $name) {
+            Product::create([
+                'product_name' => $name,
+                'tdsynnex_product_id' => (string) (6077739 + $index),
+                'manufacturer' => 'CISCO SYSTEMS',
+                'quantity' => 1000,
+                'images' => [['imageUrl' => 'https://cdn.example.com/networking.jpg']],
+            ]);
+        }
+        $this->assertNull(collect($this->categories())->firstWhere('slug', 'desktops-workstations'));
+
+        Cache::flush();
+        $desktop = Product::create([
+            'product_name' => 'Lenovo ThinkCentre desktop PC',
+            'tdsynnex_product_id' => '999998873',
+            'quantity' => 5,
+            'images' => [['imageUrl' => 'https://cdn.example.com/real-desktop.jpg']],
+        ]);
+        $category = collect($this->categories())->firstWhere('slug', 'desktops-workstations');
+        $this->assertSame($desktop->tdsynnex_product_id, $category['productId']);
+        $this->assertStringContainsString(base64_encode('https://cdn.example.com/real-desktop.jpg'), $category['imageUrl']);
+    }
+
     public function test_hardware_category_does_not_use_software_with_a_matching_name(): void
     {
         Product::create([
@@ -90,6 +122,19 @@ class PopularCategoryImagesTest extends TestCase
             'images' => [['imageUrl' => 'https://cdn.example.com/software.jpg']],
         ]);
         $this->assertNull(collect($this->categories())->firstWhere('slug', 'desktops-workstations'));
+    }
+
+    public function test_popular_categories_exclude_software_and_keep_the_five_hardware_tiles(): void
+    {
+        foreach (['Lenovo laptop', 'Canon printer', 'Dell monitor', 'Cisco router', 'Lenovo ThinkCentre desktop'] as $name) {
+            Product::create(['product_name' => $name]);
+        }
+        Product::create(['product_name' => 'Business software', 'is_hardware' => false]);
+
+        $this->assertSame(
+            ['Laptops', 'Printers', 'Monitors', 'Networking', 'Desktops'],
+            array_column($this->categories(), 'label')
+        );
     }
 
     public function test_saved_image_paths_are_normalized_only_when_the_file_exists(): void
