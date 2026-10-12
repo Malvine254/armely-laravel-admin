@@ -90,6 +90,10 @@
   retains its configured cap. Availability, stock, discontinuation, minimum
   price, hardware matching and explicit user filters remain enforced; this
   expands visibility of existing rows and does not import new products.
+- Media-filtered totals must count matching products, not the default browse
+  pool. Verify `media/Has%20Reviews` with no reviews: total zero, empty-state
+  message and no pagination. Reviewed products remain visible while review
+  statistics load. Empty out-of-range pages must not fabricate catalog totals.
 - Categories and recommendations remain usable when local images are missing;
   a neutral placeholder is preferable to an unrelated product photo.
 - Product photos are resolved consistently on the landing, catalog, and detail

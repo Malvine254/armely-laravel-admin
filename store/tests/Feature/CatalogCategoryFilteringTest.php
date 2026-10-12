@@ -384,4 +384,39 @@ class CatalogCategoryFilteringTest extends TestCase
         $this->assertFalse($last['has_more']);
         $this->assertSame(['printer-1001', 'printer-1002', 'printer-1003', 'printer-1004', 'printer-1005'], array_column($last['records'], 'productId'));
     }
+
+    public function test_reviews_filter_returns_filtered_totals_even_with_a_populated_default_pool(): void
+    {
+        Schema::create('product_reviews', function (Blueprint $table) {
+            $table->id();
+            $table->string('product_id');
+        });
+        $ids = [];
+        for ($index = 1; $index <= 25; $index++) {
+            $ids[] = Product::create([
+                'product_name' => 'HP printer '.$index,
+                'tdsynnex_product_id' => 'printer-'.$index,
+                'tdsynnex_sku_no' => 'sku-'.$index,
+                'category_segment' => '06',
+            ])->id;
+        }
+        Cache::put('storefront_capped_product_ids_v8', $ids, 1800);
+        $method = new ReflectionMethod(ProductController::class, 'fetchPriceAvailabilityPageFromDatabaseUncached');
+        $controller = app(ProductController::class);
+        foreach ([1, 3] as $page) {
+            $result = $method->invoke($controller, '', null, null, null, true, $page, 10, [], true, true, 'hardware', '', 'Has Reviews');
+            $this->assertSame([], $result['records']);
+            $this->assertSame(0, $result['total']);
+            $this->assertFalse($result['has_more']);
+        }
+        Cache::flush();
+        DB::table('product_reviews')->insert([['product_id' => 'printer-1'], ['product_id' => 'sku-2']]);
+        $result = $method->invoke($controller, '', null, null, null, true, 1, 10, [], true, true, 'hardware', '', 'Has Reviews');
+        $this->assertSame(2, $result['total']);
+        $this->assertCount(2, $result['records']);
+        $this->assertFalse($result['has_more']);
+        $beyond = $method->invoke($controller, '', null, null, null, true, 3, 10, [], true, true, 'hardware', '', 'Has Reviews');
+        $this->assertSame([], $beyond['records']);
+        $this->assertSame(2, $beyond['total']);
+    }
 }

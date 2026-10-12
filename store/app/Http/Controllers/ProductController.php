@@ -1022,7 +1022,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 32,
+                'v' => 33,
                 'price_version' => Cache::get('catalog:price_version', '1'),
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
@@ -1109,7 +1109,7 @@ class ProductController extends Controller
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
         $cappedProductIds = null;
 
-        if ($curatedItMix && empty($search) && trim($category) === '' && empty($selectedVendors)) {
+        if ($curatedItMix && empty($search) && trim($category) === '' && empty($selectedVendors) && trim($media) === '') {
             $cappedProductIds = $this->storefrontCappedProductIds();
             if (empty($cappedProductIds)) {
                 return [
@@ -1156,7 +1156,8 @@ class ProductController extends Controller
             && empty($search)
             && empty($selectedVendors)
             && empty($billingModels)
-            && empty($category);
+            && empty($category)
+            && trim($media) === '';
 
         if (!empty($selectedVendors)) {
             // Vendor scope is handled below in the selectedVendors block.
@@ -1313,7 +1314,7 @@ class ProductController extends Controller
             $this->applyProductImageFilter($query, $filterHasImages);
         }
 
-        if (in_array('Has Reviews', $selectedMedia, true) && Schema::hasTable('product_reviews')) {
+        if (in_array('Has Reviews', $selectedMedia, true)) {
             $query->whereExists(function ($reviewQuery) {
                 $reviewQuery
                     ->selectRaw('1')
@@ -1446,7 +1447,7 @@ class ProductController extends Controller
         int $currentCount,
         bool $hasMore
     ): int {
-        if (!$hasMore) {
+        if (!$hasMore && $currentCount > 0) {
             return (($currentPage - 1) * $perPage) + $currentCount;
         }
 
@@ -1460,7 +1461,7 @@ class ProductController extends Controller
         });
 
         // Ensure total is at least as large as what we've already seen on this page.
-        $minimum = ($currentPage * $perPage) + 1;
+        $minimum = $hasMore ? ($currentPage * $perPage) + 1 : 0;
 
         return max($total, $minimum);
     }

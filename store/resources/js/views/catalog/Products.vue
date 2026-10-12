@@ -137,7 +137,7 @@
             </div>
 
             <!-- Empty State -->
-            <div v-if="totalProducts === 0" class="bg-white rounded-xl border border-gray-200 px-5 py-9 sm:px-8">
+            <div v-if="visibleProductsCount === 0" class="bg-white rounded-xl border border-gray-200 px-5 py-9 sm:px-8">
               <div class="text-center">
               <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
@@ -206,7 +206,7 @@
             </div>
 
             <!-- Pagination -->
-            <div v-if="totalPages > 1" class="mt-8 flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-4">
+            <div v-if="visibleProductsCount > 0 && totalPages > 1" class="mt-8 flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-4">
               <p class="whitespace-nowrap text-sm font-medium text-slate-600">{{ visibleProductsRangeLabel }}</p>
               <div ref="paginationRow" class="flex w-full flex-nowrap items-center justify-center gap-1.5 overflow-hidden sm:gap-2">
               <!-- Previous Button -->
@@ -380,10 +380,10 @@ const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 100
 const DEFAULT_BROWSE_MAX_PRICE = 0
-const CURATED_CACHE_VERSION = 13
+const CURATED_CACHE_VERSION = 14
 // Bump whenever persisted catalog classification changes. This becomes part of
 // the URL so browsers cannot reuse an older publicly cached catalog response.
-const CATALOG_REQUEST_REVISION = 'full-category-catalog-20261012-2'
+const CATALOG_REQUEST_REVISION = 'filtered-pagination-20261012-3'
 const ENABLE_SERVER_PREFETCH = true
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
@@ -1198,7 +1198,7 @@ const filteredProducts = computed(() => {
         if (status === '5 Stars') return stats.average >= 4.5
         if (status === '4 Stars & Up') return stats.average >= 4
         if (status === '3 Stars & Up') return stats.average >= 3
-        if (status === 'Has Reviews') return stats.total > 0
+        if (status === 'Has Reviews') return serverPaged.value || stats.total > 0
         return false
       })
     })
@@ -2119,6 +2119,9 @@ const prefetchPage = (page) => {
     const selectedCategoryName = currentFilters.value.categories[0]
     params.category = resolveCategoryFilterValue(selectedCategoryName, availableCategories.value)
   }
+  const selectedMedia = currentFilters.value.mediaStatuses
+    .filter(status => ['Has Images', 'No Images', 'Has Reviews'].includes(status))
+  if (selectedMedia.length > 0) params.media = selectedMedia.join(',')
   if (isDefaultBrowse && Number(currentFilters.value.priceMin || 0) <= 0) {
     params.min_price = DEFAULT_BROWSE_MIN_PRICE
   }
