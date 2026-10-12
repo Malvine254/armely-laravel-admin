@@ -42,6 +42,11 @@ Ad hoc PHP diagnostics and one-off verification scripts should live in `test_php
 - Decode stored entity-encoded content titles with `App\Support\EmailText::decode`, then let Blade escape the result. Never render decoded content as raw HTML.
 - After deployment, clear compiled views with `php artisan view:clear` and request a new download email to verify the production file path and link.
 
+## Blog article styling
+
+- Public blog content uses `public/css/blog-modern.css`. Blue table headers (including legacy first-row headers) retain white text and a dark-blue background on hover; the pale hover highlight applies only to ordinary data rows.
+- Keep nested header text and links white in both normal and hover states so saved article markup stays readable.
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.

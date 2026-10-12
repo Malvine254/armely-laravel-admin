@@ -1533,7 +1533,7 @@
     background: #f8fbff !important;
 }
 
-.blog-modern-page .blog-text-content.blog-system-content-forced tbody tr:hover td {
+.blog-modern-page .blog-text-content.blog-system-content-forced tbody tr:not(:first-child):hover td {
     background: #f1f6ff !important;
 }
 
@@ -1692,12 +1692,7 @@
     border-bottom: 0 !important;
 }
 
-.blog-modern-page .blog-text-content.blog-system-content-forced thead th,
-.blog-modern-page .blog-text-content.blog-system-content-forced thead td,
-.blog-modern-page .blog-text-content.blog-system-content-forced tbody tr:first-child > th,
-.blog-modern-page .blog-text-content.blog-system-content-forced tbody tr:first-child > td,
-.blog-modern-page .blog-text-content.blog-system-content-forced table > tr:first-child > th,
-.blog-modern-page .blog-text-content.blog-system-content-forced table > tr:first-child > td {
+.blog-modern-page .blog-text-content.blog-system-content-forced :is(thead th, thead td, tbody tr:first-child > th, tbody tr:first-child > td, table > tr:first-child > th, table > tr:first-child > td) {
     background: #2f5597 !important;
     color: #ffffff !important;
     font-weight: 850 !important;
@@ -1705,10 +1700,13 @@
     border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
-.blog-modern-page .blog-text-content.blog-system-content-forced thead th *,
-.blog-modern-page .blog-text-content.blog-system-content-forced thead td *,
-.blog-modern-page .blog-text-content.blog-system-content-forced tbody tr:first-child > th *,
-.blog-modern-page .blog-text-content.blog-system-content-forced tbody tr:first-child > td * {
+.blog-modern-page .blog-text-content.blog-system-content-forced :is(thead th, thead td, tbody tr:first-child > th, tbody tr:first-child > td, table > tr:first-child > th, table > tr:first-child > td) * {
+    color: #ffffff !important;
+}
+
+.blog-modern-page .blog-text-content.blog-system-content-forced :is(thead tr, tbody tr:first-child, table > tr:first-child):hover > th,
+.blog-modern-page .blog-text-content.blog-system-content-forced :is(thead tr, tbody tr:first-child, table > tr:first-child):hover > td {
+    background: #1e3a6d !important;
     color: #ffffff !important;
 }
 
@@ -1720,7 +1718,7 @@
     background: #f6f9ff !important;
 }
 
-.blog-modern-page .blog-text-content.blog-system-content-forced tbody tr:hover td {
+.blog-modern-page .blog-text-content.blog-system-content-forced tbody tr:not(:first-child):hover td {
     background: #edf4ff !important;
 }
 
