@@ -220,11 +220,13 @@ class ProductController extends Controller
             ['label' => 'Servers & Storage', 'segment' => '05'],
         ];
 
-        $products = Cache::remember('storefront_featured_offers_v5', now()->addMinutes(15), function () use ($categories) {
+        $products = Cache::remember('storefront_featured_offers_v6_strict-hardware', now()->addMinutes(15), function () use ($categories) {
             return collect($categories)->map(function (array $category) {
                 $product = Product::query()
                     ->select('products.*')
-                    ->where('category_segment', $category['segment'])
+                    ->where(function ($query) use ($category) {
+                        $this->applyCategorySegmentFilterToQuery($query, $category['segment']);
+                    })
                     ->where('is_available', true)
                     ->where('is_discontinued', false)
                     ->where('is_on_sale', true)
@@ -291,43 +293,31 @@ class ProductController extends Controller
     /** Popular catalog categories with a representative in-stock product image. */
     public function popularCategories(): JsonResponse
     {
-        $categories = Cache::remember('storefront_popular_categories_v12_preferred-desktop', now()->addHour(), function () {
+        $categories = Cache::remember('storefront_popular_categories_v13_strict-hardware', now()->addHour(), function () {
             $popular = [
                 [
                     'name' => 'Laptops & Notebooks', 'label' => 'Laptops', 'slug' => 'laptops-notebooks', 'segments' => ['01'],
-                    'include' => ['laptop', 'notebook', 'chromebook', 'macbook'],
-                    'exclude' => ['case', 'sleeve', 'bag', 'dock', 'adapter', 'battery', 'screen protector'],
                 ],
                 [
                     'name' => 'Printers & Scanners', 'label' => 'Printers', 'slug' => 'printers-scanners', 'segments' => ['06'],
-                    'include' => ['printer', 'multifunction', 'laserjet', 'inkjet', 'imageformula', 'document scanner'],
-                    'exclude' => ['cartridge', 'toner', 'ink bottle', 'maintenance kit', 'paper tray', 'printhead'],
                 ],
                 [
                     'name' => 'Monitors & Displays', 'label' => 'Monitors', 'slug' => 'monitors-displays', 'segments' => ['03'],
-                    'include' => ['monitor', 'display'],
-                    'exclude' => ['cable', 'adapter', 'mount', 'stand', 'arm', 'filter', 'privacy', 'shelf'],
                 ],
                 [
                     'name' => 'Networking', 'label' => 'Networking', 'slug' => 'networking', 'segments' => ['04'],
-                    'include' => ['network switch', 'managed switch', 'router', 'firewall', 'access point', 'wireless ap'],
-                    'exclude' => ['cable', 'adapter', 'license', 'subscription', 'mount', 'module', 'antenna'],
                 ],
                 [
                     'name' => 'Desktops & Workstations', 'label' => 'Desktops', 'slug' => 'desktops-workstations', 'segments' => ['02'],
                     'preferred_product_id' => '15349206',
-                    'include' => ['desktop', 'workstation', 'optiplex', 'thinkcentre', 'elitedesk', 'prodesk', 'all-in-one'],
-                    'exclude' => [
-                        'cable', 'adapter', 'mount', 'stand', 'memory', 'hard drive', 'keyboard', 'mouse', 'combo', 'webcam', 'headset',
-                        'printer', 'scanner', 'multifunction', 'laserjet', 'inkjet',
-                        'switch', 'router', 'firewall', 'access point', 'network hub', 'managed', 'unmanaged',
-                        'ethernet', 'gigabit', 'poe', 'sfp', 'kvm', 'nas', 'ups',
-                    ],
                 ],
             ];
 
             return collect($popular)
                 ->map(function (array $category): ?array {
+                    $rules = CatalogTaxonomy::hardwareCategoryRules($category['segments'][0]);
+                    $category['include'] = $rules['include'];
+                    $category['exclude'] = $rules['exclude'];
                     $query = Product::query()
                         ->select('products.*')
                         ->where('is_available', true)
@@ -1032,7 +1022,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 29,
+                'v' => 30,
                 'price_version' => Cache::get('catalog:price_version', '1'),
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
@@ -2550,17 +2540,7 @@ class ProductController extends Controller
         }
 
         $category = trim((string) ($filters['category'] ?? ''));
-        if ($category !== '') {
-            $segments = array_values(array_filter(
-                array_map('trim', explode(',', $category)),
-                static fn (string $seg): bool => (bool) preg_match('/^\d{2}$/', $seg)
-            ));
-            if (count($segments) === 1) {
-                $query->where('category_segment', $segments[0]);
-            } elseif (count($segments) > 1) {
-                $query->whereIn('category_segment', $segments);
-            }
-        }
+        $this->applyCategorySegmentFilterToQuery($query, $category);
 
         $requestedSearch = trim((string) ($filters['search'] ?? ''));
         if ($requestedSearch !== '') {
@@ -2690,7 +2670,7 @@ class ProductController extends Controller
                     $vendorCacheKey = sprintf(
                         'pa_vendor_counts:%s',
                         md5(json_encode([
-                            'v' => 3,
+                            'v' => 4,
                             'curated_it_mix' => $curatedItMix,
                             'min_price' => $minPrice,
                             'max_price' => $maxPrice,
@@ -2760,7 +2740,7 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v15:pinned-storefront-cap', 1800, function () {
+            $data = Cache::remember('menu_categories:v16:strict-hardware', 1800, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -2787,54 +2767,36 @@ class ProductController extends Controller
                     ->all();
 
                 $segmentsWithProducts = [];
-                if (!empty($parentSegments)) {
-                    $segmentCountsQuery = Product::query()
-                        ->whereIn('id', $cappedProductIds)
-                        ->where('vendor_id', 'TD SYNNEX')
-                        ->whereIn('category_segment', $parentSegments);
-                    $this->applySidebarFacetProductFilters(
-                        $segmentCountsQuery,
-                        true,
-                        self::STOREFRONT_MIN_PRICE,
-                        null,
-                        true,
-                        'hardware'
-                    );
-                    $segmentCounts = $segmentCountsQuery
-                        ->selectRaw('category_segment, COUNT(*) as cnt')
-                        ->groupBy('category_segment')
-                        ->get();
-
-                    foreach ($segmentCounts as $row) {
-                        if ((int) $row->cnt > 0) {
-                            $segmentsWithProducts[(string) $row->category_segment] = true;
-                        }
-                    }
-                }
-
+                $segmentCounts = [];
                 $manufacturersBySegment = [];
-                if (!empty($parentSegments)) {
+                foreach ($parentSegments as $segment) {
                     $manufacturerQuery = Product::query()
                         ->whereIn('id', $cappedProductIds)
-                        ->where('vendor_id', 'TD SYNNEX')
-                        ->whereIn('category_segment', $parentSegments)
-                        ->whereNotNull('manufacturer')
-                        ->where('manufacturer', '<>', '');
+                        ->where('vendor_id', 'TD SYNNEX');
                     $this->applySidebarFacetProductFilters(
                         $manufacturerQuery,
                         true,
                         self::STOREFRONT_MIN_PRICE,
                         null,
                         true,
-                        'hardware'
+                        'hardware',
+                        '',
+                        [],
+                        $segment
                     );
+                    $count = (clone $manufacturerQuery)->count();
+                    $segmentCounts[$segment] = $count;
+                    if ($count > 0) {
+                        $segmentsWithProducts[$segment] = true;
+                    }
                     $manufacturerRows = $manufacturerQuery
-                        ->selectRaw('category_segment, manufacturer, COUNT(*) as product_count')
-                        ->groupBy('category_segment', 'manufacturer')
+                        ->whereNotNull('manufacturer')
+                        ->where('manufacturer', '<>', '')
+                        ->selectRaw('manufacturer, COUNT(*) as product_count')
+                        ->groupBy('manufacturer')
                         ->get();
 
                     foreach ($manufacturerRows as $row) {
-                        $segment = trim((string) $row->category_segment);
                         $name = trim((string) $row->manufacturer);
 
                         if ($segment === '' || $name === '') {
@@ -2850,16 +2812,15 @@ class ProductController extends Controller
                         }
                         $manufacturersBySegment[$segment][$canonicalName]['count'] += (int) $row->product_count;
                     }
+                }
+                foreach ($manufacturersBySegment as $segment => $rows) {
+                    $rows = array_values($rows);
+                    usort($rows, function ($left, $right) {
+                        return [-$left['count'], $left['name']]
+                            <=> [-$right['count'], $right['name']];
+                    });
 
-                    foreach ($manufacturersBySegment as $segment => $rows) {
-                        $rows = array_values($rows);
-                        usort($rows, function ($left, $right) {
-                            return [-$left['count'], $left['name']]
-                                <=> [-$right['count'], $right['name']];
-                        });
-
-                        $manufacturersBySegment[$segment] = $rows;
-                    }
+                    $manufacturersBySegment[$segment] = $rows;
                 }
 
                 return $parents
@@ -2870,7 +2831,7 @@ class ProductController extends Controller
                     ->map(function ($cat) use ($manufacturersBySegment, $segmentCounts) {
                         $catSegment = trim((string) $cat->segment_code);
                         $manufacturers = collect($manufacturersBySegment[$catSegment] ?? [])->unique('name')->values();
-                        $categoryCount = (int) optional($segmentCounts->firstWhere('category_segment', $catSegment))->cnt;
+                        $categoryCount = (int) ($segmentCounts[$catSegment] ?? 0);
 
                         return [
                             'id' => $cat->id,
@@ -2912,8 +2873,8 @@ class ProductController extends Controller
     }
 
     /**
-     * Return category group counts based on keyword matching against product_name + description.
-     * Results are cached for 1 hour since the keyword definitions are static.
+     * Return category counts using the same matching rules as catalog browsing.
+     * Results are cached for 30 minutes.
      */
     public function categories(): JsonResponse
     {
@@ -2931,7 +2892,7 @@ class ProductController extends Controller
             $cacheKey = sprintf(
                 'pa_category_counts:%s',
                 md5(json_encode([
-                    'v' => 4,
+                    'v' => 5,
                     'hide_zero' => $hideZero,
                     'min_price' => $minPrice,
                     'max_price' => $maxPrice,
@@ -2976,7 +2937,6 @@ class ProductController extends Controller
         array $selectedVendors = []
     ): array {
         $curatedCategories = CatalogTaxonomy::curatedCategories();
-        $segmentToName = [];
         $valueByName = [];
         $countsByName = [];
 
@@ -2984,11 +2944,6 @@ class ProductController extends Controller
             $name = (string) $curatedCategory['name'];
             $segments = array_values(array_filter((array) ($curatedCategory['segment_codes'] ?? [])));
             $valueByName[$name] = implode(',', $segments);
-            $countsByName[$name] = 0;
-
-            foreach ($segments as $segment) {
-                $segmentToName[(string) $segment] = $name;
-            }
         }
 
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
@@ -2999,25 +2954,11 @@ class ProductController extends Controller
         $query->whereIn('id', $cappedProductIds);
         $this->applySidebarFacetProductFilters($query, $hideZero, $minPrice, $maxPrice, $catalogClean, $productType, $search, $selectedVendors);
 
-        // Group by denormalized category_segment column (first 2 chars of UNSPSC categoryCode)
-        $rows = $query
-            ->selectRaw("category_segment as segment, COUNT(*) as cnt")
-            ->where('category_segment', '<>', '')
-            ->whereNotNull('category_segment')
-            ->groupBy('category_segment')
-            ->orderByDesc('cnt')
-            ->get();
-
         $result = [];
-        foreach ($rows as $row) {
-            $seg = (string) $row->segment;
-            $cnt = (int) $row->cnt;
-            $name = $segmentToName[$seg] ?? null;
-            if ($name === null) {
-                continue;
-            }
-
-            $countsByName[$name] = ($countsByName[$name] ?? 0) + $cnt;
+        foreach ($valueByName as $name => $value) {
+            $categoryQuery = clone $query;
+            $this->applyCategorySegmentFilterToQuery($categoryQuery, $value);
+            $countsByName[$name] = $categoryQuery->count();
         }
 
         foreach ($countsByName as $name => $count) {
@@ -3262,6 +3203,16 @@ class ProductController extends Controller
         ));
 
         if (empty($segments)) {
+            $name = CatalogTaxonomy::normalizeCategoryName($category);
+            foreach (CatalogTaxonomy::curatedCategories() as $definition) {
+                if ($definition['name'] === $name) {
+                    $segments = $definition['segment_codes'];
+                    break;
+                }
+            }
+        }
+
+        if (empty($segments)) {
             $menuCategory = \App\Models\Category::query()
                 ->whereNull('parent_id')
                 ->where(function ($q) use ($category) {
@@ -3282,38 +3233,36 @@ class ProductController extends Controller
             return;
         }
 
-        // Collect product_name keywords for the matched segments.
-        // These are only applied as a fallback for products that have NO segment code yet
-        // (null / empty) — products already tagged with a different segment are intentionally
-        // excluded so accessories like "Monitor Shelf" don't bleed into Monitors & Displays.
-        $keywordLikes = [];
-        foreach (CatalogTaxonomy::curatedCategories() as $cat) {
-            if (!empty(array_intersect($cat['segment_codes'], $segments))) {
-                foreach ($cat['keywords'] as $kw) {
-                    if (strlen($kw) >= 5) { // skip very short / generic words
-                        $keywordLikes[] = '%' . strtolower($kw) . '%';
-                    }
-                }
-            }
-        }
-
-        $query->where(function ($q) use ($segments, $keywordLikes) {
-            // Primary: correct segment code.
-            if (count($segments) === 1) {
-                $q->where('category_segment', $segments[0]);
-            } else {
-                $q->whereIn('category_segment', $segments);
-            }
-            // Fallback: product has no segment yet AND its name matches a category keyword.
-            // Restricting to untagged rows prevents cross-category bleed-through.
-            if (!empty($keywordLikes)) {
-                $q->orWhere(function ($inner) use ($keywordLikes) {
-                    $inner->whereRaw("COALESCE(category_segment, '') = ''");
-                    $inner->where(function ($kq) use ($keywordLikes) {
-                        foreach ($keywordLikes as $like) {
-                            $kq->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like]);
+        $query->where(function ($categories) use ($segments): void {
+            foreach ($segments as $segment) {
+                $categories->orWhere(function ($products) use ($segment): void {
+                    $rules = CatalogTaxonomy::hardwareCategoryRules($segment);
+                    if ($rules === null) {
+                        $products->where('category_segment', $segment);
+                        $keywords = [];
+                        foreach (CatalogTaxonomy::curatedCategories() as $definition) {
+                            if (in_array($segment, $definition['segment_codes'], true)) {
+                                $keywords = array_values(array_filter($definition['keywords'], static fn (string $keyword): bool => strlen($keyword) >= 5));
+                                break;
+                            }
                         }
-                    });
+                        if ($keywords !== []) {
+                            $products->orWhere(function ($untagged) use ($keywords): void {
+                                $untagged->whereRaw("COALESCE(category_segment, '') = ''")
+                                    ->where(function ($names) use ($keywords): void {
+                                        foreach ($keywords as $keyword) {
+                                            $names->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", ['%' . strtolower($keyword) . '%']);
+                                        }
+                                    });
+                            });
+                        }
+                        return;
+                    }
+                    // Stored segments can be wrong; hardware names must affirm the type
+                    // and must not describe supplies, services or accessories.
+                    $products->where('is_hardware', true)
+                        ->whereRaw("LOWER(COALESCE(product_name, '')) REGEXP ?", [CatalogTaxonomy::keywordPattern($rules['include'])])
+                        ->whereRaw("LOWER(COALESCE(product_name, '')) NOT REGEXP ?", [CatalogTaxonomy::keywordPattern($rules['exclude'])]);
                 });
             }
         });
@@ -3429,7 +3378,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_default_browse_vendors:%s',
             md5(json_encode([
-                'v' => 3,
+                'v' => 4,
                 'min_price' => $minPrice,
                 'max_price' => $maxPrice,
                 'hide_zero' => $hideZero,

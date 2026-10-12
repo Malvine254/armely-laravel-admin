@@ -40,6 +40,16 @@ class CatalogTaxonomyTest extends TestCase
         $this->assertNotSame('Memory & Storage Upgrades', CatalogTaxonomy::inferCategoryName('', 'Programmable conference camera', ''));
     }
 
+    public function test_hardware_patterns_match_phrases_and_plurals_without_word_fragments(): void
+    {
+        $this->assertSame(1, preg_match('/'.CatalogTaxonomy::keywordPattern(['access point']).'/i', 'Wireless ACCESS-POINTS'));
+        $this->assertSame(1, preg_match('/'.CatalogTaxonomy::keywordPattern(['case', 'cable']).'/i', 'Notebook cases'));
+        $this->assertSame(0, preg_match('/'.CatalogTaxonomy::keywordPattern(['monitor', 'arm']).'/i', 'Samsung monitoring software'));
+        $this->assertFalse(CatalogTaxonomy::isRepresentativeProduct('Printer toner cartridges', ['printer'], ['cartridge']));
+        $this->assertFalse(CatalogTaxonomy::isRepresentativeProduct('Notebook cases', ['notebook'], ['case']));
+        $this->assertNull(CatalogTaxonomy::hardwareCategoryRules('05'));
+    }
+
     public function test_common_storage_abbreviations_are_classified_correctly(): void
     {
         $this->assertSame('Memory & Storage Upgrades', CatalogTaxonomy::inferCategoryName('', 'Samsung 2TB NVMe SSD', ''));

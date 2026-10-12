@@ -51,7 +51,7 @@
   accessories, licenses, or ambiguous all-in-one printer products.
 - Desktop image candidates also exclude networking form factors: products
   such as `CBS110 UNMANAGED 8-PORT GE, DESKTOP, EXT PS` are desktop switches,
-  not desktop computers. Cache version v12 invalidates prior selections.
+  not desktop computers. Cache version v13 invalidates prior selections.
 - The Desktops card prefers Lenovo product `15349206` (TC Neo 50s Gen 6)
   and its catalog image. If it is unavailable or its local image is missing,
   selection falls back to another valid desktop. The card still browses the
@@ -59,6 +59,16 @@
 - Popular-product cards show only Laptops, Printers, Monitors, Networking and
   Desktops. The Software card is removed; software catalog access elsewhere
   is unchanged.
+- Those five browse filters validate hardware product names against shared
+  equipment and accessory/supply rules instead of trusting supplier segment
+  tags. Mislabelled real equipment remains discoverable; laptop bags/docks,
+  monitor arms, printer toner/trays and desktop switches do not qualify.
+- Category results, category counts, brand menus, related products and featured
+  offers use the same matching rules. Check both category codes and menu slugs;
+  counts must exclude accessories and unavailable equipment. Other categories
+  retain their existing tagged and untagged keyword matching.
+- Browse, category-count, menu, vendor and featured-offer caches are versioned
+  for this correction. This backend-only change requires no new frontend build.
 - Categories and recommendations remain usable when local images are missing;
   a neutral placeholder is preferable to an unrelated product photo.
 - Product photos are resolved consistently on the landing, catalog, and detail

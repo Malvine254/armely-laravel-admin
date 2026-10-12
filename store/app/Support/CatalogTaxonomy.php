@@ -4,6 +4,52 @@ namespace App\Support;
 
 class CatalogTaxonomy
 {
+    /** @return array{include:array<string>,exclude:array<string>}|null */
+    public static function hardwareCategoryRules(string $segment): ?array
+    {
+        $accessories = ['replacement', 'refill', 'warranty', 'support', 'license', 'subscription', 'service', 'software', 'accessory', 'accessories', 'care pack', 'protection plan'];
+        $rules = [
+            '01' => [
+                'include' => ['laptop', 'notebook', 'ultrabook', 'chromebook', 'macbook', 'thinkpad', 'elitebook', 'probook', 'zbook', 'latitude', 'travelmate', 'zenbook', 'vivobook'],
+                'exclude' => ['case', 'sleeve', 'bag', 'dock', 'docking', 'cable', 'adapter', 'battery', 'batteries', 'charger', 'screen protector', 'privacy filter', 'stand', 'mount', 'keyboard', 'memory module', 'memory upgrade'],
+            ],
+            '02' => [
+                'include' => ['desktop', 'workstation', 'optiplex', 'thinkcentre', 'elitedesk', 'prodesk', 'all-in-one', 'aio pc', 'mini pc', 'mac mini', 'mac pro'],
+                'exclude' => ['cable', 'adapter', 'mount', 'stand', 'memory module', 'memory upgrade', 'hard drive', 'keyboard', 'mouse', 'combo', 'webcam', 'headset', 'printer', 'scanner', 'multifunction', 'laserjet', 'inkjet', 'switch', 'router', 'firewall', 'access point', 'hub', 'managed', 'unmanaged', 'poe', 'sfp', 'kvm', 'nas', 'ups', 'mobile workstation', 'laptop', 'notebook', 'zbook'],
+            ],
+            '03' => [
+                'include' => ['monitor', 'display', 'ultrasharp'],
+                'exclude' => ['cable', 'adapter', 'mount', 'stand', 'arm', 'filter', 'privacy', 'shelf', 'replacement screen', 'laptop', 'notebook', 'desktop', 'workstation', 'tablet', 'projector', 'switch'],
+            ],
+            '04' => [
+                'include' => ['switch', 'router', 'firewall', 'access point', 'wireless ap', 'network hub', 'cbs110', 'cbs250', 'cbs350'],
+                'exclude' => ['cable', 'adapter', 'mount', 'module', 'antenna', 'power supply', 'kvm', 'keyboard', 'mouse', 'nintendo', 'gaming', 'console'],
+            ],
+            '06' => [
+                'include' => ['printer', 'scanner', 'multifunction', 'mfp', 'laserjet', 'inkjet', 'imageformula', 'deskjet', 'officejet', 'lj pro', 'ecosys', 'imageclass', 'bizhub', 'plotter'],
+                'exclude' => ['cartridge', 'toner', 'ink bottle', 'ink cartridge', 'ribbon', 'drum', 'printhead', 'paper', 'tray', 'maintenance kit', 'fuser', 'roller', 'cable', 'adapter', 'stand'],
+            ],
+        ];
+        if (! isset($rules[$segment])) {
+            return null;
+        }
+        $rules[$segment]['exclude'] = array_merge($accessories, $rules[$segment]['exclude']);
+
+        return $rules[$segment];
+    }
+
+    /** @param array<string> $keywords */
+    public static function keywordPattern(array $keywords): string
+    {
+        $phrases = array_map(static function (string $keyword): string {
+            $words = explode(' ', self::normalizedSearchText($keyword));
+
+            return implode('[^[:alnum:]]+', array_map(static fn (string $word): string => preg_quote($word, '/'), $words)).'s?';
+        }, $keywords);
+
+        return '(^|[^[:alnum:]])('.implode('|', $phrases).')([^[:alnum:]]|$)';
+    }
+
     public const REPRESENTATIVE_IMAGE_EXCLUSIONS = [
         'cartridge', 'toner', 'ink', 'ribbon', 'drum', 'printhead', 'paper',
         'replacement', 'refill', 'maintenance kit', 'supply', 'supplies',
@@ -12,25 +58,11 @@ class CatalogTaxonomy
 
     public static function isRepresentativeProduct(string $name, array $include, array $exclude): bool
     {
-        $text = ' ' . self::normalizedSearchText($name) . ' ';
-        $matches = static fn (string $keyword): bool => str_contains(
-            $text,
-            ' ' . self::normalizedSearchText($keyword) . ' '
-        );
-
-        foreach (array_merge(self::REPRESENTATIVE_IMAGE_EXCLUSIONS, $exclude) as $keyword) {
-            if ($matches($keyword)) {
-                return false;
-            }
+        if (preg_match('/'.self::keywordPattern(array_merge(self::REPRESENTATIVE_IMAGE_EXCLUSIONS, $exclude)).'/i', $name)) {
+            return false;
         }
 
-        foreach ($include as $keyword) {
-            if ($matches($keyword)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $include !== [] && (bool) preg_match('/'.self::keywordPattern($include).'/i', $name);
     }
 
     /**
@@ -77,7 +109,7 @@ class CatalogTaxonomy
      */
     public static function allowedCategoryNames(): array
     {
-        return array_map(static fn(array $item) => $item['name'], self::curatedCategories());
+        return array_map(static fn (array $item) => $item['name'], self::curatedCategories());
     }
 
     public static function normalizeCategoryName(string $value): ?string
@@ -107,7 +139,7 @@ class CatalogTaxonomy
             return $normalizedSource;
         }
 
-        $haystack = self::normalizedSearchText($sourceCategoryName . ' ' . $productName . ' ' . $description);
+        $haystack = self::normalizedSearchText($sourceCategoryName.' '.$productName.' '.$description);
 
         foreach (self::curatedCategories() as $category) {
             foreach ($category['keywords'] as $keyword) {
