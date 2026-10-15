@@ -73,9 +73,10 @@ class MelaAdminTest extends TestCase
         $this->assertNotSame($due, $runner->scheduledAt());
     }
 
-    public function test_stale_knowledge_index_run_is_failed_and_unlocks_for_retry(): void
+    public function test_stale_knowledge_index_run_is_requeued_and_restarted(): void
     {
         $this->admin();
+        Artisan::shouldReceive('call')->once()->with('mela:index')->andReturn(0);
         Cache::put('mela:knowledge:index-progress', [
             'status' => 'running',
             'phase' => 'indexing',
@@ -87,18 +88,25 @@ class MelaAdminTest extends TestCase
 
         $response = $this->getJson(route('admin.mela.knowledge.status'))
             ->assertOk()
-            ->assertJsonPath('progress.status', 'failed')
-            ->assertJsonPath('progress.phase', 'failed')
-            ->assertJsonPath('reindex_running', false)
+            ->assertJsonPath('progress.status', 'queued')
+            ->assertJsonPath('progress.phase', 'queued')
+            ->assertJsonPath('reindex_running', true)
             ->assertJsonPath('reindex_pending', true);
 
-        $this->assertStringContainsString('queued to resume', $response->json('progress.error'));
-        $this->assertFalse(Cache::has(MelaKnowledgeIndexRefresh::RUNNING_KEY));
+        $this->assertTrue(Cache::has(MelaKnowledgeIndexRefresh::RUNNING_KEY));
     }
 
-    public function test_admin_reindex_is_queued_for_the_scheduled_worker(): void
+    public function test_admin_reindex_starts_after_the_response_without_waiting_for_scheduler(): void
     {
         $this->admin();
+        Artisan::shouldReceive('call')->once()->with('mela:index')->andReturnUsing(function (): int {
+            $progress = app(\App\Services\Mela\Knowledge\MelaKnowledgeIndexProgress::class);
+            $progress->start();
+            $progress->update(['phase' => 'indexing', 'processed' => 1, 'total' => 1]);
+            $progress->finish([]);
+
+            return 0;
+        });
 
         $this->postJson(route('admin.mela.knowledge.reindex'))
             ->assertAccepted()
@@ -106,15 +114,16 @@ class MelaAdminTest extends TestCase
 
         $this->getJson(route('admin.mela.knowledge.status'))
             ->assertOk()
-            ->assertJsonPath('progress.status', 'queued')
-            ->assertJsonPath('reindex_pending', true)
+            ->assertJsonPath('progress.status', 'completed')
+            ->assertJsonPath('reindex_pending', false)
             ->assertJsonPath('reindex_running', false);
     }
 
     public function test_stop_cancels_queued_index_immediately(): void
     {
         $this->admin();
-        $this->postJson(route('admin.mela.knowledge.reindex'))->assertAccepted();
+        Cache::put('mela:knowledge:reindex-pending', true, now()->addDay());
+        app(\App\Services\Mela\Knowledge\MelaKnowledgeIndexProgress::class)->queue();
 
         $this->postJson(route('admin.mela.knowledge.stop'))
             ->assertOk()

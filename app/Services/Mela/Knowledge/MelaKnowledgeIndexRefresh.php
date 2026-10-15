@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
 
+use function Illuminate\Support\defer;
+
 class MelaKnowledgeIndexRefresh
 {
     public const RUNNING_KEY = 'mela:knowledge:reindex-running';
@@ -31,8 +33,31 @@ class MelaKnowledgeIndexRefresh
             return false;
         }
 
+        if (!Cache::add(self::RUNNING_KEY, true, now()->addMinutes(30))) {
+            return false;
+        }
+        Cache::forget(self::STOP_KEY);
         app(MelaKnowledgeIndexProgress::class)->queue();
         Log::info('Mela knowledge indexing queued.', ['trigger' => $trigger]);
+
+        defer(function () use ($trigger) {
+            try {
+                $fingerprint = $this->siteFingerprint();
+                if ($this->runIndex() === 0) {
+                    $this->settings();
+                    DB::table('mela_index_settings')->where('id', 1)->update(['site_fingerprint' => $fingerprint]);
+                }
+            } catch (\Throwable $e) {
+                Log::error('Mela knowledge reindex failed.', ['trigger' => $trigger, 'error' => $e->getMessage()]);
+                if (app(MelaKnowledgeIndexProgress::class)->get()['status'] !== 'stopped') {
+                    app(MelaKnowledgeIndexProgress::class)->fail();
+                    Cache::forever(self::PENDING_KEY, true);
+                }
+            } finally {
+                Cache::forget(self::RUNNING_KEY);
+                Cache::forget(self::STOP_KEY);
+            }
+        });
 
         return true;
     }
@@ -58,7 +83,6 @@ class MelaKnowledgeIndexRefresh
     {
         // Remove only the work being handled. Changes during this run stay pending.
         Cache::forget(self::PENDING_KEY);
-        Cache::forget(self::STOP_KEY);
         try {
             @set_time_limit(1800);
             $code = Artisan::call('mela:index');
@@ -121,6 +145,7 @@ class MelaKnowledgeIndexRefresh
         $due = $settings->next_run_at && Carbon::parse($settings->next_run_at)->isPast();
         if (!$changed && !$due && !Cache::has(self::PENDING_KEY)) return null;
         if (!Cache::add(self::RUNNING_KEY, true, now()->addMinutes(30))) return null;
+        Cache::forget(self::STOP_KEY);
 
         try {
             $code = $this->runIndex();

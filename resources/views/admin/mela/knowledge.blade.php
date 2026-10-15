@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formatDate = value => value ? new Date(value).toLocaleString() : 'Not run yet';
     const phaseLabels = {
         idle: 'Waiting to start',
-        queued: 'Waiting for scheduled worker',
+        queued: 'Starting index worker',
         discovering: 'Discovering site pages',
         fetching: 'Fetching page content',
         indexing: 'Indexing pages',

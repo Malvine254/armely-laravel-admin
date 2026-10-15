@@ -50,7 +50,9 @@ class MelaKnowledgeController extends Controller
 
     private function statusData(MelaKnowledgeIndexProgress $progress): array
     {
-        $this->indexRefresh->recoverStaleRun();
+        if ($this->indexRefresh->recoverStaleRun()) {
+            $this->indexRefresh->requestRun('admin_stale_recovery');
+        }
         $progressState = $progress->get();
 
         return [
@@ -73,7 +75,7 @@ class MelaKnowledgeController extends Controller
             return response()->json(['started' => false, 'message' => 'A reindex is already running.'], 409);
         }
 
-        return response()->json(['started' => true, 'message' => 'Reindex queued for the scheduled worker. Check the status endpoint for progress.'], 202);
+        return response()->json(['started' => true, 'message' => 'Reindex is starting. Check the status endpoint for progress.'], 202);
     }
 
     public function stopReindex(): JsonResponse
