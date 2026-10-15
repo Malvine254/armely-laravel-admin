@@ -71,7 +71,7 @@ If embeddings are unavailable, retrieval falls back to lexical search with `low`
 
 The index refreshes daily at 03:15 (`MELA_REINDEX_SCHEDULE=daily|weekly|off`). An admin can trigger a refresh with `POST /admin/mela/knowledge/reindex` and check status with `GET /admin/mela/knowledge`. Both require an admin session.
 
-Successful admin changes to published website content automatically request an incremental reindex after the response is sent. If an index is already running, one follow-up pass is scheduled so concurrent content changes are picked up. cPanel Git deployments also run `php artisan mela:index` through `.cpanel.yml`.
+Successful admin changes to published website content, including `POST`, `PUT`, `PATCH`, and `DELETE`, queue a reindex. The scheduled worker starts it on the next scheduler tick; changes made during a run remain queued for a follow-up pass. Admins can stop queued work immediately or request a safe stop of an active run from the knowledge page. A stale run is automatically released and queued to resume; already indexed pages are skipped. cPanel Git deployments also run `php artisan mela:index` through `.cpanel.yml`.
 
 Admins can monitor progress, start an index, or schedule a one-time run at `/admin/mela/knowledge/manage`. One-time schedules are checked every minute, so the production server must run `php artisan schedule:run` every minute.
 
@@ -181,7 +181,7 @@ Logs are written to `storage/logs/mela-*.log` as structured events:
 
 ## Admin monitoring and recurring refresh
 
-Open **Admin → Mela AI** (`/admin/mela/knowledge/manage`). The tabs show index progress, the recurring refresh schedule, visitor sessions, and escalation history/transcripts.
+Open **Admin → Mela AI** (`/admin/mela/knowledge/manage`). The tabs show index progress, the recurring refresh schedule, visitor sessions, and escalation history/transcripts. The Stop control cancels queued work or asks an active indexer to stop at the next safe page boundary.
 
 - Apply migration `2026_09_30_000001_add_mela_admin_monitoring` before serving the updated app.
 - Schedule defaults to every 24 hours; admins can select 1–1440 minutes or 1–24 hours, or disable recurring refresh. This database setting replaces `MELA_KNOWLEDGE_SCHEDULE` and survives cache clears.

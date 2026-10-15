@@ -50,6 +50,7 @@ class MelaKnowledgeController extends Controller
 
     private function statusData(MelaKnowledgeIndexProgress $progress): array
     {
+        $this->indexRefresh->recoverStaleRun();
         $progressState = $progress->get();
 
         return [
@@ -57,6 +58,7 @@ class MelaKnowledgeController extends Controller
             'chunks' => MelaKnowledgeChunk::query()->count(),
             'last_indexed_at' => MelaKnowledgePage::query()->max('last_indexed_at'),
             'reindex_running' => Cache::has(MelaKnowledgeIndexRefresh::RUNNING_KEY) || $progressState['status'] === 'running',
+            'reindex_pending' => $this->indexRefresh->isPending(),
             'progress' => $progressState,
             'scheduled_at' => $this->indexRefresh->scheduledAt(),
             'interval_minutes' => $this->indexRefresh->settings()->interval_minutes,
@@ -67,10 +69,23 @@ class MelaKnowledgeController extends Controller
 
     public function reindex(): JsonResponse
     {
-        if (!$this->indexRefresh->dispatchAfterResponse('admin_manual')) {
+        if (!$this->indexRefresh->requestRun('admin_manual')) {
             return response()->json(['started' => false, 'message' => 'A reindex is already running.'], 409);
         }
 
-        return response()->json(['started' => true, 'message' => 'Reindex started. Check the status endpoint for progress.'], 202);
+        return response()->json(['started' => true, 'message' => 'Reindex queued for the scheduled worker. Check the status endpoint for progress.'], 202);
+    }
+
+    public function stopReindex(): JsonResponse
+    {
+        $state = $this->indexRefresh->stop();
+
+        return response()->json([
+            'stopped' => $state === 'stopped',
+            'stopping' => $state === 'stopping',
+            'message' => $state === 'stopping'
+                ? 'Stop requested. The worker will stop safely after its current request.'
+                : 'Queued indexing was stopped.',
+        ]);
     }
 }

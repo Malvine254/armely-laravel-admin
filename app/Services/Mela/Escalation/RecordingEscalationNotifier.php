@@ -10,6 +10,7 @@ class RecordingEscalationNotifier implements EscalationNotifier
     public array $team = [];
     public array $visitor = [];
     public bool $failTeam = false;
+    public int $recipientCount = 1;
 
     public function notifyTeam(string $subject, string $html): int
     {
@@ -19,6 +20,11 @@ class RecordingEscalationNotifier implements EscalationNotifier
         $this->team[] = ['subject' => $subject, 'html' => $html];
 
         return 1;
+    }
+
+    public function teamRecipientCount(): int
+    {
+        return $this->recipientCount;
     }
 
     public function notifyVisitor(string $email, string $subject, string $html): bool

@@ -20,7 +20,8 @@ class MelaIndexKnowledge extends Command
         $progress->start();
         $indexer
             ->onProgress(fn (string $line) => $this->line($line))
-            ->onProgressState(fn (array $state) => $progress->update($state));
+            ->onProgressState(fn (array $state) => $progress->update($state))
+            ->onStopRequested(fn () => app(\App\Services\Mela\Knowledge\MelaKnowledgeIndexRefresh::class)->isStopRequested());
 
         try {
             $stats = $indexer->run((array) $this->option('url'), (bool) $this->option('force'), (bool) $this->option('dry-run'));
@@ -30,6 +31,11 @@ class MelaIndexKnowledge extends Command
                 $this->error('Some pages could not be indexed. The automatic refresh will retry.');
                 return self::FAILURE;
             }
+        } catch (KnowledgeIndexStopped) {
+            $progress->stop();
+            $this->warn('Indexing stopped by an administrator.');
+
+            return self::SUCCESS;
         } catch (\Throwable $e) {
             $progress->fail();
             $this->error('Indexing failed: ' . $e->getMessage());

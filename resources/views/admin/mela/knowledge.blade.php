@@ -54,7 +54,8 @@
         content: '';
     }
 
-    .mela-index-state[data-state="running"]::before { background: #d97706; }
+    .mela-index-state[data-state="running"]::before,
+    .mela-index-state[data-state="queued"]::before { background: #d97706; }
     .mela-index-state[data-state="completed"]::before { background: #16845b; }
     .mela-index-state[data-state="failed"]::before { background: #c43232; }
 
@@ -172,6 +173,7 @@
     id="melaKnowledgePage"
     data-status-url="{{ route('admin.mela.knowledge.status') }}"
     data-start-url="{{ route('admin.mela.knowledge.reindex') }}"
+    data-stop-url="{{ route('admin.mela.knowledge.stop') }}"
     data-schedule-url="{{ route('admin.mela.knowledge.schedule') }}"
     data-cancel-url="{{ route('admin.mela.knowledge.schedule.cancel') }}"
 >
@@ -200,6 +202,9 @@
             </div>
             <button class="btn btn-success" id="startIndexButton" type="button">
                 <i class="fas fa-play me-2" aria-hidden="true"></i>Index now
+            </button>
+            <button class="btn btn-outline-danger d-none" id="stopIndexButton" type="button" aria-label="Stop indexing safely">
+                <i class="fas fa-stop me-2" aria-hidden="true"></i>Stop
             </button>
         </div>
         <div class="mela-index-panel-body">
@@ -274,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
     const notice = document.getElementById('indexNotice');
     const startButton = document.getElementById('startIndexButton');
+    const stopButton = document.getElementById('stopIndexButton');
     const scheduleForm = document.getElementById('scheduleIndexForm');
     const scheduleInput = document.getElementById('scheduledAt');
     const cancelButton = document.getElementById('cancelScheduledRun');
@@ -301,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formatDate = value => value ? new Date(value).toLocaleString() : 'Not run yet';
     const phaseLabels = {
         idle: 'Waiting to start',
+        queued: 'Waiting for scheduled worker',
         discovering: 'Discovering site pages',
         fetching: 'Fetching page content',
         indexing: 'Indexing pages',
@@ -311,13 +318,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderStatus(data) {
         const progress = data.progress || {};
+        const queued = Boolean(data.reindex_pending || progress.status === 'queued');
         const running = Boolean(data.reindex_running || progress.status === 'running');
-        const state = running ? 'running' : (progress.status || 'idle');
-        const stateLabels = { idle: 'Not running', running: 'Indexing', completed: 'Completed', failed: 'Failed' };
-        const phase = progress.phase || 'idle';
+        const state = queued ? 'queued' : (running ? 'running' : (progress.status || 'idle'));
+        const stateLabels = { idle: 'Not running', queued: 'Queued', running: 'Indexing', completed: 'Completed', failed: 'Failed' };
+        const phase = queued ? 'queued' : (progress.phase || 'idle');
         const total = Number(progress.total || 0);
         const processed = Number(progress.processed || 0);
-        const percent = progress.status === 'completed' ? 100 : (total > 0 ? Math.min(100, Math.floor(processed * 100 / total)) : 0);
+        const percent = queued ? 0 : (progress.status === 'completed' ? 100 : (total > 0 ? Math.min(100, Math.floor(processed * 100 / total)) : 0));
 
         const stateElement = document.getElementById('indexState');
         stateElement.dataset.state = state;
@@ -336,7 +344,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('statIndexed').textContent = progress.indexed || 0;
         document.getElementById('statUnchanged').textContent = progress.unchanged || 0;
         document.getElementById('statFailed').textContent = progress.failed || 0;
-        startButton.disabled = running;
+        startButton.disabled = running || queued;
+        stopButton.classList.toggle('d-none', !running && !queued && progress.status !== 'stopping');
+        stopButton.disabled = progress.status === 'stopping';
 
         if (progress.error) showNotice(progress.error, 'danger');
 
@@ -392,6 +402,18 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             showNotice(error.message, 'danger');
             startButton.disabled = false;
+        }
+    });
+
+    stopButton.addEventListener('click', async () => {
+        stopButton.disabled = true;
+        try {
+            const data = await postJson(root.dataset.stopUrl, 'POST');
+            showNotice(data.message || 'Stop requested.');
+            refreshStatus();
+        } catch (error) {
+            showNotice(error.message, 'danger');
+            stopButton.disabled = false;
         }
     });
 

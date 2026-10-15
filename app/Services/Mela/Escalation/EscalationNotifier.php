@@ -9,5 +9,7 @@ interface EscalationNotifier
      */
     public function notifyTeam(string $subject, string $html): int;
 
+    public function teamRecipientCount(): int;
+
     public function notifyVisitor(string $email, string $subject, string $html): bool;
 }

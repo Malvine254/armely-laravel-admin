@@ -73,13 +73,90 @@ class MelaAdminTest extends TestCase
         $this->assertNotSame($due, $runner->scheduledAt());
     }
 
+    public function test_stale_knowledge_index_run_is_failed_and_unlocks_for_retry(): void
+    {
+        $this->admin();
+        Cache::put('mela:knowledge:index-progress', [
+            'status' => 'running',
+            'phase' => 'indexing',
+            'processed' => 48,
+            'total' => 100,
+            'updated_at' => now()->subMinutes(31)->toIso8601String(),
+        ], now()->addDay());
+        Cache::put(MelaKnowledgeIndexRefresh::RUNNING_KEY, true, now()->addMinutes(30));
+
+        $response = $this->getJson(route('admin.mela.knowledge.status'))
+            ->assertOk()
+            ->assertJsonPath('progress.status', 'failed')
+            ->assertJsonPath('progress.phase', 'failed')
+            ->assertJsonPath('reindex_running', false)
+            ->assertJsonPath('reindex_pending', true);
+
+        $this->assertStringContainsString('queued to resume', $response->json('progress.error'));
+        $this->assertFalse(Cache::has(MelaKnowledgeIndexRefresh::RUNNING_KEY));
+    }
+
+    public function test_admin_reindex_is_queued_for_the_scheduled_worker(): void
+    {
+        $this->admin();
+
+        $this->postJson(route('admin.mela.knowledge.reindex'))
+            ->assertAccepted()
+            ->assertJsonPath('started', true);
+
+        $this->getJson(route('admin.mela.knowledge.status'))
+            ->assertOk()
+            ->assertJsonPath('progress.status', 'queued')
+            ->assertJsonPath('reindex_pending', true)
+            ->assertJsonPath('reindex_running', false);
+    }
+
+    public function test_stop_cancels_queued_index_immediately(): void
+    {
+        $this->admin();
+        $this->postJson(route('admin.mela.knowledge.reindex'))->assertAccepted();
+
+        $this->postJson(route('admin.mela.knowledge.stop'))
+            ->assertOk()
+            ->assertJsonPath('stopped', true)
+            ->assertJsonPath('stopping', false);
+
+        $this->getJson(route('admin.mela.knowledge.status'))
+            ->assertOk()
+            ->assertJsonPath('progress.status', 'stopped')
+            ->assertJsonPath('reindex_pending', false)
+            ->assertJsonPath('reindex_running', false);
+    }
+
+    public function test_stop_requests_safe_shutdown_for_active_index(): void
+    {
+        $this->admin();
+        Cache::put(MelaKnowledgeIndexRefresh::RUNNING_KEY, true, now()->addMinutes(30));
+        Cache::put('mela:knowledge:reindex-pending', true, now()->addDay());
+        Cache::put('mela:knowledge:index-progress', [
+            'status' => 'running',
+            'phase' => 'indexing',
+            'updated_at' => now()->toIso8601String(),
+        ], now()->addDay());
+
+        $this->postJson(route('admin.mela.knowledge.stop'))
+            ->assertOk()
+            ->assertJsonPath('stopped', false)
+            ->assertJsonPath('stopping', true);
+
+        $this->assertTrue(Cache::has(MelaKnowledgeIndexRefresh::STOP_KEY));
+        $this->assertTrue(Cache::has(MelaKnowledgeIndexRefresh::RUNNING_KEY));
+        $this->assertFalse(Cache::has('mela:knowledge:reindex-pending'));
+        $this->assertSame('stopping', app(\App\Services\Mela\Knowledge\MelaKnowledgeIndexProgress::class)->get()['status']);
+    }
+
     public function test_deployment_changes_and_edits_during_a_run_are_indexed_when_schedule_disabled(): void
     {
         $runner = $this->runner();
         $runner->cancelScheduled();
         DB::table('mela_index_settings')->update(['site_fingerprint' => 'old-site']);
         Artisan::shouldReceive('call')->with('mela:index')->once()->andReturnUsing(function () use ($runner) {
-            $this->assertFalse($runner->dispatchAfterResponse('admin_content'));
+            $this->assertFalse($runner->requestRun('admin_content'));
             return 0;
         });
         $this->assertSame(0, $runner->runScheduledIfDue());
@@ -91,9 +168,9 @@ class MelaAdminTest extends TestCase
     public function test_content_mutations_trigger_indexing_but_reads_and_errors_do_not(): void
     {
         $refresh = \Mockery::mock(MelaKnowledgeIndexRefresh::class);
-        $refresh->shouldReceive('dispatchAfterResponse')->once()->with('admin_content')->andReturn(true);
+        $refresh->shouldReceive('requestRun')->times(3)->with('admin_content')->andReturn(true);
         $middleware = new \App\Http\Middleware\ReindexMelaKnowledgeAfterContentChange($refresh);
-        foreach ([['POST', 302], ['GET', 200], ['POST', 422]] as [$method, $status]) {
+        foreach ([['POST', 302], ['PUT', 302], ['PATCH', 302], ['GET', 200], ['PUT', 422]] as [$method, $status]) {
             $request = \Illuminate\Http\Request::create('/admin/company-content/banners', $method);
             $route = new \Illuminate\Routing\Route([$method], '/admin/company-content/banners', fn () => null);
             $route->name('admin.company-content.banners.store');

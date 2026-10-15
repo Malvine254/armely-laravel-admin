@@ -42,7 +42,7 @@ class ReindexMelaKnowledgeAfterContentChange
             && !($request->hasSession() && $request->session()->has('errors'))
             && $this->isContentRoute($routeName)
         ) {
-            $this->indexRefresh->dispatchAfterResponse('admin_content');
+            $this->indexRefresh->requestRun('admin_content');
         }
 
         return $response;

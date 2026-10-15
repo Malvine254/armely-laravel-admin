@@ -25,6 +25,9 @@ class KnowledgeIndexer
     /** @var callable|null */
     private $progressState = null;
 
+    /** @var callable|null */
+    private $shouldStop = null;
+
     private int $sitemapUrlCount = 0;
 
     public function __construct(
@@ -45,6 +48,13 @@ class KnowledgeIndexer
     public function onProgressState(callable $callback): self
     {
         $this->progressState = $callback;
+
+        return $this;
+    }
+
+    public function onStopRequested(callable $callback): self
+    {
+        $this->shouldStop = $callback;
 
         return $this;
     }
@@ -73,7 +83,9 @@ class KnowledgeIndexer
         $missing = [];
         $processedFetches = 0;
         foreach (array_chunk(array_keys($targets), self::FETCH_CONCURRENCY) as $batch) {
+            $this->abortIfStopped();
             foreach ($this->fetchBatch($batch) as $url => $result) {
+                $this->abortIfStopped();
                 $processedFetches++;
                 if ($result['status'] === 'ok') {
                     $stats['fetched']++;
@@ -128,6 +140,7 @@ class KnowledgeIndexer
         ]);
 
         foreach ($pages as $url => $page) {
+            $this->abortIfStopped();
             $type = KnowledgeUrl::pageType($url);
             $sections = array_values(array_filter(
                 $sectionsByPage[$url],
@@ -181,6 +194,7 @@ class KnowledgeIndexer
         }
 
         if (!$dryRun) {
+            $this->abortIfStopped();
             $this->reportState(['phase' => 'cleaning', 'current_url' => null]);
             $stale = $missing;
             // Without a sitemap we cannot tell removed pages from an outage, so keep existing pages.
@@ -388,6 +402,7 @@ class KnowledgeIndexer
 
         $vectors = [];
         foreach (array_chunk($embeddingTexts, max(1, (int) config('mela.knowledge.embedding_batch_size', 16))) as $batch) {
+            $this->abortIfStopped();
             array_push($vectors, ...$this->openAi->embed($batch));
         }
 
@@ -470,6 +485,13 @@ class KnowledgeIndexer
     {
         if ($this->progressState) {
             ($this->progressState)($state);
+        }
+    }
+
+    private function abortIfStopped(): void
+    {
+        if ($this->shouldStop && ($this->shouldStop)()) {
+            throw new KnowledgeIndexStopped('Knowledge indexing was stopped by an administrator.');
         }
     }
 }

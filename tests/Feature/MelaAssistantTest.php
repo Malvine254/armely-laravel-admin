@@ -158,6 +158,7 @@ class MelaAssistantTest extends TestCase
         $store->append($conversation, 'user', "I'm James Carter, james@contoso.com");
         $second = $service->request($conversation, $args + ['name' => 'James Carter', 'email' => 'james@contoso.com']);
         $this->assertSame('submitted', $second['status']);
+        $this->assertSame(1, $this->notifier->teamRecipientCount());
         $this->assertMatchesRegularExpression('/^MELA-[A-Z0-9]{6}$/', $second['reference']);
         $this->assertCount(1, $this->notifier->team);
         $this->assertStringContainsString('Monthly reporting automation', $this->notifier->team[0]['subject']);
@@ -190,6 +191,27 @@ class MelaAssistantTest extends TestCase
         $this->assertSame('failed', $result['status']);
         $this->assertArrayHasKey('fallback', $result);
         $this->assertSame('failed', $conversation->refresh()->escalation_status);
+    }
+
+    public function test_escalation_is_not_complete_until_every_admin_is_notified(): void
+    {
+        [$id] = $this->startConversation();
+        $conversation = MelaConversation::query()->find($id);
+        app(ConversationStore::class)->append($conversation, 'user', 'Ana, ana@example.org');
+        $this->notifier->recipientCount = 2;
+
+        $result = app(EscalationService::class)->request($conversation, [
+            'request_type' => 'demo',
+            'topic' => 'Mela demo',
+            'business_need' => 'Wants to see Mela.',
+            'requested_action' => 'Book a demo',
+            'name' => 'Ana',
+            'email' => 'ana@example.org',
+        ]);
+
+        $this->assertSame('failed', $result['status']);
+        $this->assertSame('failed', $conversation->refresh()->escalation_status);
+        $this->assertSame([], data_get($conversation->refresh()->memory, 'escalation.requests', []));
     }
 
     public function test_visitor_details_the_visitor_never_typed_are_rejected(): void

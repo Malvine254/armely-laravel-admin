@@ -146,11 +146,14 @@ class EscalationService
             'timestamp' => now()->toDayDateTimeString() . ' (' . config('app.timezone') . ')',
         ])->render();
 
+        $expectedRecipients = $this->notifier->teamRecipientCount();
         $delivered = $this->notifier->notifyTeam($subject, $html);
 
-        if ($delivered === 0) {
+        if ($expectedRecipients === 0 || $delivered < $expectedRecipients) {
             $memory['escalation']['status'] = 'failed';
-            $memory['escalation']['last_error'] = 'notification_not_delivered';
+            $memory['escalation']['last_error'] = $expectedRecipients === 0
+                ? 'no_admin_recipients'
+                : 'notification_not_delivered_to_all_admins';
             $this->memory->save($conversation, $memory);
             $this->logger->event('ESCALATION_FAILED', ['conversation_id' => $conversation->id, 'lead_id' => $leadId], 'error');
 

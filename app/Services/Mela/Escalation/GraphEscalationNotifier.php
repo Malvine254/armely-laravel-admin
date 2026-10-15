@@ -30,6 +30,11 @@ class GraphEscalationNotifier implements EscalationNotifier
         return $delivered;
     }
 
+    public function teamRecipientCount(): int
+    {
+        return count($this->recipients->adminRecipientEmails());
+    }
+
     public function notifyVisitor(string $email, string $subject, string $html): bool
     {
         return $this->sendWithRetry(AzureMailService::outboundFromEmail(), $email, $subject, $html);

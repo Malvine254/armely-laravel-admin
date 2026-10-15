@@ -9,13 +9,12 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
 
-use function Illuminate\Support\defer;
-
 class MelaKnowledgeIndexRefresh
 {
     public const RUNNING_KEY = 'mela:knowledge:reindex-running';
     public const SCHEDULED_KEY = 'mela:knowledge:scheduled-at';
     private const PENDING_KEY = 'mela:knowledge:reindex-pending';
+    public const STOP_KEY = 'mela:knowledge:reindex-stop';
 
     public function settings(): object
     {
@@ -24,38 +23,46 @@ class MelaKnowledgeIndexRefresh
         return DB::table('mela_index_settings')->where('id', 1)->first();
     }
 
-    public function dispatchAfterResponse(string $trigger): bool
+    public function requestRun(string $trigger): bool
     {
+        $this->recoverStaleRun();
         Cache::forever(self::PENDING_KEY, true);
-        if (!Cache::add(self::RUNNING_KEY, true, now()->addMinutes(30))) {
+        if (Cache::has(self::RUNNING_KEY)) {
             return false;
         }
 
-        defer(function () use ($trigger) {
-            try {
-                $fingerprint = $this->siteFingerprint();
-                if ($this->runIndex() === 0) {
-                    $this->settings();
-                    DB::table('mela_index_settings')->where('id', 1)->update(['site_fingerprint' => $fingerprint]);
-                }
-            } catch (\Throwable $e) {
-                Log::error('Automatic Mela knowledge reindex failed.', ['trigger' => $trigger, 'error' => $e->getMessage()]);
-            } finally {
-                Cache::forget(self::RUNNING_KEY);
-            }
-        });
+        app(MelaKnowledgeIndexProgress::class)->queue();
+        Log::info('Mela knowledge indexing queued.', ['trigger' => $trigger]);
 
         return true;
+    }
+
+    public function stop(): string
+    {
+        Cache::forget(self::PENDING_KEY);
+
+        if (!Cache::has(self::RUNNING_KEY)) {
+            Cache::forget(self::STOP_KEY);
+            app(MelaKnowledgeIndexProgress::class)->stop();
+
+            return 'stopped';
+        }
+
+        Cache::put(self::STOP_KEY, true, now()->addDay());
+        app(MelaKnowledgeIndexProgress::class)->requestStop();
+
+        return 'stopping';
     }
 
     private function runIndex(): int
     {
         // Remove only the work being handled. Changes during this run stay pending.
         Cache::forget(self::PENDING_KEY);
+        Cache::forget(self::STOP_KEY);
         try {
             @set_time_limit(1800);
             $code = Artisan::call('mela:index');
-            if ($code !== 0) {
+            if ($code !== 0 && app(MelaKnowledgeIndexProgress::class)->get()['status'] !== 'stopped') {
                 Cache::forever(self::PENDING_KEY, true);
                 Log::error('Mela index failed.', ['exit_code' => $code]);
             }
@@ -107,6 +114,7 @@ class MelaKnowledgeIndexRefresh
 
     public function runScheduledIfDue(): ?int
     {
+        $this->recoverStaleRun();
         $settings = $this->settings();
         $fingerprint = $this->siteFingerprint();
         $changed = $settings->site_fingerprint !== $fingerprint;
@@ -129,6 +137,29 @@ class MelaKnowledgeIndexRefresh
             return $code;
         } finally {
             Cache::forget(self::RUNNING_KEY);
+            Cache::forget(self::STOP_KEY);
         }
+    }
+
+    public function recoverStaleRun(): bool
+    {
+        if (!app(MelaKnowledgeIndexProgress::class)->failIfStale()) {
+            return false;
+        }
+
+        Cache::forget(self::RUNNING_KEY);
+        Cache::forever(self::PENDING_KEY, true);
+
+        return true;
+    }
+
+    public function isPending(): bool
+    {
+        return Cache::has(self::PENDING_KEY);
+    }
+
+    public function isStopRequested(): bool
+    {
+        return Cache::has(self::STOP_KEY);
     }
 }
