@@ -75,8 +75,6 @@
             v-for="(cat, catIdx) in primaryCategories"
             :key="cat.value"
             class="relative flex min-w-0 flex-1 items-center"
-            @mouseenter="openCategoryMenu(cat, $event)"
-            @mouseleave="categoryDropdownOpen = null"
           >
             <button
               type="button"
@@ -147,7 +145,7 @@
           </div>
 
           <!-- More Categories Dropdown -->
-          <div v-if="overflowCategories.length > 0" class="relative flex min-w-0 flex-1 items-center" @mouseenter="openMoreCategoriesMenu($event)" @mouseleave="moreCategoriesOpen = false">
+          <div v-if="overflowCategories.length > 0" class="relative flex min-w-0 flex-1 items-center">
             <button
               type="button"
               class="flex h-full w-full items-center justify-center gap-1 border-b-[3px] border-transparent px-1.5 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10 hover:text-cyan-300 2xl:px-2"
@@ -179,7 +177,6 @@
                       class="flex w-full min-w-0 items-center justify-between gap-2 border-l-[3px] border-transparent px-4 py-2.5 text-left text-sm font-semibold transition"
                       :class="isCategoryActive(cat) ? 'border-l-[3px] border-[#2F5597] bg-white text-[#2F5597]' : (activeMoreCategory?.value === cat.value ? 'border-l-[3px] border-[#2F5597]/40 bg-white text-[#2F5597]' : 'text-slate-600 hover:bg-white hover:text-[#2F5597]')"
                       :aria-current="isCategoryActive(cat) ? 'page' : undefined"
-                      @mouseenter="activeMoreCategoryValue = cat.value"
                       @focus="activeMoreCategoryValue = cat.value"
                       @click="activeMoreCategoryValue = cat.value"
                     >
@@ -815,21 +812,11 @@ const handleMegaMenuResize = () => {
   }
 }
 
-const openCategoryMenu = (cat, event) => {
-  categoryDropdownOpen.value = cat.value
-  positionMegaMenu(event.currentTarget)
-}
-
 const toggleCategoryDropdownAt = (category, event) => {
   toggleCategoryDropdown(category)
   if (categoryDropdownOpen.value === category?.value) {
     positionMegaMenu(event.currentTarget)
   }
-}
-
-const openMoreCategoriesMenu = (event) => {
-  moreCategoriesOpen.value = true
-  positionMegaMenu(event.currentTarget)
 }
 
 const toggleMoreCategoriesAt = (event) => {
