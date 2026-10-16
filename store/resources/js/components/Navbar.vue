@@ -69,7 +69,7 @@
         </form>
 
         <!-- Dynamic category row -->
-        <div data-category-menu class="order-4 -mx-3 mt-3 hidden min-h-14 w-[calc(100%+1.5rem)] flex-none items-stretch justify-center bg-[#2F5597] sm:-mx-4 sm:w-[calc(100%+2rem)] lg:-mx-5 lg:w-[calc(100%+2.5rem)] lg:flex">
+        <div data-category-menu @mouseenter="cancelCategoryMenuClose" @mouseleave="scheduleCategoryMenuClose" @focusout="handleCategoryFocusOut" class="order-4 -mx-3 mt-3 hidden min-h-14 w-[calc(100%+1.5rem)] flex-none items-stretch justify-center bg-[#2F5597] sm:-mx-4 sm:w-[calc(100%+2rem)] lg:-mx-5 lg:w-[calc(100%+2.5rem)] lg:flex">
           <div ref="categoryMenuRef" class="mx-3 flex w-[calc(100%-1.5rem)] items-stretch justify-center sm:mx-5 sm:w-[calc(100%-2.5rem)] lg:mx-8 lg:w-[calc(100%-4rem)] 2xl:mx-10 2xl:w-[calc(100%-5rem)]">
           <div
             v-for="(cat, catIdx) in primaryCategories"
@@ -533,13 +533,36 @@ const highlightPreviousHistory = () => {
     : activeHistoryIndex.value - 1
 }
 
+let categoryMenuCloseTimer = null
+
+const cancelCategoryMenuClose = () => {
+  clearTimeout(categoryMenuCloseTimer)
+  categoryMenuCloseTimer = null
+}
+
+const closeCategoryMenus = () => {
+  cancelCategoryMenuClose()
+  categoryDropdownOpen.value = null
+  moreCategoriesOpen.value = false
+}
+
+const scheduleCategoryMenuClose = () => {
+  cancelCategoryMenuClose()
+  categoryMenuCloseTimer = setTimeout(closeCategoryMenus, 150)
+}
+
+const handleCategoryFocusOut = event => {
+  if (!event.currentTarget.contains(event.relatedTarget)) {
+    closeCategoryMenus()
+  }
+}
+
 const handleDocumentClick = event => {
   if (accountMenuOpen.value && !accountMenuRef.value?.contains(event.target)) {
     accountMenuOpen.value = false
   }
   if (!event.target?.closest?.('[data-category-menu]')) {
-    categoryDropdownOpen.value = null
-    moreCategoriesOpen.value = false
+    closeCategoryMenus()
   }
   if (!event.target?.closest?.('[data-nav-search]')) {
     closeSearchHistory()
@@ -748,6 +771,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  cancelCategoryMenuClose()
   document.removeEventListener('click', handleDocumentClick)
   window.removeEventListener('resize', handleMegaMenuResize)
   categoryMenuResizeObserver?.disconnect()
