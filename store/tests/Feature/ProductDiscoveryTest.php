@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Exceptions\TDSynnexApiException;
+use App\Models\User;
 use App\Services\TDSynnexService;
 use Illuminate\Support\Facades\Http;
 use Mockery;
@@ -11,6 +12,58 @@ use Tests\TestCase;
 
 class ProductDiscoveryTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \Illuminate\Support\Facades\Schema::create('app_settings', function (\Illuminate\Database\Schema\Blueprint $table) {
+            $table->id();
+            $table->string('key')->unique();
+            $table->json('value')->nullable();
+            $table->timestamps();
+        });
+        \Illuminate\Support\Facades\Schema::create('categories', function (\Illuminate\Database\Schema\Blueprint $table) {
+            $table->id();
+            $table->foreignId('parent_id')->nullable();
+            $table->string('name');
+            $table->timestamps();
+        });
+        \Illuminate\Support\Facades\Schema::create('products', function (\Illuminate\Database\Schema\Blueprint $table) {
+            $table->id();
+            $table->foreignId('category_id')->nullable();
+            $table->integer('tdsynnex_product_id')->unique();
+            $table->integer('tdsynnex_sku_no')->nullable();
+            $table->string('vendor_id');
+            $table->string('product_name', 500);
+            $table->string('mfg_part_no')->nullable();
+            $table->text('description')->nullable();
+            $table->decimal('base_price', 15, 2)->nullable();
+            $table->decimal('supplier_regular_price', 15, 2)->nullable();
+            $table->decimal('retail_price', 15, 2)->nullable();
+            $table->decimal('sale_price', 15, 2)->nullable();
+            $table->boolean('is_on_sale')->default(false);
+            $table->string('offer_source')->nullable();
+            $table->timestamp('sale_started_at')->nullable();
+            $table->timestamp('sale_ended_at')->nullable();
+            $table->integer('quantity')->default(0);
+            $table->string('billing_model')->nullable();
+            $table->string('billing_frequency')->nullable();
+            $table->boolean('is_available')->default(true);
+            $table->boolean('is_discontinued')->default(false);
+            $table->boolean('is_hardware')->default(true);
+            $table->string('category_segment')->nullable();
+            $table->boolean('is_storefront_pinned')->default(false);
+            $table->timestamp('search_imported_at')->nullable();
+            $table->string('search_import_query', 500)->nullable();
+            $table->string('search_import_review_status')->nullable();
+            $table->string('manufacturer')->nullable();
+            $table->json('specifications')->nullable();
+            $table->json('images')->nullable();
+            $table->timestamp('last_synced_at')->nullable();
+            $table->timestamp('image_enrichment_attempted_at')->nullable();
+            $table->timestamps();
+        });
+    }
+
     public function test_supplier_search_matches_all_terms_across_ap_fields_without_requiring_phrase_order(): void
     {
         $file = tempnam(sys_get_temp_dir(), 'discovery-ap-');
@@ -41,13 +94,16 @@ class ProductDiscoveryTest extends TestCase
             'mfgPartNo' => 'ABC123',
             'description' => 'Supplier summary',
             'upc' => '',
-            'productPrice' => [['rsPrice' => 100]],
+            'productPrice' => [['rsPrice' => 100, 'msrp' => 150]],
+            'hasApiResellerPrice' => true,
+            'hasApiRetailPrice' => true,
+            'availableQuantity' => 4,
         ];
     }
 
-    public function test_guest_can_search_supplier_outside_local_catalog_without_exposing_supplier_prices(): void
+    public function test_guest_gets_catalog_sell_price_and_stock_without_internal_supplier_fields(): void
     {
-        $supplier = Mockery::mock(TDSynnexService::class);
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
         $supplier->shouldReceive('searchPriceAvailabilityCatalog')->once()
             ->with('HP ZBook', 10, false, true, true)->andReturn([$this->product()]);
         $this->app->instance(TDSynnexService::class, $supplier);
@@ -55,23 +111,298 @@ class ProductDiscoveryTest extends TestCase
         $this->getJson('/api/v1/product-discovery?search=HP%20ZBook')
             ->assertOk()
             ->assertJsonPath('data.0.part_number', 'ABC123')
-            ->assertJsonMissingPath('data.0.productPrice');
+            ->assertJsonPath('data.0.productPrice.0.rsPrice', 100)
+            ->assertJsonPath('data.0.productPrice.0.msrp', 150)
+            ->assertJsonPath('data.0.pricing_available', true)
+            ->assertJsonPath('data.0.availableQuantity', 4)
+            ->assertJsonMissingPath('data.0.price')
+            ->assertJsonMissingPath('data.0.hasApiResellerPrice');
+    }
+
+    public function test_discovery_applies_customer_discount_per_request_without_mutating_supplier_prices(): void
+    {
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $supplier->shouldReceive('searchPriceAvailabilityCatalog')->twice()->andReturn([$this->product()]);
+        $this->app->instance(TDSynnexService::class, $supplier);
+        $user = new User;
+        $user->special_pricing_percent = 10;
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->getJson('/api/v1/product-discovery?search=ZBook')
+            ->assertOk()
+            ->assertJsonPath('data.0.productPrice.0.rsPrice', 90)
+            ->assertJsonPath('data.0.productPrice.0.msrp', 150)
+            ->assertJsonMissingPath('data.0.specialPricing');
+        $this->assertStringContainsString('private', $response->headers->get('Cache-Control'));
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+
+        $user->special_pricing_percent = 20;
+        $this->getJson('/api/v1/product-discovery?search=ZBook')
+            ->assertOk()->assertJsonPath('data.0.productPrice.0.rsPrice', 80);
+    }
+
+    public function test_missing_live_price_does_not_fall_back_to_ap_or_msrp_even_for_discounted_customers(): void
+    {
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $supplier->shouldReceive('searchPriceAvailabilityCatalog')->once()->andReturn([
+            [...$this->product(), 'hasApiResellerPrice' => false],
+        ]);
+        $this->app->instance(TDSynnexService::class, $supplier);
+        $user = new User;
+        $user->special_pricing_percent = 10;
+        $this->actingAs($user, 'sanctum');
+
+        $this->getJson('/api/v1/product-discovery?search=ZBook')
+            ->assertOk()
+            ->assertJsonPath('data', []);
     }
 
     public function test_empty_supplier_search_has_an_explicit_message(): void
     {
-        $supplier = Mockery::mock(TDSynnexService::class);
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
         $supplier->shouldReceive('searchPriceAvailabilityCatalog')->once()->with('unknown', 10, false, true, true)->andReturn([]);
         $this->app->instance(TDSynnexService::class, $supplier);
 
         $this->getJson('/api/v1/product-discovery?search=unknown')
             ->assertOk()->assertJsonPath('data', [])
-            ->assertJsonPath('message', 'No supplier match found. Try the manufacturer and exact model or part number.');
+            ->assertJsonPath('message', 'No in-stock supplier match found. Try the manufacturer and exact model or part number.');
+    }
+
+    public function test_supplier_pagination_reuses_checked_stock_and_details_use_the_selected_page(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'discovery-pages-');
+        $rows = [];
+        for ($index = 1; $index <= 23; $index++) {
+            $parts = array_fill(0, 37, '');
+            $parts[1] = 'DTL';
+            $parts[2] = 'PART-'.$index;
+            $parts[4] = (string) (10000 + $index);
+            $parts[6] = 'HP ZBOOK LAPTOP';
+            $parts[7] = 'HP';
+            $rows[] = implode('~', $parts);
+        }
+        file_put_contents($file, implode("\n", $rows));
+        config([
+            'tdsynnex.price_availability.flat_file_path' => $file,
+            'tdsynnex.price_availability.flat_files_dir' => 'tests/fixtures/no-ap-files',
+            'tdsynnex.price_availability.customer_no' => 'test-customer',
+            'tdsynnex.price_availability.username' => 'test-user',
+            'tdsynnex.price_availability.password' => 'test-password',
+        ]);
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $supplier->shouldReceive('postPriceAvailabilityXml')->once()->andReturnUsing(function (string $xml) {
+            preg_match_all('/<synnexSKU>(\d+)<\/synnexSKU>/', $xml, $matches);
+            $this->assertLessThanOrEqual(50, count($matches[1]));
+
+            return ['PriceAvailabilityList' => array_map(static fn (string $sku) => [
+                'synnexSKU' => $sku, 'description' => 'HP ZBOOK LAPTOP',
+                'price' => '100', 'msrp' => '150', 'totalQuantity' => '4',
+            ], $matches[1])];
+        });
+        $supplier->shouldReceive('enrichDiscoveredProduct')->once()->andReturn(['description' => 'Online details']);
+        $this->app->instance(TDSynnexService::class, $supplier);
+
+        try {
+            foreach ([1 => 10, 2 => 10, 3 => 3] as $page => $count) {
+                $this->getJson('/api/v1/product-discovery?search=HP%20ZBOOK&page='.$page.'&per_page=10')
+                    ->assertOk()->assertJsonCount($count, 'data')
+                    ->assertJsonPath('data.0.product_id', (string) (10001 + ($page - 1) * 10))
+                    ->assertJsonPath('data.0.productPrice.0.rsPrice', 100)
+                    ->assertJsonPath('pagination.total', 23)
+                    ->assertJsonPath('pagination.page', $page)
+                    ->assertJsonPath('pagination.has_more', $page < 3);
+            }
+            $this->getJson('/api/v1/product-discovery/details?search=HP%20ZBOOK&product_id=10011&page=2&per_page=10')
+                ->assertOk()->assertJsonPath('data.product_id', '10011')
+                ->assertJsonPath('data.productPrice.0.rsPrice', 100);
+            $this->getJson('/api/v1/product-discovery/details?search=HP%20ZBOOK&product_id=10011&page=1&per_page=10')
+                ->assertNotFound();
+        } finally {
+            unlink($file);
+        }
+    }
+
+    public function test_supplier_candidates_reuse_the_storefront_cap(): void
+    {
+        \App\Models\AppSetting::setValue('catalog.storefront_product_limit', 1000);
+        $file = tempnam(sys_get_temp_dir(), 'discovery-cap-');
+        $rows = [];
+        for ($index = 0; $index < 1005; $index++) {
+            $parts = array_fill(0, 37, '');
+            $parts[1] = 'DTL';
+            $parts[4] = (string) (20000 + $index);
+            $parts[6] = 'HP ZBOOK LAPTOP';
+            $rows[] = implode('~', $parts);
+        }
+        file_put_contents($file, implode("\n", $rows));
+        config([
+            'tdsynnex.price_availability.flat_file_path' => $file,
+            'tdsynnex.price_availability.flat_files_dir' => 'tests/fixtures/no-ap-files',
+        ]);
+
+        try {
+            $this->assertCount(1000, app(TDSynnexService::class)->discoveryCandidateSkus('HP ZBOOK'));
+        } finally {
+            unlink($file);
+        }
+    }
+
+    public function test_price_floor_offers_stock_and_maximum_are_applied_before_pagination(): void
+    {
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $rows = [];
+        foreach ([99.99, 100, 200, 250, 150, 151, 101, 300, 120] as $index => $price) {
+            $rows[] = [...$this->product(), 'productId' => (string) (10001 + $index),
+                'productPrice' => [['rsPrice' => $price, 'msrp' => 350]]];
+        }
+        $rows[4]['availableQuantity'] = 0;
+        $rows[5]['discontinueProduct'] = true;
+        $rows[6]['hasApiResellerPrice'] = false;
+        $underFloor = $supplier->saveDiscoveredProduct($rows[2], 'HP ZBook');
+        $underFloor->update(['sale_price' => 99.99, 'is_on_sale' => true, 'offer_source' => 'manual']);
+        $offer = $supplier->saveDiscoveredProduct($rows[3], 'HP ZBook');
+        $offer->update(['sale_price' => 120, 'is_on_sale' => true, 'offer_source' => 'manual']);
+        $supplier->shouldReceive('discoveryCandidateSkus')->twice()->andReturn(array_column($rows, 'productId'));
+        $supplier->shouldReceive('searchPriceAvailabilityCatalog')->once()->andReturn($rows);
+
+        $first = $supplier->discoverInStockPage('HP ZBook', 2, 1, 0, 200);
+        $second = $supplier->discoverInStockPage('HP ZBook', 2, 2, 0, 200);
+        $this->assertSame(['10002', '10004'], array_column($first['products'], 'productId'));
+        $this->assertSame(['10009'], array_column($second['products'], 'productId'));
+        $this->assertSame(3, $first['total']);
+        $this->assertFalse($second['has_more']);
+        $this->assertSame('manual', $offer->fresh()->offer_source);
+    }
+
+    public function test_supplier_results_are_persisted_and_use_the_normal_detail_and_cart_pricing(): void
+    {
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $supplier->shouldReceive('searchPriceAvailabilityCatalog')->once()->andReturn([$this->product()]);
+        $this->app->instance(TDSynnexService::class, $supplier);
+        $user = new User;
+        $user->special_pricing_percent = 10;
+        $this->actingAs($user, 'sanctum');
+
+        $payload = $this->getJson('/api/v1/product-discovery?search=ZBook')->assertOk()
+            ->assertJsonPath('data.0.catalog_product.productPrice.0.rsPrice', 90)
+            ->assertJsonPath('data.0.catalog_product.onlineContentStatus', 'pending')
+            ->json('data.0.catalog_product');
+        $saved = \App\Models\Product::query()->where('tdsynnex_product_id', 12345)->sole();
+        $this->assertEquals(100, $saved->base_price);
+        $this->assertEquals($payload, app(\App\Http\Controllers\ProductController::class)->cartProductPayload($saved, $user));
+        $this->getJson('/api/v1/products/12345')->assertOk()
+            ->assertJsonPath('data.productId', '12345')
+            ->assertJsonPath('data.productPrice.0.rsPrice', 90);
+    }
+
+    public function test_failed_verification_keeps_supplier_text_and_does_not_attach_online_content(): void
+    {
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $saved = $supplier->saveDiscoveredProduct($this->product(), 'ZBook');
+        $supplier->shouldReceive('discoverOnlineProductDetails')->once()->andReturn([
+            'description' => 'Unverified description', 'specifications' => [['name' => 'Memory', 'value' => '32 GB']],
+            'image_url' => 'https://images.example.com/wrong.jpg',
+            'image_candidates' => [['image_url' => 'https://images.example.com/wrong.jpg']],
+            'sources' => [], 'warnings' => [], 'online_details_found' => true,
+        ]);
+        $verifier = Mockery::mock(\App\Services\AzureOpenAiChatService::class);
+        $verifier->shouldReceive('verifyProductEvidence')->once()->andReturnNull();
+        $this->app->instance(\App\Services\AzureOpenAiChatService::class, $verifier);
+        $this->app->instance(TDSynnexService::class, $supplier);
+
+        $this->getJson('/api/v1/product-discovery/products/12345/content')->assertOk()
+            ->assertJsonPath('data.description', 'Supplier summary')
+            ->assertJsonPath('data.onlineSpecifications', [])
+            ->assertJsonPath('data.onlineContentStatus', 'unavailable')
+            ->assertJsonPath('data.productImages', [])
+            ->assertJsonCount(1, 'warnings');
+        $this->assertSame([], $saved->fresh()->images);
+    }
+
+    public function test_background_import_preserves_verified_content_and_updates_supplier_stock(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $saved = $supplier->saveDiscoveredProduct($this->product(), 'ZBook');
+        $saved->update([
+            'description' => 'Verified online description',
+            'images' => [['imageUrl' => 'https://images.example.com/verified.jpg', 'source' => 'openai-verified-online']],
+            'specifications' => [...$saved->specifications, 'online_content_status' => 'verified',
+                'online_specifications' => [['name' => 'Memory', 'value' => '32 GB']]],
+        ]);
+        $supplier->shouldReceive('searchPriceAvailabilityCatalog')->andReturn([
+            [...$this->product(), 'availableQuantity' => 2],
+        ]);
+        $supplier->importMissingPriceAvailabilitySearch('ZBook', 1);
+        $fresh = $saved->fresh();
+        $this->assertSame('Verified online description', $fresh->description);
+        $this->assertSame('openai-verified-online', $fresh->images[0]['source']);
+        $this->assertSame('32 GB', $fresh->specifications['online_specifications'][0]['value']);
+        $this->assertSame(2, $fresh->quantity);
+        $this->assertSame(2, $fresh->specifications['availableQuantity']);
+    }
+
+    public function test_background_image_enrichment_reuses_ai_verification_for_discovered_products(): void
+    {
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $saved = $supplier->saveDiscoveredProduct($this->product(), 'ZBook');
+        $supplier->shouldReceive('enrichDiscoveredProduct')->once()
+            ->withArgs(fn ($product) => $product->id === $saved->id)->andReturn([]);
+        $supplier->shouldNotReceive('syncPriceAvailabilityImageForProductId');
+        (new \App\Jobs\EnrichPriceAvailabilityProductImageJob($saved->id))->handle($supplier);
+        $this->assertNotNull($saved->fresh()->image_enrichment_attempted_at);
+    }
+
+    public function test_stock_filtering_happens_before_pagination_and_refills_from_later_supplier_batches(): void
+    {
+        config(['tdsynnex.price_availability.batch_size' => 50]);
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $supplier->shouldReceive('discoveryCandidateSkus')->andReturn(array_map('strval', range(1, 90)));
+        $rows = array_map(fn (int $sku) => [
+            ...$this->product(), 'productId' => (string) $sku,
+            'availableQuantity' => $sku >= 46 && $sku <= 70 ? 4 : 0,
+            'discontinueProduct' => $sku === 55,
+        ], range(1, 90));
+        $supplier->shouldReceive('searchPriceAvailabilityCatalog')->once()
+            ->with('HP ZBook', 50, false, true, true, 1)->andReturn(array_slice($rows, 0, 50));
+        $supplier->shouldReceive('searchPriceAvailabilityCatalog')->once()
+            ->with('HP ZBook', 50, false, true, true, 2)->andReturn(array_slice($rows, 50));
+
+        $all = [];
+        foreach ([1 => 10, 2 => 10, 3 => 4] as $page => $count) {
+            $result = $supplier->discoverInStockPage('HP ZBook', 10, $page);
+            $this->assertCount($count, $result['products']);
+            $this->assertSame(24, $result['total']);
+            $this->assertFalse($result['total_is_estimate']);
+            $this->assertSame($page < 3, $result['has_more']);
+            $all = [...$all, ...$result['products']];
+        }
+        $this->assertCount(24, array_unique(array_column($all, 'productId')));
+        foreach ($all as $product) {
+            $this->assertGreaterThan(0, $product['availableQuantity']);
+            $this->assertFalse($product['discontinueProduct']);
+        }
+    }
+
+    public function test_stock_pagination_marks_unscreened_totals_as_estimates_without_fetching_every_candidate(): void
+    {
+        config(['tdsynnex.price_availability.batch_size' => 50]);
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $supplier->shouldReceive('discoveryCandidateSkus')->once()->andReturn(array_map('strval', range(1, 100)));
+        $supplier->shouldReceive('searchPriceAvailabilityCatalog')->once()
+            ->with('HP ZBook', 50, false, true, true, 1)
+            ->andReturn(array_map(fn (int $sku) => [...$this->product(), 'productId' => (string) $sku], range(1, 50)));
+
+        $result = $supplier->discoverInStockPage('HP ZBook', 10, 1);
+        $this->assertCount(10, $result['products']);
+        $this->assertSame(50, $result['total']);
+        $this->assertTrue($result['total_is_estimate']);
+        $this->assertTrue($result['has_more']);
     }
 
     public function test_details_only_accept_a_supplier_identity_from_the_search(): void
     {
-        $supplier = Mockery::mock(TDSynnexService::class);
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
         $supplier->shouldReceive('searchPriceAvailabilityCatalog')->once()->with('ZBook', 10, false, true, true)->andReturn([$this->product()]);
         $supplier->shouldNotReceive('discoverOnlineProductDetails');
         $this->app->instance(TDSynnexService::class, $supplier);
@@ -96,10 +427,19 @@ class ProductDiscoveryTest extends TestCase
     {
         $this->getJson('/api/v1/product-discovery?search=')->assertUnprocessable();
         $this->getJson('/api/v1/product-discovery?search='.str_repeat('a', 201))->assertUnprocessable();
+        $this->getJson('/api/v1/product-discovery?search=ZBook&page=0')->assertUnprocessable();
+        $this->getJson('/api/v1/product-discovery?search=ZBook&per_page=101')->assertUnprocessable();
     }
 
     private function configureOnlineProviders(): void
     {
+        $verifier = Mockery::mock(\App\Services\AzureOpenAiChatService::class);
+        $verifier->shouldReceive('verifyProductEvidence')->andReturnUsing(static fn (array $product, array $details) => [
+            'description_matches' => true,
+            'specification_indices' => array_keys($details['specifications']),
+            'image_index' => empty($details['image_candidates']) ? null : 0,
+        ]);
+        $this->app->instance(\App\Services\AzureOpenAiChatService::class, $verifier);
         config([
             'tdsynnex.icecat.enabled' => true,
             'tdsynnex.icecat.username' => 'test-user',
@@ -131,12 +471,17 @@ class ProductDiscoveryTest extends TestCase
         $this->app->instance(TDSynnexService::class, $supplier);
 
         for ($attempt = 0; $attempt < 2; $attempt++) {
+            $saved = $supplier->saveDiscoveredProduct($this->product(), 'ZBook');
+            $supplier->enrichDiscoveredProduct($saved);
+            $this->assertSame('Online product description', $saved->fresh()->description);
             $this->getJson('/api/v1/product-discovery/details?search=ZBook&product_id=12345')
                 ->assertOk()
                 ->assertJsonPath('data.description', 'Online product description')
                 ->assertJsonPath('data.specifications.0.value', '32 GB')
                 ->assertJsonPath('data.image_url', 'https://images.icecat.biz/product.jpg')
                 ->assertJsonPath('data.online_details_found', true)
+                ->assertJsonPath('data.productPrice.0.rsPrice', 100)
+                ->assertJsonPath('data.availableQuantity', 4)
                 ->assertJsonPath('data.internet_search_query', 'HP ZBook Workstation')
                 ->assertJsonPath('data.warnings.0', 'Internet title search is not configured. Enable SerpAPI and configure its API key to search the supplier product title for specifications and images.');
         }
@@ -191,6 +536,25 @@ class ProductDiscoveryTest extends TestCase
         $this->assertSame('https://images.example.com/ABC123.jpg', $details['image_url']);
         $this->assertSame('https://example.com/ABC123', $details['sources'][0]['url']);
         Http::assertSentCount(3);
+    }
+
+    public function test_regional_part_numbers_accept_model_pages_without_the_region_suffix_but_not_longer_part_numbers(): void
+    {
+        $this->configureOnlineProviders();
+        config(['tdsynnex.icecat.enabled' => false, 'tdsynnex.serpapi.enabled' => true, 'tdsynnex.serpapi.api_key' => 'test-key']);
+        Http::fake(['serpapi.com/*' => Http::response([
+            'organic_results' => [
+                ['title' => 'Different ABC1234 model', 'link' => 'https://example.com/ABC1234', 'snippet' => 'Wrong model'],
+                ['title' => 'HP ABC123', 'link' => 'https://example.com/ABC123', 'snippet' => 'Exact physical model evidence'],
+            ],
+            'images_results' => [[
+                'title' => 'HP ABC123ABA', 'link' => 'https://example.com/ABC123ABA',
+                'original' => 'https://images.example.com/ABC123ABA.jpg',
+            ]],
+        ])]);
+        $details = app(TDSynnexService::class)->discoverOnlineProductDetails([...$this->product(), 'mfgPartNo' => 'ABC123#ABA']);
+        $this->assertSame('Exact physical model evidence', $details['description']);
+        $this->assertSame('https://images.example.com/ABC123ABA.jpg', $details['image_candidates'][0]['image_url']);
     }
 
     public function test_supplier_title_drives_both_internet_queries_and_returns_specifications_without_a_part_number(): void
@@ -269,7 +633,7 @@ class ProductDiscoveryTest extends TestCase
         Http::assertSentCount(4);
     }
 
-    public function test_exact_sku_missing_from_ap_files_is_queried_directly_and_includes_renewed_zero_stock_laptops(): void
+    public function test_exact_sku_missing_from_ap_files_is_queried_but_zero_stock_is_not_displayed(): void
     {
         config([
             'tdsynnex.price_availability.flat_file_path' => '',
@@ -292,10 +656,8 @@ class ProductDiscoveryTest extends TestCase
 
         $this->getJson('/api/v1/product-discovery?search=15428226')
             ->assertOk()
-            ->assertJsonPath('data.0.product_id', '15428226')
-            ->assertJsonPath('data.0.part_number', 'BX8M7UTR#ABA')
-            ->assertJsonPath('data.0.name', 'MANUFACTURER RENEWED HP ZBOOK 8 14 INCH')
-            ->assertJsonMissingPath('data.0.productPrice');
+            ->assertJsonPath('data', [])
+            ->assertJsonPath('pagination.total', 0);
     }
 
     public function test_unknown_direct_sku_does_not_become_a_product_from_a_supplier_error_row(): void

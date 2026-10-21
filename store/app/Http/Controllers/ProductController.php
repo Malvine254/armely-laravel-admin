@@ -57,12 +57,7 @@ class ProductController extends Controller
 
     private function storefrontMinPrice($requested = null): float
     {
-        $defaultMin = (float) env('IMAGE_SYNC_MIN_PRICE', self::STOREFRONT_MIN_PRICE);
-        if ($requested === null || $requested === '') {
-            return $defaultMin;
-        }
-
-        return max($defaultMin, (float) $requested);
+        return CatalogTaxonomy::storefrontMinPrice($requested === null || $requested === '' ? null : (float) $requested);
     }
 
     private function storefrontMaxPrice($requested = null): ?float
@@ -78,12 +73,7 @@ class ProductController extends Controller
 
     private function storefrontProductLimit(): int
     {
-        $configured = (int) \App\Models\AppSetting::getValue(
-            'catalog.storefront_product_limit',
-            config('storefront.assortment_size', self::STOREFRONT_MAX_DEFAULT_PRODUCTS)
-        );
-
-        return max(1000, min(50000, $configured));
+        return CatalogTaxonomy::storefrontProductLimit();
     }
 
     private function storefrontShowsProductsWithoutImages(): bool
@@ -1022,7 +1012,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 33,
+                'v' => 34,
                 'price_version' => Cache::get('catalog:price_version', '1'),
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
@@ -1125,10 +1115,7 @@ class ProductController extends Controller
 
         if (!$showOutOfStock) {
             $query->where('is_available', true)
-                ->where(function ($scope) {
-                    $scope->where('is_storefront_pinned', true)
-                        ->orWhereRaw($this->stockQuantitySql() . ' > 0');
-                });
+                ->whereRaw($this->stockQuantitySql() . ' > 0');
         }
 
         if (!$showDiscontinued) {
@@ -1466,7 +1453,7 @@ class ProductController extends Controller
         return max($total, $minimum);
     }
 
-    public function cartProductPayload(Product $product, User $user): array
+    public function cartProductPayload(Product $product, ?User $user): array
     {
         return $this->customerPricingService->applyToProductPayload(
             $this->mapPriceAvailabilityDatabaseProduct($product),
@@ -1561,6 +1548,9 @@ class ProductController extends Controller
             'images' => $images,
             'image_url' => $primaryImage,
             'icecat_title' => '',
+            'onlineSpecifications' => (array) ($spec['online_specifications'] ?? []),
+            'onlineSources' => (array) ($spec['online_sources'] ?? []),
+            'onlineContentStatus' => $spec['online_content_status'] ?? null,
         ];
     }
 
@@ -2495,7 +2485,7 @@ class ProductController extends Controller
     /** IDs from the same capped pool exposed by the default storefront catalog. */
     private function storefrontCappedProductIds(): array
     {
-        return Cache::remember('storefront_capped_product_ids_v8', 1800, function (): array {
+        return Cache::remember('storefront_capped_product_ids_v9_in-stock', 1800, function (): array {
             $query = Product::query()
                 ->select('id')
                 ->where('vendor_id', 'TD SYNNEX')
@@ -2503,10 +2493,7 @@ class ProductController extends Controller
                 ->where(function ($q) {
                     $q->where('is_discontinued', false)->orWhereNull('is_discontinued');
                 })
-                ->where(function ($scope) {
-                    $scope->where('is_storefront_pinned', true)
-                        ->orWhereRaw($this->stockQuantitySql() . ' > 0');
-                })
+                ->whereRaw($this->stockQuantitySql() . ' > 0')
                 ->where(function ($scope) {
                     $scope->where('is_storefront_pinned', true)
                         ->orWhereRaw($this->preferredDbPriceSql() . ' >= ?', [$this->storefrontMinPrice(null) ?? self::STOREFRONT_MIN_PRICE]);

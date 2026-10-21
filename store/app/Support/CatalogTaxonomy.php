@@ -4,6 +4,21 @@ namespace App\Support;
 
 class CatalogTaxonomy
 {
+    public static function storefrontMinPrice(?float $requested = null): float
+    {
+        return max(100.0, (float) env('IMAGE_SYNC_MIN_PRICE', 100), $requested ?? 0);
+    }
+
+    public static function storefrontProductLimit(): int
+    {
+        $configured = (int) \App\Models\AppSetting::getValue(
+            'catalog.storefront_product_limit',
+            config('storefront.assortment_size', 10000)
+        );
+
+        return max(1000, min(50000, $configured));
+    }
+
     /** @return array{include:array<string>,exclude:array<string>}|null */
     public static function hardwareCategoryRules(string $segment): ?array
     {

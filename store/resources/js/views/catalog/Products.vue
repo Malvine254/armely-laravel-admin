@@ -33,7 +33,7 @@
         <!-- Products Section -->
         <div class="min-w-0 flex-1">
           <!-- Loading State - skeleton cards matching the real product grid -->
-          <div v-if="loading && !pageLoading">
+          <div v-if="(discoveryOpen ? discoveryLoading : loading) && !pageLoading">
             <div class="mb-6 flex items-center justify-between rounded-xl border border-blue-100 bg-white px-5 py-4 shadow-sm">
               <div class="flex items-center gap-3">
                 <span class="h-6 w-6 animate-spin rounded-full border-[3px] border-blue-100 border-t-[#2F5597]" aria-hidden="true"></span>
@@ -81,7 +81,7 @@
           </div>
 
           <!-- Error State -->
-          <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-xl p-6 mb-8">
+          <div v-else-if="error && !discoveryOpen" class="bg-red-50 border border-red-200 rounded-xl p-6 mb-8">
             <div class="flex gap-4">
               <svg class="w-6 h-6 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -97,7 +97,7 @@
           </div>
 
           <!-- Results Summary -->
-          <div v-else-if="!loading || pageLoading">
+          <div v-else-if="discoveryOpen || !loading || pageLoading">
             <!-- Page loading overlay -->
             <div v-if="pageLoading" class="fixed top-0 left-0 right-0 z-50">
               <div class="h-1 bg-gray-200 w-full">
@@ -107,8 +107,8 @@
             <div class="z-30 -mx-1 mb-5 flex flex-none flex-col items-start justify-between gap-3 border-b border-slate-200/80 bg-gray-50/95 px-1 py-3 backdrop-blur-sm sm:flex-row sm:items-start">
               <div>
                 <div class="flex items-baseline gap-3">
-                  <h2 class="text-xl font-extrabold text-[#102a52]">Products</h2>
-                  <span class="text-sm font-bold text-[#2F5597]">{{ totalProducts.toLocaleString() }} results</span>
+                  <h2 class="text-xl font-extrabold text-[#102a52]">Products <span v-if="discoveryOpen" class="ml-2 rounded bg-blue-100 px-2 py-1 text-xs font-semibold text-[#2F5597]">Outside catalog</span></h2>
+                  <span class="text-sm font-bold text-[#2F5597]">{{ totalProductsLabel }} results</span>
                 </div>
                 <p class="mt-1 text-xs text-slate-500">High quality technology and business supplies.</p>
                 <div v-if="hasActiveCatalogState" class="mt-3 flex flex-wrap items-center gap-2">
@@ -120,13 +120,13 @@
                 </div>
               </div>
               <div class="flex flex-wrap items-center gap-3">
-                <button v-if="searchQuery && visibleProductsCount > 0" @click="searchOutsideCatalog" :disabled="discoveryLoading" class="rounded-lg border border-[#2F5597] px-4 py-2 text-sm font-semibold text-[#2F5597] disabled:opacity-60">
+                <button v-if="searchQuery && visibleProductsCount > 0 && !discoveryOpen" @click="searchOutsideCatalog(1)" :disabled="discoveryLoading" class="rounded-lg border border-[#2F5597] px-4 py-2 text-sm font-semibold text-[#2F5597] disabled:opacity-60">
                   {{ discoveryLoading ? 'Searching supplier…' : 'Search outside catalog' }}
                 </button>
                 <label class="text-sm text-gray-600 font-medium whitespace-nowrap">Sort by:</label>
                 <select
                   v-model="sortBy"
-                  @change="currentPage = 1"
+                  @change="handleSortChange"
                   class="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-700"
                   style="--tw-ring-color: #2F5597;"
                 >
@@ -139,50 +139,8 @@
               </div>
             </div>
 
-            <section v-if="discoveryOpen" class="mb-6 rounded-xl border border-blue-100 bg-blue-50/50 p-5" aria-live="polite">
-              <div class="flex items-center justify-between gap-3">
-                <h3 class="text-lg font-bold text-[#102a52]">Outside-catalog product search</h3>
-                <button @click="resetDiscovery" class="text-sm font-semibold text-slate-600">Close</button>
-              </div>
-              <p class="mt-1 text-sm text-slate-600">First identify a product in TD SYNNEX, then search the internet using its supplier title for specifications and images. These results are informational; pricing, stock, and exact configuration require verification.</p>
-              <p v-if="discoveryLoading" class="mt-4 text-sm">Searching the supplier API…</p>
-              <p v-if="discoveryError" role="alert" class="mt-4 text-sm font-semibold text-red-700">{{ discoveryError }}</p>
-              <p v-if="discoveryMessage && !discoveryLoading" class="mt-4 text-sm text-slate-700">{{ discoveryMessage }}</p>
-              <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <ProductCard
-                  v-for="(product, index) in discoveryProducts"
-                  :key="product.product_id"
-                  :product="discoveryCardProduct(product)"
-                  :image="product.image_url || ''"
-                  :eager="index < 3"
-                  discovery
-                  :busy="discoveryDetailsLoading === product.product_id"
-                  :view-disabled="!!discoveryDetailsLoading"
-                  @view="loadDiscoveryDetails(product)"
-                />
-              </div>
-              <article v-if="discoveryDetails" class="mt-5 rounded-lg border border-blue-200 bg-white p-4">
-                <h4 class="font-bold text-[#102a52]">{{ discoveryDetails.name }}</h4>
-                <p v-if="discoveryDetails.internet_search_query" class="mt-2 text-sm text-slate-600">Internet search title: {{ discoveryDetails.internet_search_query }}</p>
-                <p v-for="warning in discoveryDetails.warnings" :key="warning" class="mt-2 text-sm font-semibold text-amber-800">{{ warning }}</p>
-                <div v-if="discoveryDetails.image_url" class="mt-4">
-                  <img v-if="!discoveryImageFailed" :src="discoveryDetails.image_url" :alt="discoveryDetails.name" @error="discoveryImageFailed = true" referrerpolicy="no-referrer" class="h-48 w-full object-contain" />
-                  <p v-else class="text-sm text-amber-800">The external image could not be displayed.</p>
-                  <a :href="discoveryDetails.image_url" target="_blank" rel="noopener noreferrer" class="mt-2 block break-all text-sm text-blue-700 underline">Open online image URL</a>
-                </div>
-                <p v-if="discoveryDetails.description" class="mt-4 whitespace-pre-line text-sm text-slate-700">{{ discoveryDetails.description }}</p>
-                <dl v-if="discoveryDetails.specifications.length" class="mt-4 divide-y divide-slate-100">
-                  <div v-for="(spec, index) in discoveryDetails.specifications" :key="index" class="grid grid-cols-2 gap-3 py-2 text-sm">
-                    <dt class="font-semibold text-slate-700">{{ spec.name }}</dt>
-                    <dd class="text-slate-600">{{ spec.value }}</dd>
-                  </div>
-                </dl>
-                <div v-if="discoveryDetails.sources.length" class="mt-4 flex flex-wrap gap-3 text-sm">
-                  <span class="font-semibold">Sources:</span>
-                  <a v-for="(source, index) in discoveryDetails.sources" :key="index" :href="source.url" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline">{{ source.name }}</a>
-                </div>
-              </article>
-            </section>
+            <p v-if="discoveryError" role="alert" class="mb-4 text-sm font-semibold text-red-700">{{ discoveryError }}</p>
+            <p v-if="discoveryContentWarning" role="status" class="mb-4 text-xs text-amber-800">{{ discoveryContentWarning }}</p>
 
             <!-- Empty State -->
             <div v-if="visibleProductsCount === 0" class="bg-white rounded-xl border border-gray-200 px-5 py-9 sm:px-8">
@@ -191,17 +149,17 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
               </svg>
               <h3 class="text-xl font-bold text-gray-900 mb-2">No Products Found</h3>
-              <p class="text-gray-600 mb-6">Try adjusting your search or search outside our catalog for product details.</p>
-              <p v-if="supplierLookupQueued" class="mx-auto mb-5 max-w-xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+              <p class="text-gray-600 mb-6">{{ discoveryOpen && discoveryMessage ? discoveryMessage : 'Try adjusting your search or search outside our catalog for product details.' }}</p>
+              <p v-if="supplierLookupQueued && !discoveryOpen" class="mx-auto mb-5 max-w-xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
                 We didn’t find a local match, so we’re checking the supplier catalog. Please retry in a moment; any verified result will be added automatically.
               </p>
               <button @click="resetFilters" class="px-6 py-2 text-white font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
                 Clear Filters
               </button>
-              <button v-if="searchQuery" @click="searchOutsideCatalog" :disabled="discoveryLoading" class="ml-2 rounded-lg border border-[#2F5597] px-6 py-2 font-semibold text-[#2F5597] transition hover:bg-blue-50 disabled:opacity-60">
+              <button v-if="searchQuery && !discoveryOpen" @click="searchOutsideCatalog(1)" :disabled="discoveryLoading" class="ml-2 rounded-lg border border-[#2F5597] px-6 py-2 font-semibold text-[#2F5597] transition hover:bg-blue-50 disabled:opacity-60">
                 {{ discoveryLoading ? 'Searching supplier…' : 'Search outside catalog' }}
               </button>
-              <button v-if="supplierLookupQueued" @click="performSearch(true)" class="ml-2 rounded-lg border border-amber-500 px-6 py-2 font-semibold text-amber-700 transition hover:bg-amber-50">
+              <button v-if="supplierLookupQueued && !discoveryOpen" @click="performSearch(true)" class="ml-2 rounded-lg border border-amber-500 px-6 py-2 font-semibold text-amber-700 transition hover:bg-amber-50">
                 Retry search
               </button>
               </div>
@@ -226,13 +184,13 @@
             </div>
 
             <!-- Pagination -->
-            <div v-if="visibleProductsCount > 0 && totalPages > 1" class="mt-8 flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-4">
+            <div v-if="(visibleProductsCount > 0 || discoveryOpen) && totalPages > 1" class="mt-8 flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-4">
               <p class="whitespace-nowrap text-sm font-medium text-slate-600">{{ visibleProductsRangeLabel }}</p>
               <div ref="paginationRow" class="flex w-full flex-nowrap items-center justify-center gap-1.5 overflow-hidden sm:gap-2">
               <!-- Previous Button -->
               <button
                 @click="previousPage"
-                :disabled="currentPage === 1"
+                :disabled="currentPage === 1 || discoveryLoading"
                 title="Previous page"
                 aria-label="Previous page"
                 class="inline-flex h-10 flex-shrink-0 items-center justify-center gap-1 rounded-lg border border-gray-300 px-3 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white sm:px-4"
@@ -246,6 +204,7 @@
                   v-for="page in pageNumbers"
                   :key="page"
                   @click="goToPage(page)"
+                  :disabled="discoveryLoading"
                   :class="['h-10 w-10 flex-shrink-0 rounded-lg transition', page === currentPage ? 'text-white font-semibold' : 'border border-gray-300 text-gray-700 hover:bg-gray-50']"
                   :style="page === currentPage ? { backgroundColor: '#2F5597' } : {}"
                 >
@@ -256,7 +215,7 @@
               <!-- Next Button -->
               <button
                 @click="nextPage"
-                :disabled="currentPage === totalPages"
+                :disabled="currentPage === totalPages || discoveryLoading"
                 title="Next page"
                 aria-label="Next page"
                 class="inline-flex h-10 flex-shrink-0 items-center justify-center gap-1 rounded-lg border border-gray-300 px-3 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white sm:px-4"
@@ -400,10 +359,10 @@ const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 100
 const DEFAULT_BROWSE_MAX_PRICE = 0
-const CURATED_CACHE_VERSION = 15
+const CURATED_CACHE_VERSION = 16
 // Bump whenever persisted catalog classification changes. This becomes part of
 // the URL so browsers cannot reuse an older publicly cached catalog response.
-const CATALOG_REQUEST_REVISION = 'image-filters-20261012-4'
+const CATALOG_REQUEST_REVISION = 'in-stock-search-20261021'
 const ENABLE_SERVER_PREFETCH = true
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
@@ -494,14 +453,15 @@ const searchQuery = ref('')
 const supplierLookupQueued = ref(false)
 const discoveryOpen = ref(false)
 const discoveryLoading = ref(false)
-const discoveryDetailsLoading = ref('')
+const discoveryContentWarning = ref('')
 const discoveryError = ref('')
 const discoveryMessage = ref('')
 const discoveryProducts = ref([])
-const discoveryDetails = ref(null)
-const discoveryImageFailed = ref(false)
+const discoveryTotal = ref(0)
+const discoveryTotalIsEstimate = ref(false)
 let discoveryRequestId = 0
 let discoveryQuery = ''
+let catalogPageBeforeDiscovery = 1
 const currentPage = ref(1)
 // Prevents the route watcher from double-fetching when we call router.replace ourselves
 let ownRouterReplace = false
@@ -522,13 +482,18 @@ const shareSubmitting = ref(false)
 
 const resetDiscovery = () => {
   discoveryRequestId++
+  if (discoveryOpen.value) {
+    currentPage.value = catalogPageBeforeDiscovery
+    pageLoading.value = false
+  }
   discoveryOpen.value = false
   discoveryLoading.value = false
-  discoveryDetailsLoading.value = ''
+  discoveryContentWarning.value = ''
   discoveryError.value = ''
   discoveryMessage.value = ''
   discoveryProducts.value = []
-  discoveryDetails.value = null
+  discoveryTotal.value = 0
+  discoveryTotalIsEstimate.value = false
 }
 
 watch(searchQuery, resetDiscovery)
@@ -537,56 +502,74 @@ const discoveryFailureMessage = (requestError) => requestError.response?.status 
   ? 'Too many lookups. Please wait a minute and try again.'
   : 'Product lookup could not be completed. Please try again shortly.'
 
-const discoveryCardProduct = (product) => ({
-  productId: product.product_id,
-  productName: product.name,
-  mfgPartNo: product.part_number,
-  vendorName: product.manufacturer || 'TD SYNNEX',
-  description: product.supplier_description,
-})
+const discoveryCardProduct = (product) => product.catalog_product
 
-const searchOutsideCatalog = async () => {
+const searchOutsideCatalog = async (page = 1) => {
   resetDiscovery()
+  catalogPageBeforeDiscovery = currentPage.value
   discoveryOpen.value = true
   discoveryQuery = searchQuery.value.trim()
+  await loadDiscoveryPage(page)
+}
+
+const loadDiscoveryPage = async (page) => {
   if (discoveryQuery.length < 2 || discoveryQuery.length > 200) {
     discoveryError.value = 'Enter a product name or part number between 2 and 200 characters.'
     return
   }
-  const requestId = discoveryRequestId
+  const requestId = ++discoveryRequestId
+  const previousPage = currentPage.value
+  currentPage.value = page
+  discoveryContentWarning.value = ''
+  discoveryError.value = ''
   discoveryLoading.value = true
+  pageLoading.value = discoveryProducts.value.length > 0
   try {
-    const response = await api.get('/product-discovery', { params: { search: discoveryQuery } })
+    const response = await api.get('/product-discovery', {
+      params: {
+        search: discoveryQuery, page, per_page: ITEMS_PER_PAGE,
+        min_price: Math.max(100, Number(currentFilters.value.priceMin || 0)),
+        ...(Number(currentFilters.value.priceMax) > 0 ? { max_price: Number(currentFilters.value.priceMax) } : {}),
+      },
+    })
     if (requestId !== discoveryRequestId) return
     discoveryProducts.value = response.data.data
+    discoveryTotal.value = response.data.pagination.total
+    discoveryTotalIsEstimate.value = Boolean(response.data.pagination.total_is_estimate)
     discoveryMessage.value = response.data.message
+    void enrichDiscoveryProducts(response.data.data, requestId)
   } catch (requestError) {
-    if (requestId === discoveryRequestId) discoveryError.value = discoveryFailureMessage(requestError)
+    if (requestId === discoveryRequestId) {
+      currentPage.value = previousPage
+      discoveryError.value = discoveryFailureMessage(requestError)
+    }
   } finally {
-    if (requestId === discoveryRequestId) discoveryLoading.value = false
+    if (requestId === discoveryRequestId) {
+      discoveryLoading.value = false
+      pageLoading.value = false
+    }
   }
 }
 
-const loadDiscoveryDetails = async (product) => {
-  const requestId = ++discoveryRequestId
-  discoveryDetailsLoading.value = product.product_id
-  discoveryError.value = ''
-  discoveryDetails.value = null
-  discoveryImageFailed.value = false
-  try {
-    const response = await api.get('/product-discovery/details', {
-      params: { search: discoveryQuery, product_id: product.product_id },
-    })
-    if (requestId === discoveryRequestId) {
-      discoveryDetails.value = response.data.data
-      discoveryProducts.value = discoveryProducts.value.map((item) => item.product_id === product.product_id
-        ? { ...item, image_url: response.data.data.image_url }
+const enrichDiscoveryProducts = async (matches, requestId) => {
+  for (const match of matches) {
+    if (requestId !== discoveryRequestId || !discoveryOpen.value) return
+    const product = match.catalog_product
+    if (product.onlineContentStatus === 'verified' && getPrimaryImageUrl(product)) continue
+    try {
+      const response = await api.get(`/product-discovery/products/${product.productId}/content`, { timeout: 45000 })
+      if (requestId !== discoveryRequestId) return
+      discoveryProducts.value = discoveryProducts.value.map((item) => item.product_id === match.product_id
+        ? { ...item, catalog_product: response.data.data }
         : item)
+      if (!response.data.data.image_url || response.data.data.onlineContentStatus === 'unavailable') {
+        discoveryContentWarning.value = 'Some online images or details could not be verified. Unverified content has not been attached.'
+      }
+    } catch (requestError) {
+      if (requestId !== discoveryRequestId) return
+      discoveryContentWarning.value = discoveryFailureMessage(requestError)
+      if (requestError.response?.status === 429) return
     }
-  } catch (requestError) {
-    if (requestId === discoveryRequestId) discoveryError.value = discoveryFailureMessage(requestError)
-  } finally {
-    if (requestId === discoveryRequestId) discoveryDetailsLoading.value = ''
   }
 }
 
@@ -1223,13 +1206,15 @@ const rankProductsByPersonalization = (items) => {
 }
 
 const filteredProducts = computed(() => {
+  if (discoveryOpen.value) return discoveryProducts.value.map(discoveryCardProduct)
   // Access currentFilters.value to establish dependency
   const filters = currentFilters.value
 
   // Always strip zero-price products client-side regardless of what the API returned.
   let filtered = products.value.filter((p) => {
     const price = Number(p?.productPrice?.[0]?.rsPrice ?? p?.price ?? 0)
-    return price > 0
+    const quantity = Number(p.availableQuantity ?? p.totalQuantity ?? p.quantity ?? p.qty ?? 0)
+    return price > 0 && quantity > 0 && !p.discontinueProduct
   })
 
   // Filter by part number
@@ -1279,6 +1264,7 @@ const requiresClientSideFiltering = computed(() => {
 })
 
 const totalProducts = computed(() => {
+  if (discoveryOpen.value) return discoveryTotal.value
   if (serverPaged.value) {
     return Number(serverTotal.value || 0)
   }
@@ -1287,7 +1273,8 @@ const totalProducts = computed(() => {
 })
 
 const totalProductsLabel = computed(() => {
-  if (serverPaged.value && serverTotalIsEstimate.value) {
+  if (discoveryOpen.value && discoveryTotalIsEstimate.value) return `${totalProducts.value}+`
+  if (!discoveryOpen.value && serverPaged.value && serverTotalIsEstimate.value) {
     return `${totalProducts.value}+`
   }
 
@@ -1314,7 +1301,8 @@ const visibleProductsRangeLabel = computed(() => {
 })
 
 const totalPagesLabel = computed(() => {
-  if (serverPaged.value && serverTotalIsEstimate.value && serverHasMore.value) {
+  if (discoveryOpen.value && discoveryTotalIsEstimate.value) return `${totalPages.value}+`
+  if (!discoveryOpen.value && serverPaged.value && serverTotalIsEstimate.value && serverHasMore.value) {
     return `${totalPages.value}+`
   }
 
@@ -1359,7 +1347,7 @@ const paginatedProducts = computed(() => {
   })
   const sorted = indexed.map(({ item }) => item)
 
-  if (serverPaged.value) {
+  if (discoveryOpen.value || serverPaged.value) {
     return sorted
   }
 
@@ -1371,8 +1359,8 @@ const paginatedProducts = computed(() => {
 const pageNumbers = computed(() => {
   const pages = []
   const rowWidth = paginationWidth.value || 360
-  const navigationWidth = rowWidth >= 900 ? 120 : rowWidth >= 640 ? 140 : 100
-  const maxPagesToShow = Math.max(3, Math.min(15, Math.floor((rowWidth - navigationWidth) / 42)))
+  const navigationWidth = rowWidth >= 600 ? 280 : 120
+  const maxPagesToShow = Math.max(1, Math.min(7, Math.floor((rowWidth - navigationWidth) / 48)))
   let startPage = Math.max(1, currentPage.value - Math.floor(maxPagesToShow / 2))
   let endPage = Math.min(totalPages.value, startPage + maxPagesToShow - 1)
 
@@ -1627,8 +1615,14 @@ const isDefaultCuratedBrowse = (filters = currentFilters.value) => {
   const hasClientOnlyFilters = requiresClientForFilters(filters)
   return !searchQuery.value && (filters?.vendors || []).length === 0 && !hasClientOnlyFilters
 }
-
-
+const searchOutsideCatalogIfEmpty = async () => {
+  const query = searchQuery.value.trim()
+  if (query.length >= 2 && query.length <= 200
+      && products.value.length === 0
+      && serverTotal.value === 0 && !error.value && !discoveryOpen.value) {
+    await searchOutsideCatalog(currentPage.value)
+  }
+}
 
 const performSearch = async (resetPage = true, background = false) => {
   const requestedPage = resetPage ? 1 : currentPage.value
@@ -1684,6 +1678,7 @@ const performSearch = async (resetPage = true, background = false) => {
       applyProductResultPayload(cached)
       loading.value = false
       pageLoading.value = false
+      await searchOutsideCatalogIfEmpty()
       return
     }
   }
@@ -1720,6 +1715,7 @@ const performSearch = async (resetPage = true, background = false) => {
       loading.value = false
       pageLoading.value = false
     }
+    if (requestId === activeSearchRequestId) await searchOutsideCatalogIfEmpty()
     return
   }
 
@@ -1891,6 +1887,7 @@ const performSearch = async (resetPage = true, background = false) => {
 
   try {
     await requestPromise
+    if (requestId === activeSearchRequestId) await searchOutsideCatalogIfEmpty()
   } finally {
     // Auth restoration can replace the foreground request with a background
     // refresh. The newest request still owns any existing loading indicator.
@@ -2112,11 +2109,13 @@ const handleFilterChange = (filters) => {
     return
   }
 
+  resetDiscovery()
   currentPage.value = 1
   performSearch(true)
 }
 
 const resetFilters = () => {
+  resetDiscovery()
   searchQuery.value = ''
   sortBy.value = 'relevance'
   searchSuggestionItems.value = []
@@ -2137,6 +2136,10 @@ const resetFilters = () => {
 }
 
 const nextPage = () => {
+  if (discoveryOpen.value) {
+    if (!discoveryLoading.value && currentPage.value < totalPages.value) goToPage(currentPage.value + 1)
+    return
+  }
   if (currentPage.value < totalPages.value) {
     currentPage.value++
     if (serverPaged.value) {
@@ -2147,6 +2150,10 @@ const nextPage = () => {
 }
 
 const previousPage = () => {
+  if (discoveryOpen.value) {
+    if (!discoveryLoading.value && currentPage.value > 1) goToPage(currentPage.value - 1)
+    return
+  }
   if (currentPage.value > 1) {
     currentPage.value--
     if (serverPaged.value) {
@@ -2157,6 +2164,13 @@ const previousPage = () => {
 }
 
 const goToPage = (page) => {
+  if (discoveryOpen.value) {
+    if (!discoveryLoading.value && page >= 1 && page <= totalPages.value) {
+      void loadDiscoveryPage(page)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    return
+  }
   currentPage.value = page
   if (serverPaged.value) {
     performSearch(false)
@@ -2164,8 +2178,17 @@ const goToPage = (page) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+const handleSortChange = () => {
+  if (discoveryOpen.value) {
+    if (currentPage.value !== 1) void loadDiscoveryPage(1)
+  } else {
+    currentPage.value = 1
+  }
+}
+
 // Prefetch adjacent pages silently for instant pagination
 const prefetchPage = (page) => {
+  if (discoveryOpen.value) return
   if (!ENABLE_SERVER_PREFETCH || page < 1 || !serverPaged.value) return
 
   const params = {
@@ -2697,6 +2720,11 @@ watch(
       return
     }
 
+    if (discoveryOpen.value) {
+      resetDiscovery()
+      currentPage.value = Math.max(1, Number(page || 1) || 1)
+    }
+
     // A page encoded in the URL is authoritative during reload/deep-linking.
     // Only reset for a genuinely new search that did not request a page.
     performSearch(queryChanged && !hasExplicitPage)
@@ -2755,7 +2783,11 @@ watch(
   () => {
     requestCache.clear()
     pendingRequests.clear()
-    performSearch(false, true)
+    if (discoveryOpen.value) {
+      void loadDiscoveryPage(currentPage.value)
+    } else {
+      performSearch(false, true)
+    }
   }
 )
 
@@ -2791,6 +2823,7 @@ onMounted(async () => {
 
 let paginationResizeObserver = null
 onUnmounted(() => {
+  discoveryRequestId++
   paginationResizeObserver?.disconnect()
 })
 </script>

@@ -180,6 +180,17 @@ class CatalogCategoryFilteringTest extends TestCase
         $this->assertSame(['has_images' => 0, 'no_images' => 3], $first['media_counts']);
     }
 
+    public function test_pinned_zero_stock_products_are_hidden_before_catalog_pagination(): void
+    {
+        Product::create(['product_name' => 'HP ZBook zero stock', 'tdsynnex_product_id' => 'zero', 'quantity' => 0, 'is_storefront_pinned' => true]);
+        Product::create(['product_name' => 'HP ZBook in stock', 'tdsynnex_product_id' => 'stock', 'quantity' => 4]);
+        $method = new ReflectionMethod(ProductController::class, 'fetchPriceAvailabilityPageFromDatabaseUncached');
+        $result = $method->invoke(app(ProductController::class), 'HP ZBook', null, null, null, true, 1, 10, [], false, false, 'hardware', '');
+
+        $this->assertSame(1, $result['total']);
+        $this->assertSame(['stock'], array_column($result['records'], 'productId'));
+    }
+
     public function test_category_counts_menu_and_vendor_facets_agree_with_filtered_equipment(): void
     {
         Product::create(['product_name' => 'Lenovo ThinkPad T14', 'category_segment' => '06']);
@@ -188,7 +199,7 @@ class CatalogCategoryFilteringTest extends TestCase
         Product::create(['product_name' => 'Laptop sleeve', 'category_segment' => '01', 'manufacturer' => 'Accessories Inc']);
         Product::create(['product_name' => 'LaserJet toner', 'category_segment' => '06', 'manufacturer' => 'Supplies Inc']);
         Product::create(['product_name' => 'Laptop', 'category_segment' => '01', 'is_available' => false]);
-        Cache::put('storefront_capped_product_ids_v8', [], 1800);
+        Cache::put('storefront_capped_product_ids_v9_in-stock', [], 1800);
         DB::table('categories')->insert([
             ['name' => 'Laptops', 'slug' => 'laptops', 'segment_code' => '01'],
             ['name' => 'Printers', 'slug' => 'printers', 'segment_code' => '06'],
@@ -345,7 +356,7 @@ class CatalogCategoryFilteringTest extends TestCase
         $controller = app(ProductController::class);
         $names = ['01' => 'Lenovo laptop', '02' => 'Dell desktop', '03' => 'Samsung monitor', '04' => 'Cisco router', '06' => 'Canon printer'];
         $pool = Product::create(['product_name' => 'General browse mouse', 'category_segment' => '09']);
-        Cache::put('storefront_capped_product_ids_v8', [$pool->id], 1800);
+        Cache::put('storefront_capped_product_ids_v9_in-stock', [$pool->id], 1800);
         foreach ($names as $segment => $name) {
             $segment = (string) $segment;
             $expected = [];
@@ -373,7 +384,7 @@ class CatalogCategoryFilteringTest extends TestCase
     {
         $pool = Product::create(['product_name' => 'Lenovo laptop', 'manufacturer' => 'Lenovo', 'tdsynnex_product_id' => 'pool', 'category_segment' => '01']);
         Product::create(['product_name' => 'HP LaserJet printer', 'manufacturer' => 'HP', 'tdsynnex_product_id' => 'outside', 'category_segment' => '06']);
-        Cache::put('storefront_capped_product_ids_v8', [$pool->id], 1800);
+        Cache::put('storefront_capped_product_ids_v9_in-stock', [$pool->id], 1800);
         $method = new ReflectionMethod(ProductController::class, 'fetchPriceAvailabilityPageFromDatabaseUncached');
         $controller = app(ProductController::class);
         $general = $method->invoke($controller, '', null, null, null, true, 1, 10, [], true, true, 'hardware', '');
@@ -388,7 +399,7 @@ class CatalogCategoryFilteringTest extends TestCase
     {
         Product::create(['product_name' => 'HP LaserJet Pro 4101 printer', 'manufacturer' => 'HP', 'category_segment' => '06']);
         Product::create(['product_name' => 'Canon printer', 'manufacturer' => 'Canon', 'category_segment' => '06']);
-        Cache::put('storefront_capped_product_ids_v8', [], 1800);
+        Cache::put('storefront_capped_product_ids_v9_in-stock', [], 1800);
         $controller = app(ProductController::class);
         $categories = (new ReflectionMethod(ProductController::class, 'computeCategoryGroupCounts'))
             ->invoke($controller, true, 100.0, null, true, 'hardware', 'HP printers');
@@ -412,7 +423,7 @@ class CatalogCategoryFilteringTest extends TestCase
         foreach (array_chunk($rows, 200) as $chunk) {
             DB::table('products')->insert($chunk);
         }
-        Cache::put('storefront_capped_product_ids_v8', Product::orderBy('id')->limit(1000)->pluck('id')->all(), 1800);
+        Cache::put('storefront_capped_product_ids_v9_in-stock', Product::orderBy('id')->limit(1000)->pluck('id')->all(), 1800);
         $method = new ReflectionMethod(ProductController::class, 'fetchPriceAvailabilityPageFromDatabaseUncached');
         $controller = app(ProductController::class);
         $first = $method->invoke($controller, '', null, null, null, true, 1, 100, [], true, true, 'hardware', '06');
@@ -441,7 +452,7 @@ class CatalogCategoryFilteringTest extends TestCase
                 'category_segment' => '06',
             ])->id;
         }
-        Cache::put('storefront_capped_product_ids_v8', $ids, 1800);
+        Cache::put('storefront_capped_product_ids_v9_in-stock', $ids, 1800);
         $method = new ReflectionMethod(ProductController::class, 'fetchPriceAvailabilityPageFromDatabaseUncached');
         $controller = app(ProductController::class);
         foreach ([1, 3] as $page) {

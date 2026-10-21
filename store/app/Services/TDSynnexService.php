@@ -6,6 +6,7 @@ use App\Exceptions\TDSynnexApiException;
 use App\Models\Category;
 use App\Models\Product;
 use App\Support\CatalogTaxonomy;
+use App\Support\OfferPricing;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
@@ -187,7 +188,7 @@ class TDSynnexService
     /**
      * Search PriceAvailability catalog without loading the entire SKU universe.
      */
-    public function searchPriceAvailabilityCatalog(string $search, int $maxMatches = 800, bool $preferDatabase = true, bool $useCache = true, bool $relaxedTitle = false): array
+    public function searchPriceAvailabilityCatalog(string $search, int $maxMatches = 800, bool $preferDatabase = true, bool $useCache = true, bool $relaxedTitle = false, int $page = 1): array
     {
         $needle = strtolower(trim($search));
         if ($needle === '') {
@@ -250,19 +251,23 @@ class TDSynnexService
 
         $maxMatches = max(1, $maxMatches);
         $cacheKey = 'tdsynnex:xml:priceavailability:search:' . md5(json_encode([
-            'search-v5-ranked-titles',
+            'search-v6-paged-titles',
             $needle,
             $relaxedTitle,
-            $relaxedTitle ? array_keys(Cache::get('tdsynnex:discovery:verified-identities', [])) : [],
+            $relaxedTitle ? Cache::get('tdsynnex:discovery:verified-identities', []) : [],
+            $relaxedTitle ? CatalogTaxonomy::storefrontProductLimit() : null,
             $maxMatches,
+            $page,
             (string) config('tdsynnex.price_availability.flat_file_path', ''),
             (string) config('tdsynnex.price_availability.flat_files_dir', 'flat-files'),
             (bool) config('tdsynnex.xml.use_test_by_default', true),
         ]));
 
-        $loader = function () use ($needle, $maxMatches, $relaxedTitle) {
+        $loader = function () use ($needle, $maxMatches, $relaxedTitle, $page) {
             $directSku = (bool) preg_match('/^\d{5,12}$/', $needle);
-            $matchedSkus = $directSku ? [$needle] : $this->findMatchingSkusInApFiles($needle, $maxMatches, $relaxedTitle);
+            $matchedSkus = $relaxedTitle
+                ? array_slice($this->discoveryCandidateSkus($needle), (max(1, $page) - 1) * $maxMatches, $maxMatches)
+                : ($directSku ? [$needle] : $this->findMatchingSkusInApFiles($needle, $maxMatches));
             if (empty($matchedSkus)) {
                 return [];
             }
@@ -991,6 +996,106 @@ class TDSynnexService
         return $this->priceAvailabilityProductToDatabaseRow($product);
     }
 
+    public function saveDiscoveredProduct(array $supplierProduct, string $search): Product
+    {
+        $price = (float) ($supplierProduct['productPrice'][0]['rsPrice'] ?? 0);
+        if (empty($supplierProduct['hasApiResellerPrice']) || $price < CatalogTaxonomy::storefrontMinPrice()
+            || (int) ($supplierProduct['availableQuantity'] ?? 0) <= 0 || !empty($supplierProduct['discontinueProduct'])) {
+            throw new \InvalidArgumentException('Only in-stock supplier products meeting the storefront minimum can be saved.');
+        }
+        $row = $this->priceAvailabilityProductToDatabaseRow($supplierProduct);
+        if ($row === null) {
+            throw new \InvalidArgumentException('The supplier product has no valid catalog identifier.');
+        }
+        $product = Product::query()->firstOrNew(['tdsynnex_product_id' => $row['tdsynnex_product_id']]);
+        $spec = array_merge((array) $product->specifications, json_decode($row['specifications'], true, flags: JSON_THROW_ON_ERROR));
+        $spec['online_content_status'] ??= 'pending';
+        $row['specifications'] = $spec;
+        $row['images'] = (array) $product->images;
+        if ($product->exists) {
+            foreach (['created_at', 'sale_price', 'is_on_sale', 'offer_source', 'supplier_regular_price', 'sale_started_at', 'sale_ended_at'] as $field) {
+                unset($row[$field]);
+            }
+            if (trim((string) $product->description) !== '') {
+                $row['description'] = $product->description;
+            }
+        } else {
+            $row['search_imported_at'] = now();
+            $row['search_import_query'] = $search;
+            $row['search_import_review_status'] = 'pending';
+        }
+        $product->fill($row);
+        $catalogChanged = $product->isDirty(array_diff(array_keys($row), ['created_at', 'updated_at', 'last_synced_at']));
+        if ($product->isDirty()) {
+            $product->save();
+            if ($catalogChanged) {
+                Cache::forget('pa_db_cache_exists');
+                Cache::forever('catalog:price_version', (string) now()->getTimestampMs());
+            }
+        }
+
+        return $product;
+    }
+
+    public function enrichDiscoveredProduct(Product $product): array
+    {
+        $identity = [
+            'productId' => (string) $product->tdsynnex_product_id,
+            'productName' => (string) $product->product_name,
+            'manufacturer' => (string) ($product->manufacturer ?? ''),
+            'mfgPartNo' => (string) $product->mfg_part_no,
+            'upc' => (string) data_get($product->specifications, 'upc', ''),
+        ];
+        $key = 'tdsynnex:verified-content:v2:' . md5(json_encode($identity));
+        $details = Cache::remember($key, now()->addMinutes(10), function () use ($identity) {
+            $details = $this->discoverOnlineProductDetails($identity);
+            $verification = !empty($details['online_details_found'])
+                ? app(AzureOpenAiChatService::class)->verifyProductEvidence($identity, $details)
+                : null;
+            if ($verification === null) {
+                $details['description'] = '';
+                $details['specifications'] = [];
+                $details['image_url'] = '';
+                $details['warnings'][] = 'Online product content could not be verified with OpenAI. No unverified content was attached.';
+            } else {
+                if (!$verification['description_matches']) {
+                    $details['description'] = '';
+                }
+                $details['specifications'] = array_values(array_intersect_key(
+                    $details['specifications'], array_flip($verification['specification_indices'])
+                ));
+                $index = $verification['image_index'];
+                $details['image_url'] = $index === null ? '' : $details['image_candidates'][$index]['image_url'];
+                if ($details['image_url'] === '') {
+                    $details['warnings'][] = 'No sufficiently verified image of this product model was found.';
+                }
+            }
+            unset($details['image_candidates']);
+            $details['online_details_found'] = $details['description'] !== '' || $details['image_url'] !== '' || $details['specifications'] !== [];
+
+            return $details;
+        });
+        $product->refresh();
+        $spec = (array) $product->specifications;
+        $spec['online_specifications'] = $details['specifications'];
+        $spec['online_sources'] = $details['sources'];
+        $spec['online_content_warnings'] = array_values(array_unique($details['warnings']));
+        $spec['online_content_status'] = $details['online_details_found'] ? 'verified' : 'unavailable';
+        $product->specifications = $spec;
+        if ($details['description'] !== '') {
+            $product->description = $details['description'];
+        }
+        if ($details['image_url'] !== '') {
+            $product->images = [['imageUrl' => $details['image_url'], 'source' => 'openai-verified-online']];
+        }
+        if ($product->isDirty()) {
+            $product->save();
+            Cache::forever('catalog:price_version', (string) now()->getTimestampMs());
+        }
+
+        return $details;
+    }
+
     public function importSelectedPriceAvailabilityProduct(string $identifier, string $searchQuery, int $adminId): Product
     {
         $identifier = trim($identifier);
@@ -1103,12 +1208,22 @@ class TDSynnexService
             return ['found' => count($products), 'imported' => 0, 'product_ids' => []];
         }
 
+        $existingProducts = Product::query()->whereIn('tdsynnex_product_id', array_column($rows, 'tdsynnex_product_id'))
+            ->get()->keyBy('tdsynnex_product_id');
+        foreach ($rows as &$row) {
+            $spec = array_merge((array) $existingProducts->get($row['tdsynnex_product_id'])?->specifications,
+                json_decode($row['specifications'], true, flags: JSON_THROW_ON_ERROR));
+            $spec['online_content_status'] ??= 'pending';
+            $row['specifications'] = json_encode($spec, JSON_THROW_ON_ERROR);
+        }
+        unset($row);
+
         Product::upsert($rows, ['tdsynnex_product_id'], [
-            'tdsynnex_sku_no', 'vendor_id', 'product_name', 'mfg_part_no', 'description',
-            'base_price', 'retail_price',
+            'tdsynnex_sku_no', 'vendor_id', 'product_name', 'mfg_part_no',
+            'base_price', 'retail_price', 'quantity',
             'billing_model', 'billing_frequency',
             'is_available', 'is_discontinued', 'is_hardware', 'category_id',
-            'category_segment', 'manufacturer', 'specifications', 'images',
+            'category_segment', 'manufacturer', 'specifications',
             'last_synced_at', 'search_imported_at', 'search_import_query',
             'search_import_review_status', 'updated_at',
         ]);
@@ -2280,6 +2395,80 @@ class TDSynnexService
         return $skus;
     }
 
+    public function discoverInStockPage(string $search, int $perPage, int $page, ?float $minPrice = null, ?float $maxPrice = null): array
+    {
+        $minPrice = CatalogTaxonomy::storefrontMinPrice($minPrice);
+        $candidates = $this->discoveryCandidateSkus($search);
+        $batchSize = max(1, min(100, (int) config('tdsynnex.price_availability.batch_size', 50)));
+        $key = 'tdsynnex:discovery:in-stock:v3:' . md5(json_encode([
+            strtolower(trim($search)), $candidates, $batchSize, $minPrice, $maxPrice,
+            config('tdsynnex.price_availability.region', 'us'),
+            config('tdsynnex.xml.use_test_by_default', true),
+        ]));
+        $state = Cache::get($key, ['products' => [], 'batches' => 0]);
+        $state['products'] = array_column($this->filterStorefrontSupplierProducts(array_values($state['products']), $minPrice, $maxPrice), null, 'productId');
+        $batchCount = (int) ceil(count($candidates) / $batchSize);
+
+        // Screen enough supplier batches for this page and one look-ahead item.
+        // Cache progress so later pages do not recheck earlier stock.
+        while (count($state['products']) <= $page * $perPage && $state['batches'] < $batchCount) {
+            $products = $this->searchPriceAvailabilityCatalog($search, $batchSize, false, true, true, $state['batches'] + 1);
+            foreach ($this->filterStorefrontSupplierProducts($products, $minPrice, $maxPrice) as $product) {
+                $state['products'][(string) $product['productId']] = $product;
+            }
+            $state['batches']++;
+            Cache::put($key, $state, now()->addMinutes(10));
+        }
+
+        $total = count($state['products']);
+        $estimated = $state['batches'] < $batchCount;
+
+        return [
+            'products' => array_slice(array_values($state['products']), ($page - 1) * $perPage, $perPage),
+            'total' => $total,
+            'has_more' => $total > $page * $perPage,
+            'total_is_estimate' => $estimated,
+        ];
+    }
+
+    public function filterStorefrontSupplierProducts(array $products, ?float $minPrice = null, ?float $maxPrice = null): array
+    {
+        $minPrice = CatalogTaxonomy::storefrontMinPrice($minPrice);
+        $saved = Product::query()->whereIn('tdsynnex_product_id', array_column($products, 'productId'))
+            ->get()->keyBy('tdsynnex_product_id');
+
+        return array_values(array_filter($products, static function (array $product) use ($saved, $minPrice, $maxPrice): bool {
+            $livePrice = (float) ($product['productPrice'][0]['rsPrice'] ?? 0);
+            if (empty($product['hasApiResellerPrice']) || $livePrice < CatalogTaxonomy::storefrontMinPrice()
+                || (int) ($product['availableQuantity'] ?? 0) <= 0 || !empty($product['discontinueProduct'])) {
+                return false;
+            }
+            $model = $saved->get($product['productId']) ?? new Product;
+            $model->base_price = $livePrice;
+            $price = OfferPricing::sellPrice($model);
+
+            return $price >= $minPrice && ($maxPrice === null || $price <= $maxPrice);
+        }));
+    }
+
+    public function discoveryCandidateSkus(string $search): array
+    {
+        $needle = strtolower(trim($search));
+        if (preg_match('/^\d{5,12}$/', $needle)) {
+            return [$needle];
+        }
+        $limit = CatalogTaxonomy::storefrontProductLimit();
+        $cacheKey = 'tdsynnex:discovery:candidates:' . md5(json_encode([
+            $needle, $limit,
+            Cache::get('tdsynnex:discovery:verified-identities', []),
+            config('tdsynnex.price_availability.flat_file_path'),
+            config('tdsynnex.price_availability.flat_files_dir'),
+        ]));
+
+        return Cache::remember($cacheKey, now()->addMinutes(10),
+            fn () => $this->findMatchingSkusInApFiles($needle, $limit, true));
+    }
+
     private function findMatchingSkusInApFiles(string $needle, int $maxMatches, bool $relaxedTitle = false): array
     {
         $matches = [];
@@ -2723,7 +2912,7 @@ class TDSynnexService
             'upc' => (string) ($product['upc'] ?? ''),
         ];
         $title = trim((string) ($product['productName'] ?? ''));
-        $key = 'tdsynnex:discovery:v2:' . md5(json_encode([$sku, $meta, $title]));
+        $key = 'tdsynnex:discovery:v4:' . md5(json_encode([$sku, $meta, $title]));
 
         return Cache::remember($key, 600, function () use ($sku, $meta, $title) {
             $icecat = $this->fetchIcecatProductData($sku, $meta, $title);
@@ -2732,6 +2921,10 @@ class TDSynnexService
             $specifications = (array) ($icecat['specifications'] ?? []);
             $sources = [];
             $warnings = [];
+            $imageCandidates = [];
+            if ($this->discoveryPublicUrl($image) !== '') {
+                $imageCandidates[] = ['image_url' => $image, 'title' => 'Icecat identifier lookup: ' . $meta['mpn'], 'source_url' => 'https://icecat.biz/'];
+            }
             if ($description !== '' || $image !== '' || $specifications !== []) {
                 $sources[] = ['name' => 'Icecat', 'url' => 'https://icecat.biz/'];
             }
@@ -2787,13 +2980,17 @@ class TDSynnexService
                                     }
                                 }
                             } else {
-                                $image = $this->discoveryPublicUrl($this->extractImageUrlFromSerpApiResult($row));
-                                if ($image === '') {
+                                $candidate = $this->discoveryPublicUrl($this->extractImageUrlFromSerpApiResult($row));
+                                if ($candidate === '') {
                                     continue;
                                 }
+                                if (count($imageCandidates) === 0) {
+                                    $image = $candidate;
+                                }
+                                $imageCandidates[] = ['image_url' => $candidate, 'title' => strip_tags((string) ($row['title'] ?? '')), 'source_url' => $sourceUrl];
                             }
                             $sources[] = ['name' => (string) ($row['source'] ?? 'Web search'), 'url' => $sourceUrl];
-                            if ($engine === 'google_images') {
+                            if ($engine === 'google_images' && count($imageCandidates) >= 3) {
                                 break;
                             }
                         }
@@ -2819,6 +3016,7 @@ class TDSynnexService
                 'description' => $description,
                 'specifications' => $specifications,
                 'image_url' => $image,
+                'image_candidates' => $imageCandidates,
                 'sources' => $sources,
                 'warnings' => array_values(array_unique($warnings)),
                 'online_details_found' => $description !== '' || $image !== '' || $specifications !== [],
@@ -2835,6 +3033,12 @@ class TDSynnexService
         );
         if ($partNumber !== '' && $hasTerm($partNumber)) {
             return true;
+        }
+        if (str_contains($partNumber, '#')) {
+            [$basePart] = explode('#', $partNumber, 2);
+            if (strlen($basePart) >= 5 && ($hasTerm($basePart) || $hasTerm(str_replace('#', '', $partNumber)))) {
+                return true;
+            }
         }
 
         $terms = array_values(array_unique(preg_split('/[^a-z0-9-]+/i', strtolower($title), -1, PREG_SPLIT_NO_EMPTY) ?: []));
@@ -2980,7 +3184,10 @@ class TDSynnexService
         // Release the DB connection before making external HTTP calls.
         // This frees the MySQL connection slot while the request is in-flight
         // (or timing out), preventing web page requests from being starved.
-        \Illuminate\Support\Facades\DB::disconnect();
+        $connection = \Illuminate\Support\Facades\DB::connection();
+        if ($connection->getDriverName() === 'mysql' && $connection->transactionLevel() === 0) {
+            \Illuminate\Support\Facades\DB::disconnect();
+        }
 
         try {
             foreach ($queryAttempts as $attempt) {

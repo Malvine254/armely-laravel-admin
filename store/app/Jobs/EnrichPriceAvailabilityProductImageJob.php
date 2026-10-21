@@ -29,6 +29,12 @@ class EnrichPriceAvailabilityProductImageJob implements ShouldQueue
 
     public function handle(TDSynnexService $service): void
     {
+        $product = Product::query()->find($this->productId);
+        if ($product && data_get($product->specifications, 'online_content_status') !== null) {
+            $service->enrichDiscoveredProduct($product);
+            Product::query()->whereKey($this->productId)->update(['image_enrichment_attempted_at' => now()]);
+            return;
+        }
         $result = $service->syncPriceAvailabilityImageForProductId($this->productId);
         Product::query()->whereKey($this->productId)->update(['image_enrichment_attempted_at' => now()]);
 

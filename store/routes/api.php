@@ -78,6 +78,7 @@ Route::prefix('v1')->group(function () {
     // Products endpoints
     Route::get('/product-discovery', [ProductDiscoveryController::class, 'search'])->middleware('throttle:10,1');
     Route::get('/product-discovery/details', [ProductDiscoveryController::class, 'details'])->middleware('throttle:10,1');
+    Route::get('/product-discovery/products/{productId}/content', [ProductDiscoveryController::class, 'content'])->whereNumber('productId')->middleware('throttle:100,1');
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/featured', [ProductController::class, 'featured']);
     Route::get('/products/popular-categories', [ProductController::class, 'popularCategories']);

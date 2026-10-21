@@ -185,6 +185,11 @@
 
           <!-- Tab content -->
           <div class="p-6 lg:p-8">
+            <p v-if="onlineContentWarning" role="status" class="mb-4 text-xs text-amber-800">{{ onlineContentWarning }}</p>
+            <div v-if="activeTab !== 'reviews' && product.onlineSources?.length" class="mb-4 flex flex-wrap gap-3 text-xs">
+              <span class="font-semibold text-gray-500">Sources:</span>
+              <a v-for="(source, index) in product.onlineSources" :key="index" :href="source.url" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline">{{ source.name }}</a>
+            </div>
             <!-- Description Tab -->
             <div v-if="activeTab === 'description' && productDescription">
               <div class="relative">
@@ -211,6 +216,10 @@
             <!-- Specs Tab -->
             <div v-if="activeTab === 'specs'">
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div v-for="(spec, index) in product.onlineSpecifications || []" :key="`online-${index}`" class="p-3 bg-gray-50 rounded-lg">
+                  <p class="text-xs text-gray-500">{{ spec.name }}</p>
+                  <p class="text-sm font-medium text-gray-900 break-words">{{ spec.value }}</p>
+                </div>
                 <div v-if="specificationDescription" class="sm:col-span-2 flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
                   <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background-color: #eef5fc;">
                     <svg class="w-4 h-4" fill="none" stroke="#2F5597" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10M4 18h8"/></svg>
@@ -708,6 +717,7 @@ const selectedImage = ref('')
 const isLoading = ref(false)
 const activeTab = ref('description')
 const loadError = ref('')
+const onlineContentWarning = ref('')
 const descriptionExpanded = ref(false)
 const { loadPricingSettings, convertFromUsd, formatWithCurrency } = usePricingSettings()
 
@@ -865,6 +875,30 @@ const fetchReviews = async (productId, page = 1) => {
   }
 }
 
+const loadOnlineContent = async (productId) => {
+  try {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/product-discovery/products/${productId}/content`, {
+      headers: {
+        Accept: 'application/json',
+        ...(authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {}),
+      },
+    }, 45000)
+    if (!response.ok) throw new Error(`Online product lookup failed (${response.status}). Please try again later.`)
+    const json = await response.json()
+    if (String(route.params.id) !== String(productId)) return
+    product.value = json.data
+    productDetailCache.set(String(productId), json.data)
+    saveCachedPayload(PRODUCT_DETAIL_STORAGE_PREFIX, String(productId), json.data)
+    if (!json.data.image_url || json.data.onlineContentStatus === 'unavailable') {
+      onlineContentWarning.value = 'Some online images or details could not be verified. Unverified content has not been attached.'
+    }
+  } catch (error) {
+    if (String(route.params.id) !== String(productId)) return
+    onlineContentWarning.value = error instanceof Error ? error.message : 'Online content is temporarily unavailable.'
+    console.warn('Online product enrichment failed:', error)
+  }
+}
+
 const loadProductDetail = async (productId) => {
   if (!productId) return
 
@@ -885,6 +919,7 @@ const loadProductDetail = async (productId) => {
 
   isLoading.value = true
   loadError.value = ''
+  onlineContentWarning.value = ''
   descriptionExpanded.value = false
   relatedPage.value = 1
 
@@ -928,6 +963,9 @@ const loadProductDetail = async (productId) => {
   }
 
   if (product.value) {
+    if (product.value.onlineContentStatus && (product.value.onlineContentStatus !== 'verified' || !normalizedImages.value.length)) {
+      void loadOnlineContent(productId)
+    }
     rememberViewedProduct(product.value.productId || productId)
     void loadRelatedProducts(productId, relatedCacheKey, cachedRelated)
     void fetchReviews(productId)
