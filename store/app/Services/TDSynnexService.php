@@ -187,7 +187,7 @@ class TDSynnexService
     /**
      * Search PriceAvailability catalog without loading the entire SKU universe.
      */
-    public function searchPriceAvailabilityCatalog(string $search, int $maxMatches = 800, bool $preferDatabase = true, bool $useCache = true): array
+    public function searchPriceAvailabilityCatalog(string $search, int $maxMatches = 800, bool $preferDatabase = true, bool $useCache = true, bool $relaxedTitle = false): array
     {
         $needle = strtolower(trim($search));
         if ($needle === '') {
@@ -250,17 +250,19 @@ class TDSynnexService
 
         $maxMatches = max(1, $maxMatches);
         $cacheKey = 'tdsynnex:xml:priceavailability:search:' . md5(json_encode([
-            'search-v3-direct-sku',
+            'search-v5-ranked-titles',
             $needle,
+            $relaxedTitle,
+            $relaxedTitle ? array_keys(Cache::get('tdsynnex:discovery:verified-identities', [])) : [],
             $maxMatches,
             (string) config('tdsynnex.price_availability.flat_file_path', ''),
             (string) config('tdsynnex.price_availability.flat_files_dir', 'flat-files'),
             (bool) config('tdsynnex.xml.use_test_by_default', true),
         ]));
 
-        $loader = function () use ($needle, $maxMatches) {
+        $loader = function () use ($needle, $maxMatches, $relaxedTitle) {
             $directSku = (bool) preg_match('/^\d{5,12}$/', $needle);
-            $matchedSkus = $directSku ? [$needle] : $this->findMatchingSkusInApFiles($needle, $maxMatches);
+            $matchedSkus = $directSku ? [$needle] : $this->findMatchingSkusInApFiles($needle, $maxMatches, $relaxedTitle);
             if (empty($matchedSkus)) {
                 return [];
             }
@@ -300,7 +302,30 @@ class TDSynnexService
                 $unique[$key] = $item;
             }
 
-            return array_values($unique);
+            if ($directSku && $unique !== []) {
+                $identities = Cache::get('tdsynnex:discovery:verified-identities', []);
+                foreach ($unique as $item) {
+                    $identities[(string) $item['productId']] = [
+                        'sku' => (string) $item['productId'],
+                        'title' => (string) $item['productName'],
+                        'part_number' => (string) $item['mfgPartNo'],
+                    ];
+                }
+                Cache::put('tdsynnex:discovery:verified-identities', array_slice($identities, -100, null, true), now()->addDay());
+            }
+
+            $results = array_values($unique);
+            if ($relaxedTitle && !$directSku) {
+                $score = fn (array $item): int => $this->supplierTitleMatchScore(
+                    $needle,
+                    implode(' ', [$item['productName'], $item['manufacturer'], $item['mfgPartNo'], $item['productId']]),
+                    $item['productName'],
+                    $item['mfgPartNo']
+                );
+                usort($results, static fn (array $left, array $right): int => $score($right) <=> $score($left));
+            }
+
+            return $results;
         };
 
         return $useCache ? Cache::remember($cacheKey, now()->addSeconds(600), $loader) : $loader();
@@ -2255,11 +2280,20 @@ class TDSynnexService
         return $skus;
     }
 
-    private function findMatchingSkusInApFiles(string $needle, int $maxMatches): array
+    private function findMatchingSkusInApFiles(string $needle, int $maxMatches, bool $relaxedTitle = false): array
     {
         $matches = [];
         $seen = [];
         $terms = preg_split('/\s+/', trim($needle), -1, PREG_SPLIT_NO_EMPTY);
+
+        if ($relaxedTitle) {
+            foreach (Cache::get('tdsynnex:discovery:verified-identities', []) as $identity) {
+                $score = $this->supplierTitleMatchScore($needle, $identity['title'], $identity['title'], $identity['part_number']);
+                if ($score > 0) {
+                    $matches[$identity['sku']] = $score;
+                }
+            }
+        }
 
         foreach ($this->discoverApFiles() as $apFile) {
             $file = new \SplFileObject($apFile, 'r');
@@ -2295,6 +2329,14 @@ class TDSynnexService
                     trim((string) ($parts[33] ?? '')), // UPC
                 ])));
 
+                if ($relaxedTitle) {
+                    $score = $this->supplierTitleMatchScore($needle, $haystack, (string) ($parts[6] ?? ''), (string) ($parts[2] ?? ''));
+                    if ($score > 0) {
+                        $seen[$sku] = true;
+                        $matches[$sku] = max($matches[$sku] ?? 0, $score);
+                    }
+                    continue;
+                }
                 if (!str_contains($haystack, $needle)) {
                     foreach ($terms as $term) {
                         if (!str_contains($haystack, $term)) {
@@ -2312,7 +2354,58 @@ class TDSynnexService
             }
         }
 
+        if ($relaxedTitle) {
+            arsort($matches, SORT_NUMERIC);
+            return array_map('strval', array_slice(array_keys($matches), 0, $maxMatches));
+        }
+
         return $matches;
+    }
+
+    private function supplierTitleMatchScore(string $search, string $haystack, string $title, string $partNumber): int
+    {
+        $terms = array_values(array_unique(preg_split('/[^a-z0-9#-]+/i', strtolower($search), -1, PREG_SPLIT_NO_EMPTY) ?: []));
+        $hasTerm = static fn (string $term): bool => (bool) preg_match('/(?<![a-z0-9])' . preg_quote($term, '/') . '(?![a-z0-9])/i', $haystack);
+        if ($partNumber !== '' && strcasecmp(trim($search), trim($partNumber)) === 0) {
+            return 10000;
+        }
+        $coreTerms = array_values(array_filter($terms, static fn (string $term): bool =>
+            !in_array($term, ['windows', 'win', 'pro', 'home', 'professional', 'ram', 'ssd', 'hdd', 'gb', 'tb', 'inch', 'inches', 'refurbished', 'renewed', 'refurb'], true)
+            && !preg_match('/^(?:\d+(?:gb|tb)?|w(?:in)?\d+|g\d[a-z0-9]*)$/i', $term)
+        ));
+        // Never turn an exact identifier or a configuration-only query into a broad OR search.
+        if ($coreTerms === []) {
+            $coreTerms = $terms;
+        }
+        if ($coreTerms === []) {
+            return 0;
+        }
+        foreach ($coreTerms as $term) {
+            if (!$hasTerm($term)) {
+                return 0;
+            }
+        }
+
+        $score = count($coreTerms) * 20;
+        foreach ($terms as $term) {
+            if ($hasTerm($term)) {
+                $score += 10;
+            }
+        }
+        if (stripos($haystack, trim($search)) !== false) {
+            $score += 100;
+        }
+        foreach (['01', '02', '03', '04', '06'] as $segment) {
+            $rules = CatalogTaxonomy::hardwareCategoryRules($segment);
+            if (preg_match('/' . CatalogTaxonomy::keywordPattern($rules['include']) . '/i', $search)
+                && preg_match('/' . CatalogTaxonomy::keywordPattern($rules['include']) . '/i', $title)
+                && !preg_match('/' . CatalogTaxonomy::keywordPattern($rules['exclude']) . '/i', $search)
+                && preg_match('/' . CatalogTaxonomy::keywordPattern($rules['exclude']) . '/i', $title)) {
+                $score -= 1000;
+            }
+        }
+
+        return max(1, $score);
     }
 
     private function readApMetadata(array $targetSkus = []): array

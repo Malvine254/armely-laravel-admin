@@ -29,6 +29,16 @@ and zero-stock products remain discoverable; discovery does not imply in-stock
 availability. Title/MPN searches still depend on the configured AP index to locate
 supplier SKUs, so a recently added product missing from that index should be
 looked up by its exact TD SYNNEX SKU.
+Outside-catalog title searches rank candidates rather than requiring every
+configuration word. Brand/family and explicit part identifiers remain required;
+generation, OS, capacity, and condition terms improve ranking when present.
+Exact configurations lead partial matches, and equipment leads accessories.
+Recently verified direct-SKU identities (up to 100, cached for a day) also help
+locate products missing from the AP index; matches are rechecked with the supplier
+API. These are closest matches, not a guarantee of identical specifications.
+Discovery uses the same `ProductCard` component and grid as catalog results, but
+replaces purchase/favorite/share actions and unverified prices/stock with the
+online-details action. Enriched image URLs populate the same card image area.
 
 - `GET /api/v1/product-discovery?search=...` returns supplier identities only, not
   internal supplier prices.

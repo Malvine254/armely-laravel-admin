@@ -148,16 +148,19 @@
               <p v-if="discoveryLoading" class="mt-4 text-sm">Searching the supplier API…</p>
               <p v-if="discoveryError" role="alert" class="mt-4 text-sm font-semibold text-red-700">{{ discoveryError }}</p>
               <p v-if="discoveryMessage && !discoveryLoading" class="mt-4 text-sm text-slate-700">{{ discoveryMessage }}</p>
-              <ul class="mt-4 space-y-3">
-                <li v-for="product in discoveryProducts" :key="product.product_id" class="rounded-lg border border-slate-200 bg-white p-4">
-                  <h4 class="font-bold text-slate-900">{{ product.name }}</h4>
-                  <p class="mt-1 text-sm text-slate-600">{{ product.manufacturer }} · Part: {{ product.part_number || 'Not supplied' }} · SKU: {{ product.product_id }}</p>
-                  <p v-if="product.supplier_description" class="mt-2 text-sm text-slate-700">{{ product.supplier_description }}</p>
-                  <button @click="loadDiscoveryDetails(product)" :disabled="!!discoveryDetailsLoading" class="mt-3 rounded-lg bg-[#2F5597] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
-                    {{ discoveryDetailsLoading === product.product_id ? 'Looking up online details…' : 'View online details & image' }}
-                  </button>
-                </li>
-              </ul>
+              <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <ProductCard
+                  v-for="(product, index) in discoveryProducts"
+                  :key="product.product_id"
+                  :product="discoveryCardProduct(product)"
+                  :image="product.image_url || ''"
+                  :eager="index < 3"
+                  discovery
+                  :busy="discoveryDetailsLoading === product.product_id"
+                  :view-disabled="!!discoveryDetailsLoading"
+                  @view="loadDiscoveryDetails(product)"
+                />
+              </div>
               <article v-if="discoveryDetails" class="mt-5 rounded-lg border border-blue-200 bg-white p-4">
                 <h4 class="font-bold text-[#102a52]">{{ discoveryDetails.name }}</h4>
                 <p v-if="discoveryDetails.internet_search_query" class="mt-2 text-sm text-slate-600">Internet search title: {{ discoveryDetails.internet_search_query }}</p>
@@ -534,6 +537,14 @@ const discoveryFailureMessage = (requestError) => requestError.response?.status 
   ? 'Too many lookups. Please wait a minute and try again.'
   : 'Product lookup could not be completed. Please try again shortly.'
 
+const discoveryCardProduct = (product) => ({
+  productId: product.product_id,
+  productName: product.name,
+  mfgPartNo: product.part_number,
+  vendorName: product.manufacturer || 'TD SYNNEX',
+  description: product.supplier_description,
+})
+
 const searchOutsideCatalog = async () => {
   resetDiscovery()
   discoveryOpen.value = true
@@ -566,7 +577,12 @@ const loadDiscoveryDetails = async (product) => {
     const response = await api.get('/product-discovery/details', {
       params: { search: discoveryQuery, product_id: product.product_id },
     })
-    if (requestId === discoveryRequestId) discoveryDetails.value = response.data.data
+    if (requestId === discoveryRequestId) {
+      discoveryDetails.value = response.data.data
+      discoveryProducts.value = discoveryProducts.value.map((item) => item.product_id === product.product_id
+        ? { ...item, image_url: response.data.data.image_url }
+        : item)
+    }
   } catch (requestError) {
     if (requestId === discoveryRequestId) discoveryError.value = discoveryFailureMessage(requestError)
   } finally {

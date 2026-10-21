@@ -49,7 +49,7 @@ class ProductDiscoveryTest extends TestCase
     {
         $supplier = Mockery::mock(TDSynnexService::class);
         $supplier->shouldReceive('searchPriceAvailabilityCatalog')->once()
-            ->with('HP ZBook', 10, false)->andReturn([$this->product()]);
+            ->with('HP ZBook', 10, false, true, true)->andReturn([$this->product()]);
         $this->app->instance(TDSynnexService::class, $supplier);
 
         $this->getJson('/api/v1/product-discovery?search=HP%20ZBook')
@@ -61,7 +61,7 @@ class ProductDiscoveryTest extends TestCase
     public function test_empty_supplier_search_has_an_explicit_message(): void
     {
         $supplier = Mockery::mock(TDSynnexService::class);
-        $supplier->shouldReceive('searchPriceAvailabilityCatalog')->once()->with('unknown', 10, false)->andReturn([]);
+        $supplier->shouldReceive('searchPriceAvailabilityCatalog')->once()->with('unknown', 10, false, true, true)->andReturn([]);
         $this->app->instance(TDSynnexService::class, $supplier);
 
         $this->getJson('/api/v1/product-discovery?search=unknown')
@@ -72,7 +72,7 @@ class ProductDiscoveryTest extends TestCase
     public function test_details_only_accept_a_supplier_identity_from_the_search(): void
     {
         $supplier = Mockery::mock(TDSynnexService::class);
-        $supplier->shouldReceive('searchPriceAvailabilityCatalog')->once()->with('ZBook', 10, false)->andReturn([$this->product()]);
+        $supplier->shouldReceive('searchPriceAvailabilityCatalog')->once()->with('ZBook', 10, false, true, true)->andReturn([$this->product()]);
         $supplier->shouldNotReceive('discoverOnlineProductDetails');
         $this->app->instance(TDSynnexService::class, $supplier);
 
@@ -127,7 +127,7 @@ class ProductDiscoveryTest extends TestCase
         ]);
         $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
         $supplier->shouldReceive('searchPriceAvailabilityCatalog')->twice()
-            ->with('ZBook', 10, false)->andReturn([$this->product()]);
+            ->with('ZBook', 10, false, true, true)->andReturn([$this->product()]);
         $this->app->instance(TDSynnexService::class, $supplier);
 
         for ($attempt = 0; $attempt < 2; $attempt++) {
@@ -313,5 +313,90 @@ class ProductDiscoveryTest extends TestCase
 
         $this->getJson('/api/v1/product-discovery?search=99999999')
             ->assertOk()->assertJsonPath('data', []);
+    }
+
+    public function test_relaxed_titles_keep_product_family_but_rank_exact_configurations_and_laptops_before_accessories(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'discovery-ranked-');
+        $rows = [];
+        foreach ([
+            ['10001', 'HP ZBOOK 8 G1AS W11 PRO AC ADAPTER'],
+            ['10002', 'MANUFACTURER RENEWED HP ZBOOK 8 14 INCH'],
+            ['10003', 'HP ZBOOK 8 G1AS W11 PRO'],
+            ['10004', 'HP ELITEBOOK 8 G1AS W11 PRO'],
+            ['10005', 'DELL ZBOOK 8 G1AS W11 PRO'],
+        ] as [$sku, $title]) {
+            $parts = array_fill(0, 37, '');
+            $parts[1] = 'DTL';
+            $parts[2] = 'PART-'.$sku;
+            $parts[4] = $sku;
+            $parts[6] = $title;
+            $parts[7] = $sku === '10005' ? 'DELL' : 'HP';
+            $rows[] = implode('~', $parts);
+        }
+        file_put_contents($file, implode("\n", $rows));
+        config(['tdsynnex.price_availability.flat_file_path' => $file]);
+        $method = new ReflectionMethod(TDSynnexService::class, 'findMatchingSkusInApFiles');
+
+        try {
+            $matches = $method->invoke(app(TDSynnexService::class), 'hp zbook 8 g1as w11 pro', 3, true);
+            $this->assertSame(['10003', '10002', '10001'], $matches);
+            $this->assertSame(['10001'], $method->invoke(app(TDSynnexService::class), 'PART-10001', 3, true));
+            $this->assertSame([], $method->invoke(app(TDSynnexService::class), 'hp zbook unknown-model', 3, true));
+            \Illuminate\Support\Facades\Cache::put('tdsynnex:discovery:verified-identities', [
+                '15428226' => ['sku' => '15428226', 'title' => 'HP ZBOOK 8', 'part_number' => 'BX8M7UTR#ABA'],
+            ]);
+            $this->assertSame(['10003'], $method->invoke(app(TDSynnexService::class), 'hp zbook 8 g1as w11 pro', 1, true));
+        } finally {
+            unlink($file);
+        }
+    }
+
+    public function test_relaxed_title_can_find_recently_verified_sku_missing_from_ap_index(): void
+    {
+        config([
+            'tdsynnex.price_availability.flat_file_path' => '',
+            'tdsynnex.price_availability.flat_files_dir' => 'tests/fixtures/no-ap-files',
+            'tdsynnex.price_availability.customer_no' => 'test-customer',
+            'tdsynnex.price_availability.username' => 'test-user',
+            'tdsynnex.price_availability.password' => 'test-password',
+        ]);
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $supplier->shouldReceive('postPriceAvailabilityXml')->twice()->andReturn([
+            'PriceAvailabilityList' => [
+                'synnexSKU' => '15428226',
+                'mfgPN' => 'BX8M7UTR#ABA',
+                'status' => 'Active',
+                'description' => 'MANUFACTURER RENEWED HP ZBOOK 8 14 INCH',
+            ],
+        ]);
+        $supplier->searchPriceAvailabilityCatalog('15428226', 10, false, false, true);
+        $products = $supplier->searchPriceAvailabilityCatalog('HP ZBOOK 8 G1AS W11 PRO', 10, false, false, true);
+        $this->assertSame('15428226', $products[0]['productId']);
+    }
+
+    public function test_live_supplier_results_are_ranked_even_if_api_returns_accessories_first(): void
+    {
+        \Illuminate\Support\Facades\Cache::put('tdsynnex:discovery:verified-identities', [
+            '15428226' => ['sku' => '15428226', 'title' => 'HP ZBOOK 8', 'part_number' => 'BX8M7UTR#ABA'],
+        ]);
+        config([
+            'tdsynnex.price_availability.flat_file_path' => '',
+            'tdsynnex.price_availability.flat_files_dir' => 'tests/fixtures/no-ap-files',
+            'tdsynnex.price_availability.customer_no' => 'test-customer',
+            'tdsynnex.price_availability.username' => 'test-user',
+            'tdsynnex.price_availability.password' => 'test-password',
+        ]);
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $supplier->shouldReceive('postPriceAvailabilityXml')->andReturn([
+            'PriceAvailabilityList' => [
+                ['synnexSKU' => '10001', 'description' => 'HP ZBOOK 8 G1AS W11 PRO AC ADAPTER'],
+                ['synnexSKU' => '15428226', 'description' => 'MANUFACTURER RENEWED HP ZBOOK 8 14 INCH'],
+                ['synnexSKU' => '10003', 'description' => 'HP ZBOOK 8 G1AS W11 PRO'],
+            ],
+        ]);
+
+        $products = $supplier->searchPriceAvailabilityCatalog('HP ZBOOK 8 G1AS W11 PRO', 10, false, false, true);
+        $this->assertSame(['10003', '15428226', '10001'], array_column($products, 'productId'));
     }
 }

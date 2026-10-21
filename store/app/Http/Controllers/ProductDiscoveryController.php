@@ -21,7 +21,7 @@ class ProductDiscoveryController extends Controller
         ]);
 
         try {
-            $products = $this->supplier->searchPriceAvailabilityCatalog(trim($validated['search']), 10, false);
+            $products = $this->supplier->searchPriceAvailabilityCatalog(trim($validated['search']), 10, false, true, true);
         } catch (TDSynnexApiException|ConnectionException|RequestException $error) {
             return $this->unavailable($error);
         }
@@ -31,7 +31,7 @@ class ProductDiscoveryController extends Controller
             'data' => array_map(fn (array $product) => $this->identity($product), $products),
             'message' => $products === []
                 ? 'No supplier match found. Try the manufacturer and exact model or part number.'
-                : 'Select a supplier match to look up online product details.',
+                : 'Closest supplier matches. Titles may omit configuration details; verify the exact model before purchasing.',
         ]);
     }
 
@@ -43,7 +43,7 @@ class ProductDiscoveryController extends Controller
         ]);
 
         try {
-            $products = $this->supplier->searchPriceAvailabilityCatalog(trim($validated['search']), 10, false);
+            $products = $this->supplier->searchPriceAvailabilityCatalog(trim($validated['search']), 10, false, true, true);
             $product = collect($products)->first(fn (array $row) => (string) ($row['productId'] ?? '') === $validated['product_id']);
             abort_if($product === null, 404, 'Product not found in these supplier search results. Search again.');
 
