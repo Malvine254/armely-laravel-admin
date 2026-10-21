@@ -9,6 +9,11 @@
 
 ## Outside-catalog product discovery
 
+Navigation menu counts use one streamed eligible-product query per cold cache,
+then reuse the result for 30 minutes. Category name rules, stock/price filters,
+and manufacturer counts are preserved without repeated full-catalog regex scans.
+This avoids blocking the single-threaded local PHP server while the menu loads.
+
 The products page offers **Search outside catalog** both for empty searches and
 alongside existing results. It identifies up to ten products using the TD SYNNEX
 PriceAvailability API and the configured AP SKU source files, bypassing the local

@@ -215,6 +215,47 @@ class CatalogCategoryFilteringTest extends TestCase
         $this->assertSame(['HP' => 1, 'LENOVO' => 1], collect($vendors)->pluck('count', 'vendorName')->sortKeys()->all());
     }
 
+    public function test_cold_menu_scans_products_once_and_reuses_cached_counts(): void
+    {
+        Product::create(['product_name' => 'Lenovo ThinkPad T14', 'category_segment' => '06']);
+        Product::create(['product_name' => 'HP laptop', 'manufacturer' => 'HP', 'quantity' => 0]);
+        Product::create(['product_name' => 'HP laptop', 'manufacturer' => 'HP', 'base_price' => 50]);
+        Product::create(['product_name' => 'Laptop sleeve', 'category_segment' => '01']);
+        Product::create(['product_name' => 'Canon printer', 'category_segment' => '01', 'manufacturer' => 'Canon']);
+        Product::create(['product_name' => 'Dell PowerEdge server', 'category_segment' => null, 'manufacturer' => 'Dell']);
+        Product::create(['product_name' => 'Rack appliance', 'category_segment' => '05', 'manufacturer' => '']);
+        DB::table('categories')->insert([
+            ['name' => 'Laptops', 'slug' => 'laptops', 'segment_code' => '01'],
+            ['name' => 'Printers', 'slug' => 'printers', 'segment_code' => '06'],
+            ['name' => 'Servers', 'slug' => 'servers', 'segment_code' => '05'],
+            ['name' => 'Equipment', 'slug' => 'equipment', 'segment_code' => '01,06'],
+        ]);
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        try {
+            $controller = app(ProductController::class);
+            $response = $controller->menuCategories();
+            $this->assertSame(200, $response->getStatusCode());
+            $menu = collect($response->getData(true)['data']);
+            $this->assertSame(1, $menu->firstWhere('segment_code', '01')['count']);
+            $this->assertSame(1, $menu->firstWhere('segment_code', '06')['count']);
+            $this->assertSame(2, $menu->firstWhere('segment_code', '05')['count']);
+            $this->assertSame(2, $menu->firstWhere('segment_code', '01,06')['count']);
+            $this->assertCount(1, $menu->firstWhere('segment_code', '05')['children']);
+            $productQueries = collect(DB::getQueryLog())->filter(
+                static fn (array $entry): bool => str_contains($entry['query'], 'from "products"')
+            );
+            $this->assertCount(1, $productQueries, 'Cold menu must scan products once, not twice per category.');
+            DB::flushQueryLog();
+            $this->assertSame($response->getData(true), $controller->menuCategories()->getData(true));
+            $this->assertSame([], DB::getQueryLog());
+        } finally {
+            DB::disableQueryLog();
+            DB::flushQueryLog();
+        }
+    }
+
     private function browse(string $search = '', string $category = ''): array
     {
         return (new ReflectionMethod(ProductController::class, 'fetchPriceAvailabilityPageFromDatabaseUncached'))

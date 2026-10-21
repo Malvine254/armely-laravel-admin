@@ -2640,7 +2640,7 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v18:full-category-catalog', 1800, function () {
+            $data = Cache::remember('menu_categories:v19:single-scan', 1800, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -2664,47 +2664,77 @@ class ProductController extends Controller
                 $segmentsWithProducts = [];
                 $segmentCounts = [];
                 $manufacturersBySegment = [];
+                $segmentMatchers = [];
                 foreach ($parentSegments as $segment) {
-                    $manufacturerQuery = Product::query()
-                        ->where('vendor_id', 'TD SYNNEX');
-                    $this->applySidebarFacetProductFilters(
-                        $manufacturerQuery,
-                        true,
-                        self::STOREFRONT_MIN_PRICE,
-                        null,
-                        true,
-                        'hardware',
-                        '',
-                        [],
-                        $segment
-                    );
-                    $count = (clone $manufacturerQuery)->count();
-                    $segmentCounts[$segment] = $count;
-                    if ($count > 0) {
-                        $segmentsWithProducts[$segment] = true;
+                    $segmentMatchers[$segment] = [];
+                    foreach (explode(',', $segment) as $code) {
+                        $code = trim($code);
+                        $rules = CatalogTaxonomy::hardwareCategoryRules($code);
+                        $keywords = [];
+                        if ($rules === null) {
+                            foreach (CatalogTaxonomy::curatedCategories() as $definition) {
+                                if (in_array($code, $definition['segment_codes'], true)) {
+                                    $keywords = array_values(array_filter($definition['keywords'], static fn (string $keyword): bool => strlen($keyword) >= 5));
+                                    break;
+                                }
+                            }
+                        }
+                        $segmentMatchers[$segment][] = [
+                            'code' => $code,
+                            'include' => $rules === null ? null : '/' . CatalogTaxonomy::keywordPattern($rules['include']) . '/i',
+                            'exclude' => $rules === null ? null : '/' . CatalogTaxonomy::keywordPattern($rules['exclude']) . '/i',
+                            'keywords' => $keywords,
+                        ];
                     }
-                    $manufacturerRows = $manufacturerQuery
-                        ->whereNotNull('manufacturer')
-                        ->where('manufacturer', '<>', '')
-                        ->selectRaw('manufacturer, COUNT(*) as product_count')
-                        ->groupBy('manufacturer')
-                        ->get();
+                }
 
-                    foreach ($manufacturerRows as $row) {
-                        $name = trim((string) $row->manufacturer);
-
-                        if ($segment === '' || $name === '') {
+                // Read eligible rows once; per-category SQL regex scans block the
+                // single-threaded local server and repeatedly parse stock JSON.
+                $menuProducts = Product::query()->where('vendor_id', 'TD SYNNEX');
+                $this->applySidebarFacetProductFilters(
+                    $menuProducts, true, self::STOREFRONT_MIN_PRICE, null, true, 'hardware'
+                );
+                foreach ($menuProducts->select(['product_name', 'category_segment', 'manufacturer'])->toBase()->cursor() as $row) {
+                    $productName = (string) $row->product_name;
+                    $storedSegment = trim((string) $row->category_segment);
+                    $manufacturer = trim((string) $row->manufacturer);
+                    foreach ($segmentMatchers as $segment => $matchers) {
+                        $matches = false;
+                        foreach ($matchers as $matcher) {
+                            if ($matcher['include'] !== null) {
+                                $matches = preg_match($matcher['include'], $productName)
+                                    && !preg_match($matcher['exclude'], $productName);
+                            } else {
+                                $matches = $storedSegment === $matcher['code'];
+                                if (!$matches && $storedSegment === '') {
+                                    foreach ($matcher['keywords'] as $keyword) {
+                                        if (stripos($productName, $keyword) !== false) {
+                                            $matches = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            if ($matches) {
+                                break;
+                            }
+                        }
+                        if (!$matches) {
                             continue;
                         }
-
-                        $canonicalName = $this->normalizeCuratedVendorName($name);
+                        $segmentCounts[$segment] = ($segmentCounts[$segment] ?? 0) + 1;
+                        $segmentsWithProducts[$segment] = true;
+                        if ($manufacturer === '') {
+                            continue;
+                        }
+                        $canonicalName = $this->normalizeCuratedVendorName($manufacturer);
                         if (!isset($manufacturersBySegment[$segment][$canonicalName])) {
                             $manufacturersBySegment[$segment][$canonicalName] = [
                                 'name' => $canonicalName,
                                 'count' => 0,
                             ];
                         }
-                        $manufacturersBySegment[$segment][$canonicalName]['count'] += (int) $row->product_count;
+                        $manufacturersBySegment[$segment][$canonicalName]['count']++;
                     }
                 }
                 foreach ($manufacturersBySegment as $segment => $rows) {
