@@ -36,6 +36,8 @@ class UserEmailPreferenceServiceTest extends TestCase
             $table->boolean('orders_notifications_enabled')->default(true);
             $table->boolean('invoices_notifications_enabled')->default(true);
             $table->boolean('marketing_enabled')->default(true);
+            $table->boolean('ai_marketing_enabled')->default(false);
+            $table->timestamp('ai_marketing_consent_at')->nullable();
             $table->boolean('price_alerts_enabled')->default(true);
             $table->boolean('cart_reminders_enabled')->default(true);
             $table->boolean('browse_reminders_enabled')->default(true);
@@ -84,6 +86,7 @@ class UserEmailPreferenceServiceTest extends TestCase
         ]);
 
         $pref = $service->ensurePreference($user);
+        $this->assertFalse($pref->ai_marketing_enabled);
         $pref->timezone = 'UTC';
         $pref->quiet_hours_start = 1320; // 22:00
         $pref->quiet_hours_end = 360; // 06:00
@@ -118,6 +121,15 @@ class UserEmailPreferenceServiceTest extends TestCase
         $this->assertFalse($service->wasIdempotencyKeySent($idempotencyKey));
 
         $service->markIdempotencyKeySent($user, $idempotencyKey, ['subscription_id' => 42]);
+        $this->assertTrue($service->wasIdempotencyKeySent($idempotencyKey));
+        $reason = \App\Models\SuppressionEvent::query()
+            ->where('event_type', 'marketing_idempotency')->value('reason');
+        $this->assertSame('idem:'.hash('sha256', $idempotencyKey), $reason);
+        $this->assertSame(69, strlen($reason));
+        $migration = require database_path('migrations/2026_10_21_190000_widen_suppression_event_reason.php');
+        $migration->up();
+        $this->assertTrue($service->wasIdempotencyKeySent($idempotencyKey));
+        $migration->down();
         $this->assertTrue($service->wasIdempotencyKeySent($idempotencyKey));
     }
 

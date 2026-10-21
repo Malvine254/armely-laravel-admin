@@ -563,7 +563,11 @@ const enrichDiscoveryProducts = async (matches, requestId) => {
         ? { ...item, catalog_product: response.data.data }
         : item)
       if (!response.data.data.image_url || response.data.data.onlineContentStatus === 'unavailable') {
-        discoveryContentWarning.value = 'Some online images or details could not be verified. Unverified content has not been attached.'
+        const providerUnavailable = (response.data.warnings || []).some((warning) =>
+          /provider.*(?:unavailable|could not complete)/i.test(warning))
+        discoveryContentWarning.value = providerUnavailable
+          ? 'The image search provider is temporarily unavailable. Product results are still available; please try the image lookup again later.'
+          : 'Some online images or details could not be verified. Unverified content has not been attached.'
       }
     } catch (requestError) {
       if (requestId !== discoveryRequestId) return

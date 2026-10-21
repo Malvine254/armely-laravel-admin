@@ -41,6 +41,8 @@ class EmailPreferenceLifecycleTest extends TestCase
             $table->boolean('orders_notifications_enabled')->default(true);
             $table->boolean('invoices_notifications_enabled')->default(true);
             $table->boolean('marketing_enabled')->default(true);
+            $table->boolean('ai_marketing_enabled')->default(false);
+            $table->timestamp('ai_marketing_consent_at')->nullable();
             $table->boolean('price_alerts_enabled')->default(true);
             $table->boolean('cart_reminders_enabled')->default(true);
             $table->boolean('browse_reminders_enabled')->default(true);
@@ -101,6 +103,7 @@ class EmailPreferenceLifecycleTest extends TestCase
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.marketing_enabled', true)
+            ->assertJsonPath('data.ai_marketing_enabled', false)
             ->assertJsonPath('data.price_alerts_enabled', true)
             ->assertJsonPath('data.cart_reminders_enabled', true)
             ->assertJsonPath('data.browse_reminders_enabled', true);
@@ -108,6 +111,7 @@ class EmailPreferenceLifecycleTest extends TestCase
         $this->actingAs($user, 'sanctum')
             ->putJson('/api/v1/behavior/email-preferences', [
                 'marketing_enabled' => false,
+                'ai_marketing_enabled' => true,
                 'price_alerts_enabled' => false,
                 'browse_reminders_enabled' => false,
                 'timezone' => 'UTC',
@@ -117,20 +121,41 @@ class EmailPreferenceLifecycleTest extends TestCase
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.marketing_enabled', false)
+            ->assertJsonPath('data.ai_marketing_enabled', false)
             ->assertJsonPath('data.price_alerts_enabled', false)
             ->assertJsonPath('data.browse_reminders_enabled', false)
             ->assertJsonPath('data.timezone', 'UTC')
             ->assertJsonPath('data.quiet_hours_start', 1320)
             ->assertJsonPath('data.quiet_hours_end', 420);
 
+        $this->actingAs($user, 'sanctum')
+            ->putJson('/api/v1/behavior/email-preferences', [
+                'marketing_enabled' => true,
+                'ai_marketing_enabled' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.ai_marketing_enabled', true);
+
+        $this->assertNotNull(EmailPreference::query()->where('user_id', $user->id)->value('ai_marketing_consent_at'));
         $this->assertDatabaseHas(EmailPreference::class, [
             'user_id' => $user->id,
-            'marketing_enabled' => 0,
+            'marketing_enabled' => 1,
+            'ai_marketing_enabled' => 1,
             'price_alerts_enabled' => 0,
             'browse_reminders_enabled' => 0,
             'timezone' => 'UTC',
             'quiet_hours_start' => 1320,
             'quiet_hours_end' => 420,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->putJson('/api/v1/behavior/email-preferences', ['ai_marketing_enabled' => false])
+            ->assertOk()
+            ->assertJsonPath('data.ai_marketing_enabled', false);
+        $this->assertDatabaseHas('suppression_events', [
+            'user_id' => $user->id,
+            'event_type' => 'unsubscribe',
+            'reason' => 'ai_marketing_opt_out',
         ]);
     }
 
@@ -349,11 +374,13 @@ class EmailPreferenceLifecycleTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.scope', 'price_alerts')
             ->assertJsonPath('data.preferences.marketing_enabled', false)
+            ->assertJsonPath('data.preferences.ai_marketing_enabled', false)
             ->assertJsonPath('data.preferences.price_alerts_enabled', false);
 
         $this->assertDatabaseHas(EmailPreference::class, [
             'user_id' => $user->id,
             'marketing_enabled' => 0,
+            'ai_marketing_enabled' => 0,
             'price_alerts_enabled' => 0,
         ]);
 

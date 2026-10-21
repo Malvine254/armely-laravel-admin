@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SuppressionEvent;
 use App\Services\UserEmailPreferenceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,8 @@ class EmailPreferenceController extends Controller
                 'orders_notifications_enabled' => (bool) $pref->orders_notifications_enabled,
                 'invoices_notifications_enabled' => (bool) $pref->invoices_notifications_enabled,
                 'marketing_enabled' => (bool) $pref->marketing_enabled,
+                'ai_marketing_enabled' => (bool) $pref->ai_marketing_enabled,
+                'ai_marketing_consent_at' => $pref->ai_marketing_consent_at?->toISOString(),
                 'price_alerts_enabled' => (bool) $pref->price_alerts_enabled,
                 'cart_reminders_enabled' => (bool) $pref->cart_reminders_enabled,
                 'browse_reminders_enabled' => (bool) $pref->browse_reminders_enabled,
@@ -50,6 +53,7 @@ class EmailPreferenceController extends Controller
             'orders_notifications_enabled' => ['sometimes', 'boolean'],
             'invoices_notifications_enabled' => ['sometimes', 'boolean'],
             'marketing_enabled' => ['sometimes', 'boolean'],
+            'ai_marketing_enabled' => ['sometimes', 'boolean'],
             'price_alerts_enabled' => ['sometimes', 'boolean'],
             'cart_reminders_enabled' => ['sometimes', 'boolean'],
             'browse_reminders_enabled' => ['sometimes', 'boolean'],
@@ -68,9 +72,32 @@ class EmailPreferenceController extends Controller
             }
         }
 
+        if (array_key_exists('marketing_enabled', $validated) && ! $validated['marketing_enabled']) {
+            $validated['ai_marketing_enabled'] = false;
+        }
+
         $pref = $service->ensurePreference($user);
+        $wasAiMarketingEnabled = (bool) $pref->ai_marketing_enabled;
         $pref->fill($validated);
+        if (array_key_exists('ai_marketing_enabled', $validated)
+            && $validated['ai_marketing_enabled']
+            && !$wasAiMarketingEnabled) {
+            $pref->ai_marketing_consent_at = now();
+        }
         $pref->save();
+
+        if ($wasAiMarketingEnabled && ! $pref->ai_marketing_enabled) {
+            SuppressionEvent::query()->create([
+                'user_id' => (int) $user->id,
+                'email' => (string) $user->email,
+                'event_type' => 'unsubscribe',
+                'channel' => 'email',
+                'reason' => 'ai_marketing_opt_out',
+                'source' => 'account_preferences',
+                'metadata' => ['scope' => 'ai_marketing'],
+                'occurred_at' => now(),
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -81,6 +108,8 @@ class EmailPreferenceController extends Controller
                 'orders_notifications_enabled' => (bool) $pref->orders_notifications_enabled,
                 'invoices_notifications_enabled' => (bool) $pref->invoices_notifications_enabled,
                 'marketing_enabled' => (bool) $pref->marketing_enabled,
+                'ai_marketing_enabled' => (bool) $pref->ai_marketing_enabled,
+                'ai_marketing_consent_at' => $pref->ai_marketing_consent_at?->toISOString(),
                 'price_alerts_enabled' => (bool) $pref->price_alerts_enabled,
                 'cart_reminders_enabled' => (bool) $pref->cart_reminders_enabled,
                 'browse_reminders_enabled' => (bool) $pref->browse_reminders_enabled,

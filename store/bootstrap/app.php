@@ -129,6 +129,13 @@ return Application::configure(basePath: dirname(__DIR__))
             ->daily()
             ->name('tdsynnex-sync-catalog')
             ->withoutOverlapping();
+
+        $schedule->command('ai-marketing:evaluate')
+            ->everyThirtyMinutes()
+            ->name('ai-marketing-evaluate')
+            ->when(fn (): bool => (bool) config('ai_marketing.enabled')
+                && (bool) config('ai_marketing.customer_intelligence_enabled'))
+            ->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (Throwable $e, $request) {

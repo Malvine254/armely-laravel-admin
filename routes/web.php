@@ -25,7 +25,6 @@ use App\Http\Controllers\Admin\ResourceController as AdminResourceController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\EventRegistrationController;
 use App\Http\Controllers\SitemapController;
-use App\Http\Controllers\MelaSecurityController;
 use App\Support\ServiceUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -33,10 +32,6 @@ use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\Psr7\UriResolver;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
-
-Route::get('/mela-meeting-assistant/help', function () {
-    return view('help.help');
-})->name('help');
 
 // Backward-compatible redirect for legacy activation links that missed
 // the /store base path in older outbound emails.
@@ -579,7 +574,6 @@ Route::get('/event-emails/unsubscribe/{token}', [EventRegistrationController::cl
 Route::get('/company', [HomeController::class, 'company'])->name('company.index');
 Route::get('/career', [HomeController::class, 'career'])->name('career.index');
 // Route::get('/team', [HomeController::class, 'team'])->name('team.index'); // Hidden per request
-Route::view('/clients', 'clients.index')->name('clients.index');
 Route::get('/customer-stories', [HomeController::class, 'customerStories'])->name('customer-stories.index');
 Route::get('/customer-stories/{story}', [HomeController::class, 'customerStoryShow'])
     ->whereNumber('story')
@@ -596,29 +590,12 @@ Route::get('/industries', [HomeController::class, 'industries'])->name('industri
 Route::get('/industries/{industry}', [HomeController::class, 'industryShow'])
     ->where('industry', '[A-Za-z0-9\-]+')
     ->name('industries.show');
-
-//Route::get('/mela-ai', [HomeController::class, 'melaAi'])->name('mela-ai');
-
-Route::redirect('/mela', '/mela-meeting-assistant', 301);
+Route::get('/mela-ai', [HomeController::class, 'melaAi'])->name('mela-ai');
 Route::get('/mela-meeting-assistant', [HomeController::class, 'melaMeetingAssistant'])->name('mela-meeting-assistant');
 Route::view('/mela-ai-terms-of-use', 'legal.mela-terms-of-use')->name('mela.terms');
 Route::view('/mela-ai-privacy-policy', 'legal.mela-ai-privacy-policy')->name('mela.privacy');
-
-Route::get('/mela-meeting-assistant-security', [MelaSecurityController::class, 'show'])->name('mela.security');
-Route::post('/mela-meeting-assistant-security/request', [MelaSecurityController::class, 'submitRequest'])
-    ->middleware('throttle:10,1')
-    ->name('mela.security.request');
-Route::get('/mela-meeting-assistant-security/download/{id}', [MelaSecurityController::class, 'download'])
-    ->where('id', '[0-9]+')
-    ->name('mela.security.download');
-
-Route::redirect('/mela-security-compliance-documents', '/mela-meeting-assistant-security', 301);
-Route::redirect('/mela-security-documents', '/mela-meeting-assistant-security', 301);
-Route::redirect('/mela-soc2', '/mela-meeting-assistant-security', 301);
-Route::redirect('/mela-privacy-documents', '/mela-meeting-assistant-security', 301);
 Route::redirect('/mela-meeting-assistant-terms-of-use', '/mela-ai-terms-of-use', 301);
 Route::redirect('/mela-meeting-assistant-privacy-policy', '/mela-ai-privacy-policy', 301);
-Route::redirect('/mela-meeting-assistant/security-documents', '/mela-meeting-assistant-security', 301);
 Route::redirect('/mela-meeting-assistant/terms-of-use', '/mela-ai-terms-of-use', 301);
 Route::redirect('/mela-meeting-assistant/privacy-policy', '/mela-ai-privacy-policy', 301);
 
@@ -702,7 +679,6 @@ Route::get('/store/public/{path?}', function (?string $path = null) {
         ? redirect('/store/' . ltrim($path, '/'))
         : redirect('/store');
 })->where('path', '.*');
-Route::get('/job-board/{publicToken}', [HomeController::class, 'jobBoard'])->name('job-board.show');
 Route::get('/job-board', [HomeController::class, 'jobBoard'])->name('job-board.index');
 Route::get('/applications', [HomeController::class, 'applications'])->name('applications.index');
 Route::post('/applications', [HomeController::class, 'submitApplication'])->name('applications.submit');
@@ -733,25 +709,13 @@ Route::prefix('admin')->group(function () {
 Route::get('/admin/tables/ping', [TablesController::class, 'ping'])->name('admin.tables.ping');
 
 // Admin Protected Routes
-Route::prefix('admin')->middleware(['admin', \App\Http\Middleware\ReindexMelaKnowledgeAfterContentChange::class])->group(function () {
+Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('admin.logout');
     // Graceful fallback: allow GET logout to handle cases where JS/form submission fails
     Route::get('/logout', [AuthController::class, 'logout'])->name('admin.logout.get');
 
-    // Mela AI knowledge index
-    Route::get('/mela/sessions', [\App\Http\Controllers\Admin\MelaSessionController::class, 'index'])->name('admin.mela.sessions.index');
-    Route::get('/mela/sessions/{conversation}', [\App\Http\Controllers\Admin\MelaSessionController::class, 'show'])->name('admin.mela.sessions.show');
-    Route::get('/mela/knowledge', [\App\Http\Controllers\Admin\MelaKnowledgeController::class, 'status'])->name('admin.mela.knowledge.status');
-    Route::post('/mela/knowledge/reindex', [\App\Http\Controllers\Admin\MelaKnowledgeController::class, 'reindex'])->name('admin.mela.knowledge.reindex');
-    Route::post('/mela/knowledge/stop', [\App\Http\Controllers\Admin\MelaKnowledgeController::class, 'stopReindex'])->name('admin.mela.knowledge.stop');
-    Route::get('/mela/knowledge/manage', [\App\Http\Controllers\Admin\MelaKnowledgeController::class, 'index'])->name('admin.mela.knowledge.manage');
-    Route::post('/mela/knowledge/schedule', [\App\Http\Controllers\Admin\MelaKnowledgeController::class, 'schedule'])->name('admin.mela.knowledge.schedule');
-    Route::delete('/mela/knowledge/schedule', [\App\Http\Controllers\Admin\MelaKnowledgeController::class, 'cancelSchedule'])->name('admin.mela.knowledge.schedule.cancel');
-
     // Resource Management
-    Route::get('/case-studies/{caseStudy}/download', [CaseStudiesController::class, 'adminCaseStudyDownload'])->name('admin.case-studies.download');
-    Route::get('/white-papers/{paper}/download', [CaseStudiesController::class, 'adminWhitePaperDownload'])->name('admin.white-papers.download');
     Route::get('/resources', [AdminResourceController::class, 'index'])->name('admin.resources.index');
     Route::get('/resources/create', [AdminResourceController::class, 'create'])->name('admin.resources.create');
     Route::post('/resources', [AdminResourceController::class, 'store'])->name('admin.resources.store');
@@ -856,8 +820,6 @@ Route::prefix('admin')->middleware(['admin', \App\Http\Middleware\ReindexMelaKno
     
     // Admin User Management
     Route::get('/profile', [ProfileController::class, 'show'])->name('admin.profile');
-    Route::get('/profile/photo', [ProfileController::class, 'photo'])->name('admin.profile.photo');
-    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('admin.profile.photo.update');
     Route::post('/profile', [ProfileController::class, 'update'])->name('admin.profile.update');
 
     Route::get('/admins', [AdminsController::class, 'index'])->name('admin.admins');

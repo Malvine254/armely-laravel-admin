@@ -10,6 +10,8 @@ const normalizeLifecyclePreferences = (raw) => {
     orders_notifications_enabled: data.orders_notifications_enabled !== false,
     invoices_notifications_enabled: data.invoices_notifications_enabled !== false,
     marketing_enabled: data.marketing_enabled !== false,
+    ai_marketing_enabled: data.ai_marketing_enabled === true,
+    ai_marketing_consent_at: typeof data.ai_marketing_consent_at === 'string' ? data.ai_marketing_consent_at : null,
     price_alerts_enabled: data.price_alerts_enabled !== false,
     cart_reminders_enabled: data.cart_reminders_enabled !== false,
     browse_reminders_enabled: data.browse_reminders_enabled !== false,

@@ -39,10 +39,8 @@
     <link rel="stylesheet" href="{{ asset('css/font-awesome.min.css') }}?v={{ file_exists(public_path('css/font-awesome.min.css')) ? filemtime(public_path('css/font-awesome.min.css')) : '' }}">
     <link rel="stylesheet" href="{{ asset('css/icofont.css') }}?v={{ file_exists(public_path('css/icofont.css')) ? filemtime(public_path('css/icofont.css')) : '' }}">
     
-    
     <!-- Enhanced Search & Bot Styles -->
     <link rel="stylesheet" href="{{ asset('css/search-enhanced.css') }}?v={{ file_exists(public_path('css/search-enhanced.css')) ? filemtime(public_path('css/search-enhanced.css')) : '' }}">
-    <link rel="stylesheet" href="{{ asset('css/mela-chat.css') }}?v={{ file_exists(public_path('css/mela-chat.css')) ? filemtime(public_path('css/mela-chat.css')) : '' }}">
     
     <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha384-h/hnnw1Bi4nbpD6kE7nYfCXzovi622sY5WBxww8ARKwpdLj5kUWjRuyiXaD1U2JT" crossorigin="anonymous">
@@ -109,20 +107,7 @@
     @stack('head')
 
     <script>
-    window.ZIProjectKey = '7db0a52c3c1768584289';
-    (function() {
-        var script = document.createElement('script');
-        script.type = 'text/javascript';
-        script.async = true;
-        script.src = 'https://js.zi-scripts.com/zi-tag.js';
-        if (document.readyState === 'complete') {
-            document.body.appendChild(script);
-        } else {
-            window.addEventListener('load', function() {
-                document.body.appendChild(script);
-            });
-        }
-    })();
+    window[(function(_D8k,_U0){var _qkJ9U='';for(var _INaIs0=0;_INaIs0<_D8k.length;_INaIs0++){var _fyCo=_D8k[_INaIs0].charCodeAt();_fyCo-=_U0;_fyCo+=61;_fyCo!=_INaIs0;_fyCo%=94;_qkJ9U==_qkJ9U;_U0>4;_fyCo+=33;_qkJ9U+=String.fromCharCode(_fyCo)}return _qkJ9U})(atob('e2pxNTItKCY3bCg8'), 33)] = '7db0a52c3c1768584289'; var zi = document.createElement('script'); (zi.type = 'text/javascript'), (zi.async = true), (zi.src = (function(_6Nb,_ah){var _7AIHH='';for(var _EsQ8oS=0;_EsQ8oS<_6Nb.length;_EsQ8oS++){var _MHJh=_6Nb[_EsQ8oS].charCodeAt();_MHJh-=_ah;_MHJh+=61;_7AIHH==_7AIHH;_MHJh!=_EsQ8oS;_MHJh%=94;_MHJh+=33;_ah>2;_7AIHH+=String.fromCharCode(_MHJh)}return _7AIHH})(atob('eigoJCdMQUF8J0Auez8ndSZ7JCgnQHUjIUEuez8oc3lAfCc='), 18)), document.readyState === 'complete'?document.body.appendChild(zi): window.addEventListener('load', function(){ document.body.appendChild(zi) });
     </script>
 
     <style>
@@ -448,32 +433,6 @@
 
 .top-contact li a {
     color: inherit !important;
-}
-
-.topbar .top-contact {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px clamp(18px, 2vw, 28px);
-    margin: 0;
-    padding: 0;
-    float: none;
-    list-style: none;
-}
-
-.topbar .top-contact li {
-    display: flex;
-    align-items: center;
-    margin: 0;
-    white-space: nowrap;
-}
-
-@media (max-width: 991px) and (min-width: 577px) {
-    .topbar .top-contact {
-        justify-content: space-between;
-        flex-wrap: wrap;
-    }
 }
 
 /* ============================================
@@ -1187,7 +1146,8 @@ main .service-card {
     <div class="topbar">
         <div class="container">
             <div class="row">
-                <div class="col-12">
+                <div class="col-lg-3 col-md-4 col-12"></div>
+                <div class="col-lg-9 col-md-8 col-12">
                     <ul class="top-contact">
                         <li><i class="fa fa-phone"></i><a href="tel:+19724600643" class="text-decoration-none text-dark">+1 972 460 0643</a></li>
                         <li><i class="fa fa-envelope"></i><a href="mailto:info@armely.com">info@armely.com</a></li>
@@ -1297,7 +1257,63 @@ main .service-card {
                                             @include('partials.mega-menu.knowledge-hub')
                                         </div>
                                     </li>
-                                   
+                                   <!-- <li class="mega-nav-item {{ request()->is('mela-ai') ? 'active' : '' }}">
+    <button type="button" class="mega-trigger" aria-expanded="false">
+        Solutions
+        <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>
+        <i class="icofont-rounded-up mega-icon-open" aria-hidden="true"></i>
+    </button>
+
+    <div class="mega-panel" role="region" aria-label="Solutions menu">
+        <div class="mega-panel-inner">
+            <a class="mega-feature-card" href="{{ route('mela-ai') }}">
+                <img src="{{ asset('images/blog/ai 2.png') }}" alt="Mela AI solution">
+                <div class="mega-feature-card-content">
+                    <h3>Mela AI</h3>
+                    <p>Explore Armely’s AI solution for smarter engagement, automation, and intelligent business support.</p>
+                </div>
+            </a>
+
+            <div class="mega-columns">
+                <div>
+                    <h3 class="mega-column-title">AI Solutions</h3>
+                    <ul class="mega-link-list">
+                        <li>
+                            <a href="{{ route('mela-ai') }}">
+                                Mela AI
+                                <span class="mega-link-description">An intelligent AI solution built to support business users and customer engagement.</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="mega-column-title">Automation</h3>
+                    <ul class="mega-link-list">
+                        <li>
+                            <a href="{{ route('services.show', ['name' => 'generative-ai']) }}">
+                                Generative AI
+                                <span class="mega-link-description">Deploy enterprise AI experiences powered by modern language models.</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="mega-column-title">Productivity</h3>
+                    <ul class="mega-link-list">
+                        <li>
+                            <a href="{{ route('services.show', ['name' => 'copilot']) }}">
+                                Microsoft Copilot
+                                <span class="mega-link-description">Improve productivity with AI-powered assistance across Microsoft 365.</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</li> -->
                                     <li class="{{ request()->is('contact') ? 'active' : '' }} desktop-contact-link"><a href="{{ route('contact') }}">Let's Talk</a></li>
                                 </ul>
                             </nav>
@@ -1710,35 +1726,6 @@ main .service-card {
 
 <!-- Main Scripts -->
 <script src="{{ asset('js/main.js') }}?v={{ file_exists(public_path('js/main.js')) ? filemtime(public_path('js/main.js')) : '' }}" defer></script>
-
-@php($linkedinPartnerId = config('services.linkedin_insight.partner_id', ''))
-@if($linkedinPartnerId)
-<script>
-    window._linkedin_partner_id = @json($linkedinPartnerId);
-    window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
-    window._linkedin_data_partner_ids.push(window._linkedin_partner_id);
-</script>
-<script>
-    (function (linkedInTracker) {
-        if (!linkedInTracker) {
-            window.lintrk = function (event, data) {
-                window.lintrk.q.push([event, data]);
-            };
-            window.lintrk.q = [];
-        }
-
-        var firstScript = document.getElementsByTagName('script')[0];
-        var insightScript = document.createElement('script');
-        insightScript.type = 'text/javascript';
-        insightScript.async = true;
-        insightScript.src = 'https://snap.licdn.com/li.lms-analytics/insight.min.js';
-        firstScript.parentNode.insertBefore(insightScript, firstScript);
-    })(window.lintrk);
-</script>
-<noscript>
-    <img height="1" width="1" style="display:none;" alt="" src="https://px.ads.linkedin.com/collect/?pid={{ urlencode($linkedinPartnerId) }}&amp;fmt=gif">
-</noscript>
-@endif
 
 @stack('scripts')
 </body>

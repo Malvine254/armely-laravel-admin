@@ -2,6 +2,26 @@
 
 ## Pre-Deployment
 
+### AI marketing foundation (dry-run only)
+
+- Deploy the store frontend and backend together, then run the store's
+  `php artisan migrate --force` before serving the updated account-preferences
+  endpoints. This adds marketing foundation tables, explicit AI consent fields,
+  and widens the existing lifecycle send-marker reason column.
+- Keep `AI_MARKETING_ENABLED`, `AI_CUSTOMER_INTELLIGENCE_ENABLED`,
+  `AI_CAMPAIGN_AUTO_SEND_ENABLED`, and `AI_MARKETING_ADMIN_ENABLED` false.
+  This release does not implement AI email generation or automatic delivery.
+- Existing marketing preferences do not grant AI consent. The new account
+  preference defaults off and requires an explicit opt-in.
+- The send-marker repair preserves existing SHA-256 keys and prevents MySQL
+  rejecting the 69-character marker after provider acceptance. Its rollback
+  retains the wider column to preserve duplicate-send protection.
+- After migrations, rebuild cached configuration with `php artisan config:cache`
+  and run `php artisan ai-marketing:evaluate` to verify the disabled message.
+  Do not use a campaign send or scheduler execution as a production smoke test.
+- See [the architecture assessment](docs/AI_MARKETING_ARCHITECTURE.md) for the
+  implementation boundary. A GitHub push alone does not apply server migrations.
+
 ### Durable carts and lifecycle email
 
 - Run `php artisan migrate --force` from the **store application**, not the

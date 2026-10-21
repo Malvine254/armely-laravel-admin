@@ -372,6 +372,13 @@
                 </label>
                 <label class="flex items-center justify-between rounded-lg border border-[#d7e4f8] bg-white px-3 py-2">
                   <div>
+                    <p class="text-sm font-semibold text-slate-800">Personalized AI Marketing</p>
+                    <p class="text-xs text-slate-500">Optional consent for AI-assisted product recommendations based on your store activity. You can withdraw consent at any time.</p>
+                  </div>
+                  <input v-model="lifecycleSettings.ai_marketing_enabled" type="checkbox" class="h-5 w-5 shrink-0 rounded border-slate-300 text-[#2F5597] focus:ring-[#2F5597]" />
+                </label>
+                <label class="flex items-center justify-between rounded-lg border border-[#d7e4f8] bg-white px-3 py-2">
+                  <div>
                     <p class="text-sm font-semibold text-slate-800">Price Drop Alerts</p>
                     <p class="text-xs text-slate-500">Notifies you when tracked products drop in price.</p>
                   </div>
@@ -587,6 +594,8 @@ const lifecycleSettingsError = ref('')
 const lifecycleSettings = ref({
   transactional_enabled: true,
   marketing_enabled: true,
+  ai_marketing_enabled: false,
+  ai_marketing_consent_at: null,
   price_alerts_enabled: true,
   cart_reminders_enabled: true,
   browse_reminders_enabled: true,
@@ -1139,6 +1148,7 @@ const saveNotificationSettings = async () => {
       orders_notifications_enabled: !!notificationSettings.value.orders,
       invoices_notifications_enabled: !!notificationSettings.value.invoices,
       marketing_enabled: !!lifecycleSettings.value.marketing_enabled,
+      ai_marketing_enabled: !!lifecycleSettings.value.ai_marketing_enabled,
       price_alerts_enabled: !!lifecycleSettings.value.price_alerts_enabled,
       cart_reminders_enabled: !!lifecycleSettings.value.cart_reminders_enabled,
       browse_reminders_enabled: !!lifecycleSettings.value.browse_reminders_enabled,
@@ -1148,6 +1158,7 @@ const saveNotificationSettings = async () => {
     }
 
     if (!payload.marketing_enabled) {
+      payload.ai_marketing_enabled = false
       payload.price_alerts_enabled = false
       payload.cart_reminders_enabled = false
       payload.browse_reminders_enabled = false

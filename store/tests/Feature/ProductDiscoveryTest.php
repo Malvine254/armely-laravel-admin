@@ -12,6 +12,38 @@ use Tests\TestCase;
 
 class ProductDiscoveryTest extends TestCase
 {
+    public function test_model_images_do_not_require_supplier_operating_system_shorthand(): void
+    {
+        $method = new ReflectionMethod(TDSynnexService::class, 'discoveryMatchesSupplier');
+        $service = app(TDSynnexService::class);
+        $this->assertTrue($method->invoke($service, 'HP ZBook 8 G1AS workstation', 'HP ZBOOK 8 G1AS W11 PRO', ''));
+        $this->assertFalse($method->invoke($service, 'HP ZBook 9 G1AS workstation', 'HP ZBOOK 8 G1AS W11 PRO', ''));
+        $this->assertFalse($method->invoke($service, 'HP ZBook 8 G2 workstation', 'HP ZBOOK 8 G1AS W11 PRO', ''));
+    }
+
+    public function test_cached_search_candidates_reuse_metadata_without_rescanning_the_catalog(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'discovery-metadata-');
+        $parts = array_fill(0, 37, '');
+        $parts[1] = 'DTL';
+        $parts[2] = 'PART-10001';
+        $parts[4] = '10001';
+        $parts[6] = 'HP ZBOOK 8 G1AS';
+        $parts[7] = 'HP';
+        file_put_contents($file, implode('~', $parts));
+        config(['tdsynnex.price_availability.flat_file_path' => $file]);
+        try {
+            $this->assertSame(['10001'], (new TDSynnexService)->discoveryCandidateSkus('HP ZBOOK'));
+            file_put_contents($file, '');
+            $service = new TDSynnexService;
+            $this->assertSame(['10001'], $service->discoveryCandidateSkus('HP ZBOOK'));
+            $metadata = (new ReflectionMethod(TDSynnexService::class, 'readApMetadata'))->invoke($service, ['10001']);
+            $this->assertSame('PART-10001', $metadata['10001']['mpn']);
+        } finally {
+            unlink($file);
+        }
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

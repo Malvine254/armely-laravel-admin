@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 class TDSynnexService
 {
+    private array $discoveryRows = [];
 
     /**
      * Make authenticated XML API request
@@ -1046,7 +1047,7 @@ class TDSynnexService
             'mfgPartNo' => (string) $product->mfg_part_no,
             'upc' => (string) data_get($product->specifications, 'upc', ''),
         ];
-        $key = 'tdsynnex:verified-content:v2:' . md5(json_encode($identity));
+        $key = 'tdsynnex:verified-content:v3:' . md5(json_encode($identity));
         $details = Cache::remember($key, now()->addMinutes(10), function () use ($identity) {
             $details = $this->discoverOnlineProductDetails($identity);
             $verification = !empty($details['online_details_found'])
@@ -2458,15 +2459,20 @@ class TDSynnexService
             return [$needle];
         }
         $limit = CatalogTaxonomy::storefrontProductLimit();
-        $cacheKey = 'tdsynnex:discovery:candidates:' . md5(json_encode([
+        $cacheKey = 'tdsynnex:discovery:candidates:v2:' . md5(json_encode([
             $needle, $limit,
             Cache::get('tdsynnex:discovery:verified-identities', []),
             config('tdsynnex.price_availability.flat_file_path'),
             config('tdsynnex.price_availability.flat_files_dir'),
         ]));
 
-        return Cache::remember($cacheKey, now()->addMinutes(10),
-            fn () => $this->findMatchingSkusInApFiles($needle, $limit, true));
+        $result = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($needle, $limit) {
+            $skus = $this->findMatchingSkusInApFiles($needle, $limit, true);
+            return ['skus' => $skus, 'rows' => array_intersect_key($this->discoveryRows, array_flip($skus))];
+        });
+        $this->discoveryRows = array_replace($this->discoveryRows, $result['rows']);
+
+        return $result['skus'];
     }
 
     private function findMatchingSkusInApFiles(string $needle, int $maxMatches, bool $relaxedTitle = false): array
@@ -2521,6 +2527,7 @@ class TDSynnexService
                 if ($relaxedTitle) {
                     $score = $this->supplierTitleMatchScore($needle, $haystack, (string) ($parts[6] ?? ''), (string) ($parts[2] ?? ''));
                     if ($score > 0) {
+                        $this->discoveryRows[$sku] = $parts;
                         $seen[$sku] = true;
                         $matches[$sku] = max($matches[$sku] ?? 0, $score);
                     }
@@ -2597,6 +2604,27 @@ class TDSynnexService
         return max(1, $score);
     }
 
+    private function apRowMetadata(array $parts): array
+    {
+        $apBasePrice = is_numeric(trim((string) ($parts[12] ?? ''))) ? (float) $parts[12] : 0.0;
+        $apRetailPrice = is_numeric(trim((string) ($parts[13] ?? ''))) ? (float) $parts[13] : 0.0;
+
+        return [
+            'category_code' => trim((string) ($parts[24] ?? '')) ?: '-',
+            'category_name' => trim((string) ($parts[35] ?? '')),
+            'segment_code' => trim((string) ($parts[35] ?? '')),
+            'family_code' => trim((string) ($parts[36] ?? '')),
+            'description' => trim((string) ($parts[6] ?? '')),
+            'mpn' => trim((string) ($parts[2] ?? '')),
+            'manufacturer' => trim((string) ($parts[7] ?? '')),
+            'upc' => trim((string) ($parts[33] ?? '')),
+            'base_price' => $apBasePrice,
+            'retail_price' => $apRetailPrice,
+            'image_url' => $this->extractImageUrlFromApRow($parts),
+            'source_url' => $this->extractSourceUrlFromApRow($parts),
+        ];
+    }
+
     private function readApMetadata(array $targetSkus = []): array
     {
         $metadata = [];
@@ -2605,6 +2633,13 @@ class TDSynnexService
             foreach ($targetSkus as $sku) {
                 $targetSet[(string) $sku] = true;
             }
+        }
+
+        foreach (array_intersect_key($this->discoveryRows, $targetSet) as $sku => $parts) {
+            $metadata[$sku] = $this->apRowMetadata($parts);
+        }
+        if ($targetSet !== [] && count($metadata) === count($targetSet)) {
+            return $metadata;
         }
 
         foreach ($this->discoverApFiles() as $apFile) {
@@ -2635,23 +2670,7 @@ class TDSynnexService
                 }
 
                 if (!isset($metadata[$sku])) {
-                    $apBasePrice = is_numeric(trim((string) ($parts[12] ?? ''))) ? (float) $parts[12] : 0.0;
-                    $apRetailPrice = is_numeric(trim((string) ($parts[13] ?? ''))) ? (float) $parts[13] : 0.0;
-
-                    $metadata[$sku] = [
-                        'category_code' => trim((string) ($parts[24] ?? '')) ?: '-',
-                        'category_name' => trim((string) ($parts[35] ?? '')),
-                        'segment_code' => trim((string) ($parts[35] ?? '')),
-                        'family_code' => trim((string) ($parts[36] ?? '')),
-                        'description' => trim((string) ($parts[6] ?? '')),
-                        'mpn' => trim((string) ($parts[2] ?? '')),
-                        'manufacturer' => trim((string) ($parts[7] ?? '')),
-                        'upc' => trim((string) ($parts[33] ?? '')),
-                        'base_price' => $apBasePrice,
-                        'retail_price' => $apRetailPrice,
-                        'image_url' => $this->extractImageUrlFromApRow($parts),
-                        'source_url' => $this->extractSourceUrlFromApRow($parts),
-                    ];
+                    $metadata[$sku] = $this->apRowMetadata($parts);
 
                     if (!empty($targetSet) && count($metadata) >= count($targetSet)) {
                         break;
@@ -2912,7 +2931,7 @@ class TDSynnexService
             'upc' => (string) ($product['upc'] ?? ''),
         ];
         $title = trim((string) ($product['productName'] ?? ''));
-        $key = 'tdsynnex:discovery:v4:' . md5(json_encode([$sku, $meta, $title]));
+        $key = 'tdsynnex:discovery:v5:' . md5(json_encode([$sku, $meta, $title]));
 
         return Cache::remember($key, 600, function () use ($sku, $meta, $title) {
             $icecat = $this->fetchIcecatProductData($sku, $meta, $title);
@@ -2936,7 +2955,9 @@ class TDSynnexService
                 // Part numbers corroborate matches but never replace that title.
                 foreach (['google', 'google_images'] as $engine) {
                     try {
-                        $response = Http::acceptJson()->connectTimeout(2)->timeout(6)->get(
+                        $response = Http::acceptJson()
+                            ->connectTimeout(max(2, min(5, (int) config('tdsynnex.serpapi.connect_timeout', 3))))
+                            ->timeout(max(6, min(10, (int) config('tdsynnex.serpapi.timeout', 10))))->get(
                             (string) config('tdsynnex.serpapi.endpoint', 'https://serpapi.com/search.json'),
                             [
                                 'api_key' => config('tdsynnex.serpapi.api_key'),
@@ -3041,7 +3062,9 @@ class TDSynnexService
             }
         }
 
-        $terms = array_values(array_unique(preg_split('/[^a-z0-9-]+/i', strtolower($title), -1, PREG_SPLIT_NO_EMPTY) ?: []));
+        $terms = array_values(array_filter(array_unique(preg_split('/[^a-z0-9-]+/i', strtolower($title), -1, PREG_SPLIT_NO_EMPTY) ?: []),
+            static fn (string $term): bool => !preg_match('/^(?:w(?:in)?\d+|\d+(?:gb|tb))$/i', $term)
+        ));
         $modelTerms = array_values(array_filter($terms, static fn (string $term): bool => (bool) preg_match('/[a-z]/i', $term) && (bool) preg_match('/\d/', $term)));
         $identityTerms = $modelTerms !== []
             ? array_values(array_filter($terms, static fn (string $term): bool => (bool) preg_match('/\d/', $term)))

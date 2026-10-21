@@ -22,6 +22,7 @@ class UserEmailPreferenceService
                 'orders_notifications_enabled' => true,
                 'invoices_notifications_enabled' => true,
                 'marketing_enabled' => true,
+                'ai_marketing_enabled' => false,
                 'price_alerts_enabled' => true,
                 'cart_reminders_enabled' => true,
                 'browse_reminders_enabled' => true,
@@ -193,7 +194,10 @@ class UserEmailPreferenceService
         $user = $record->user;
         $preference = $this->ensurePreference($user);
 
-        $updates = ['marketing_enabled' => false];
+        $updates = [
+            'marketing_enabled' => false,
+            'ai_marketing_enabled' => false,
+        ];
 
         if ($scope === 'price_alerts') {
             $updates['price_alerts_enabled'] = false;
@@ -235,6 +239,7 @@ class UserEmailPreferenceService
             'email' => (string) ($user->email ?? ''),
             'preferences' => [
                 'marketing_enabled' => (bool) $preference->marketing_enabled,
+                'ai_marketing_enabled' => (bool) $preference->ai_marketing_enabled,
                 'price_alerts_enabled' => (bool) $preference->price_alerts_enabled,
                 'cart_reminders_enabled' => (bool) $preference->cart_reminders_enabled,
                 'browse_reminders_enabled' => (bool) $preference->browse_reminders_enabled,

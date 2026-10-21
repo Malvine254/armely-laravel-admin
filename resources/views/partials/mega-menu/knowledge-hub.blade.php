@@ -1,11 +1,5 @@
 <div class="mega-panel-inner">
-    <a class="mega-feature-card" href="{{ route('blog.index') }}">
-        <img src="{{ asset('images/services/aishort.png') }}" alt="Team exploring AI insights and technical knowledge">
-        <div class="mega-feature-card-content">
-            <h3>Knowledge Hub</h3>
-            <p>Explore practical insights, customer outcomes, research, and upcoming Armely events.</p>
-        </div>
-    </a>
+    {{-- Public resources index hidden. --}}
     <div class="mega-columns">
         <div>
             <h3 class="mega-column-title">Learn</h3>
