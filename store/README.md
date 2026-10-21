@@ -127,6 +127,8 @@ Deploy from the `store` directory with `php artisan migrate --force` and
 `notifications.id` auto-increment after imports that stripped it, preserving
 existing rows. Back up production before migrations; nonstandard ID/key schemas
 stop with an explicit error instead of being converted silently.
+The storefront pin migration also resumes imported or partially migrated schemas
+by adding only missing pin columns/indexes, preserving existing pin values.
 
 ## About Laravel
 
