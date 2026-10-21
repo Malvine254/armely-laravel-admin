@@ -2,6 +2,24 @@
 
 ## Pre-Deployment
 
+### Runtime frontend URLs
+
+- The store page renders only the public `VITE_APP_BASE_PATH` and `VITE_API_URL`
+  settings from Laravel's active `.env` into `window.storeRuntimeConfig`.
+  This takes precedence over build-time Vite values, so changing server URLs
+  does not require rebuilding JavaScript. For the production store, use
+  `VITE_APP_BASE_PATH=/store/` and `VITE_API_URL=/store/api/v1`.
+- After changing the server environment, run `php artisan config:cache` and
+  `php artisan view:clear`, then purge cached HTML. Deploy the updated Blade
+  template and JavaScript together. Never expose the full environment to the
+  browser. `.env.prod` is a private reference/build-mode file, not Laravel's
+  default server configuration file.
+- A JSON 503 from product discovery means the request reached the controller
+  but a supplier, transport, database or input-processing exception occurred.
+  Inspect the `Product discovery provider unavailable.` warning in the store
+  logs and the corresponding provider/database diagnostics; changing the
+  frontend URL cannot fix that server-side failure.
+
 ### External catalog images and promotional photos
 
 - Deploy the store PHP changes together with `public/build/manifest.json` and

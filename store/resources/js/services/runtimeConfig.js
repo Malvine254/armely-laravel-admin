@@ -21,7 +21,6 @@ const detectRuntimeBasePath = () => {
   }
 
   const pathname = window.location.pathname || '/'
-  const hostname = (window.location.hostname || '').toLowerCase()
   if (pathname === '/store/public' || pathname.startsWith('/store/public/')) {
     return '/store/public/'
   }
@@ -43,24 +42,15 @@ const detectRuntimeBasePath = () => {
     return pathname.slice(0, storeIndex + storeMarker.length)
   }
 
-  // Production safety net: store is mounted under /store on armely.com.
-  // Some reverse-proxy rewrites can expose paths like /admin/* to the SPA,
-  // which would otherwise make the router base resolve to '/'.
-  if (hostname === 'armely.com' || hostname === 'www.armely.com') {
-    return '/store/'
-  }
-
   return '/'
 }
 
-const runtimeEnv = import.meta.env || {}
+const serverConfig = typeof window !== 'undefined' ? window.storeRuntimeConfig : null
+const runtimeEnv = serverConfig || import.meta.env || {}
 const configuredBasePath = runtimeEnv.VITE_APP_BASE_PATH || ''
 
-// Prefer the live browser location so one build works both at a local root and
-// under the production /store subpath. Environment values remain the SSR/build
-// fallback when window is unavailable.
 export const APP_BASE_PATH = normalizeBasePath(
-  detectRuntimeBasePath() || configuredBasePath || runtimeEnv.BASE_URL || '/'
+  (serverConfig ? configuredBasePath : '') || detectRuntimeBasePath() || configuredBasePath || runtimeEnv.BASE_URL || '/'
 )
 
 export const buildStoreUrl = (path = '') => {
@@ -285,9 +275,8 @@ const shouldUseConfiguredApiBaseUrl = (value) => {
     }
   })()
 
-  // On local/XAMPP, ignore production API env values so the app keeps using
-  // runtime detection for the local backend.
-  if (isLocalHost && /armely\.com/i.test(configured)) {
+  // Avoid sending local development traffic to a remote build-time API.
+  if (!serverConfig && isLocalHost && /^https?:\/\//i.test(configured) && !isConfiguredLocalHost) {
     return false
   }
 

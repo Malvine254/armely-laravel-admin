@@ -45,6 +45,12 @@
         @endif
 
         <!-- Scripts -->
+        <script>
+            window.storeRuntimeConfig = {{ Illuminate\Support\Js::from([
+                'VITE_APP_BASE_PATH' => config('app.frontend_base_path'),
+                'VITE_API_URL' => config('app.frontend_api_url'),
+            ]) }};
+        </script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="antialiased">
