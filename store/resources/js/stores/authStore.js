@@ -459,10 +459,36 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const refreshUser = async () => {
+  let refreshInFlight = null
+  let refreshToken = null
+  let refreshRetryAt = 0
+  let refreshFailures = 0
+
+  const refreshUser = () => {
+    const requestToken = token.value
+    if (!requestToken) return Promise.resolve(false)
+    if (refreshToken === requestToken) {
+      if (refreshInFlight) return refreshInFlight
+      if (Date.now() < refreshRetryAt) return Promise.resolve(false)
+    } else {
+      refreshToken = requestToken
+      refreshRetryAt = 0
+      refreshFailures = 0
+    }
+    const request = performUserRefresh(requestToken).finally(() => {
+      if (refreshInFlight === request) refreshInFlight = null
+    })
+    refreshInFlight = request
+    return request
+  }
+
+  const performUserRefresh = async (requestToken) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/auth/me`)
+      const response = await axios.get(`${API_BASE_URL}/auth/me`, { timeout: 15000 })
+      if (token.value !== requestToken) return false
       if (response.data?.success) {
+        refreshFailures = 0
+        refreshRetryAt = 0
         const payload = response.data.data
         const nextUser = payload?.user || payload
         if (payload?.company && typeof nextUser === 'object') {
@@ -482,7 +508,10 @@ export const useAuthStore = defineStore('auth', () => {
         return true
       }
     } catch (error) {
+      if (token.value !== requestToken) return false
       console.error('Failed to refresh user:', error)
+      refreshFailures++
+      refreshRetryAt = Date.now() + Math.min(300000, 60000 * 2 ** (refreshFailures - 1))
       const status = error.response?.status
       const reason = String(error.response?.data?.data?.restriction_reason || '').toLowerCase()
       const isHardBlock = reason === 'company_suspended' || reason === 'user_suspended'

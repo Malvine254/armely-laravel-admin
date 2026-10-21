@@ -385,6 +385,84 @@ class ProductDiscoveryTest extends TestCase
         $this->assertNotNull($saved->fresh()->image_enrichment_attempted_at);
     }
 
+    public function test_background_content_queues_once_and_returns_saved_content_without_online_requests(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        Http::preventStrayRequests();
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $saved = $supplier->saveDiscoveredProduct($this->product(), 'ZBook');
+        $supplier->shouldNotReceive('enrichDiscoveredProduct');
+        $this->app->instance(TDSynnexService::class, $supplier);
+        for ($i = 0; $i < 2; $i++) {
+            $this->getJson('/api/v1/product-discovery/products/12345/content?background=1')
+                ->assertStatus(202)->assertJsonPath('content_pending', true)
+                ->assertJsonPath('data.productId', '12345');
+        }
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\EnrichPriceAvailabilityProductImageJob::class, 1);
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\EnrichPriceAvailabilityProductImageJob::class,
+            fn ($job) => $job->productId === $saved->id && $job->queue === 'products-sync' && $job->connection === 'database');
+
+        $saved->update(['images' => [['imageUrl' => 'https://images.example.com/verified.jpg']],
+            'specifications' => [...$saved->specifications, 'online_content_status' => 'verified']]);
+        $this->getJson('/api/v1/product-discovery/products/12345/content?background=1')
+            ->assertOk()->assertJsonPath('content_pending', false);
+    }
+
+    public function test_verified_specs_without_a_photo_still_queue_image_lookup(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        $supplier = app(TDSynnexService::class);
+        $saved = $supplier->saveDiscoveredProduct($this->product(), 'ZBook');
+        $saved->update(['specifications' => [...$saved->specifications, 'online_content_status' => 'verified']]);
+        $this->getJson('/api/v1/product-discovery/products/12345/content?background=1')
+            ->assertStatus(202)->assertJsonPath('content_pending', true);
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\EnrichPriceAvailabilityProductImageJob::class, 1);
+    }
+
+    public function test_failed_background_lookup_returns_warning_and_does_not_requeue_immediately(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        $saved = app(TDSynnexService::class)->saveDiscoveredProduct($this->product(), 'ZBook');
+        (new \App\Jobs\EnrichPriceAvailabilityProductImageJob($saved->id))->failed(new \RuntimeException('Provider failed'));
+        $this->getJson('/api/v1/product-discovery/products/12345/content?background=1')
+            ->assertOk()->assertJsonPath('content_pending', false)
+            ->assertJsonPath('warnings.0', 'Product image lookup failed. Please try again later.');
+        \Illuminate\Support\Facades\Queue::assertNothingPushed();
+    }
+
+    public function test_verified_images_and_specs_persist_and_survive_search_and_failed_reverification(): void
+    {
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $saved = $supplier->saveDiscoveredProduct($this->product(), 'ZBook');
+        $supplier->shouldReceive('discoverOnlineProductDetails')->twice()->andReturn([
+            'description' => 'Verified workstation description',
+            'specifications' => [['name' => 'Memory', 'value' => '32 GB']],
+            'image_url' => 'https://images.example.com/verified.jpg',
+            'image_candidates' => [['image_url' => 'https://images.example.com/verified.jpg']],
+            'sources' => ['https://manufacturer.example.com/model'],
+            'warnings' => [], 'online_details_found' => true,
+        ]);
+        $verifier = Mockery::mock(\App\Services\AzureOpenAiChatService::class);
+        $verifier->shouldReceive('verifyProductEvidence')->once()->ordered()->andReturn([
+            'description_matches' => true, 'specification_indices' => [0], 'image_index' => 0,
+        ]);
+        $verifier->shouldReceive('verifyProductEvidence')->once()->ordered()->andReturnNull();
+        $this->app->instance(\App\Services\AzureOpenAiChatService::class, $verifier);
+        (new \App\Jobs\EnrichPriceAvailabilityProductImageJob($saved->id))->handle($supplier);
+        $this->assertSame('openai-verified-online', $saved->fresh()->images[0]['source']);
+        $this->assertSame('https://images.example.com/verified.jpg', $saved->fresh()->images[0]['imageUrl']);
+        $supplier->saveDiscoveredProduct([...$this->product(), 'availableQuantity' => 2], 'ZBook again');
+        $this->travel(11)->minutes();
+        $supplier->enrichDiscoveredProduct($saved->fresh());
+        $fresh = $saved->fresh();
+        $this->assertSame('Verified workstation description', $fresh->description);
+        $this->assertSame('32 GB', $fresh->specifications['online_specifications'][0]['value']);
+        $this->assertSame('verified', $fresh->specifications['online_content_status']);
+        $this->assertSame('https://images.example.com/verified.jpg', $fresh->images[0]['imageUrl']);
+        $this->assertSame(2, $fresh->quantity);
+        $this->assertSame(1, \App\Models\Product::count());
+    }
+
     public function test_stock_filtering_happens_before_pagination_and_refills_from_later_supplier_batches(): void
     {
         config(['tdsynnex.price_availability.batch_size' => 50]);

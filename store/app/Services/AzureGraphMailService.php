@@ -42,20 +42,51 @@ class AzureGraphMailService
 
     private function productImageUrl(Product $product): string
     {
+        foreach (['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'] as $extension) {
+            $path = 'images/products/'.$product->tdsynnex_product_id.'.'.$extension;
+            if ($product->tdsynnex_product_id && is_file(public_path($path))) {
+                return $this->marketingStoreUrl().'/'.$path;
+            }
+        }
         $images = is_array($product->images) ? $product->images : [];
-        $first = $images[0] ?? null;
-        $candidate = is_array($first)
-            ? ($first['imageUrl'] ?? $first['image_url'] ?? $first['imageURL'] ?? $first['imagePath'] ?? $first['url'] ?? '')
-            : $first;
-        if (!is_string($candidate) || trim($candidate) === '') {
-            return $this->logoUrl();
+        foreach ($images as $image) {
+            $candidate = is_array($image)
+                ? ($image['imageUrl'] ?? $image['image_url'] ?? $image['imageURL'] ?? $image['imagePath'] ?? $image['url'] ?? '')
+                : $image;
+            if (!is_string($candidate) || trim($candidate) === '') {
+                continue;
+            }
+            $candidate = trim($candidate);
+            if (str_starts_with($candidate, '//')) {
+                $candidate = 'https:'.$candidate;
+            }
+            if (preg_match('#^https?://#i', $candidate)) {
+                $host = strtolower((string) parse_url($candidate, PHP_URL_HOST));
+                if ($host !== '' && !in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+                    return $candidate;
+                }
+                $candidate = (string) parse_url($candidate, PHP_URL_PATH);
+            }
+            $candidate = preg_replace('#^/?store/#', '', $candidate);
+            if (str_contains($candidate, '..')) {
+                continue;
+            }
+            if (is_file(public_path(ltrim($candidate, '/')))) {
+                return $this->marketingStoreUrl().'/'.ltrim($candidate, '/');
+            }
         }
 
-        $candidate = trim($candidate);
-        $candidate = preg_replace('#^/?store/#', '', $candidate);
-        return preg_match('#^https?://#i', $candidate)
-            ? $candidate
-            : $this->marketingStoreUrl() . '/' . ltrim($candidate, '/');
+        return '';
+    }
+
+    private function hasMarketingImage(Product $product): bool
+    {
+        if ($this->productImageUrl($product) !== '') {
+            return true;
+        }
+        Log::warning('Promotional email skipped: product has no usable photo.', ['product_id' => $product->id]);
+
+        return false;
     }
 
     public function sendTestEmail(string $recipientEmail, string $recipientName = 'Admin'): bool
@@ -2041,6 +2072,9 @@ class AzureGraphMailService
         if (trim((string) ($user->email ?? '')) === '' || $currentPrice <= 0 || $previousPrice <= 0) {
             return false;
         }
+        if (!$this->hasMarketingImage($product)) {
+            return false;
+        }
 
         $productName = trim((string) ($product->product_name ?? 'Product'));
         $partNumber = trim((string) ($product->mfg_part_no ?? ''));
@@ -2108,6 +2142,17 @@ class AzureGraphMailService
         if ($itemCount === 0) {
             return false;
         }
+        foreach ($items as &$item) {
+            $saved = Product::query()->find((int) ($item['product_id'] ?? 0));
+            if (!$saved || !$this->hasMarketingImage($saved)) {
+                Log::warning('Cart promotional email skipped: cart product photo is missing.', [
+                    'product_id' => $item['product_id'] ?? null,
+                ]);
+                return false;
+            }
+            $item['image_url'] = $this->productImageUrl($saved);
+        }
+        unset($item);
 
         $rows = '';
         $total = 0.0;
@@ -2209,6 +2254,9 @@ class AzureGraphMailService
         if (trim((string) ($user->email ?? '')) === '') {
             return false;
         }
+        if (!$this->hasMarketingImage($product)) {
+            return false;
+        }
 
         $safeName = e((string) ($user->name ?: 'Customer'));
         $productName = trim((string) ($product->product_name ?? 'Product'));
@@ -2220,6 +2268,7 @@ class AzureGraphMailService
         $relatedProducts = Product::query()
             ->where('id', '<>', $product->id)
             ->where('is_available', true)
+            ->where('is_discontinued', false)
             ->where('quantity', '>', 0)
             ->where(function ($query) use ($product) {
                 if ($product->category_id) {
@@ -2231,7 +2280,8 @@ class AzureGraphMailService
             })
             ->orderByDesc('storefront_score')
             ->limit(2)
-            ->get();
+            ->get()
+            ->filter(fn (Product $related): bool => $this->productImageUrl($related) !== '');
         $productGrid = $this->buildMarketingProductGrid(collect([$product])->concat($relatedProducts)->all());
 
         $html = $this->buildModernNotificationEmail(
@@ -2272,6 +2322,9 @@ class AzureGraphMailService
         }
 
         if (trim((string) ($user->email ?? '')) === '') {
+            return false;
+        }
+        if (!$this->hasMarketingImage($product)) {
             return false;
         }
 
@@ -2320,6 +2373,12 @@ class AzureGraphMailService
     public function sendSearchReminderEmail(User $user, string $term, array $products): bool
     {
         if (!$this->isConfigured()) {
+            return false;
+        }
+        $products = array_values(array_filter($products,
+            fn ($product): bool => $product instanceof Product && $this->hasMarketingImage($product)));
+        if ($products === []) {
+            Log::warning('Search promotional email skipped: no recommended products have photos.', ['user_id' => $user->id]);
             return false;
         }
         $name = e($user->name ?: 'Customer');
@@ -2377,11 +2436,7 @@ class AzureGraphMailService
                 : "<span class='promo-meta' style='color:#64748b;font-size:12px'>Current catalog price</span>";
             $image = trim((string) ($line['image_url'] ?? ''));
             if ($image === '') {
-                $image = $this->logoUrl();
-            }
-            $imageHost = strtolower((string) parse_url($image, PHP_URL_HOST));
-            if (in_array($imageHost, ['127.0.0.1', 'localhost'], true)) {
-                $image = $this->marketingStoreUrl() . '/' . ltrim((string) parse_url($image, PHP_URL_PATH), '/');
+                throw new \LogicException('Promotional product cards require a product photo.');
             }
             $image = e($image);
             $url = e((string) ($line['product_url'] ?? ($this->marketingStoreUrl() . '/products')));

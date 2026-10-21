@@ -702,6 +702,7 @@ import Navbar from '../../components/Navbar.vue'
 import { API_BASE_URL, buildStoreUrl, getProductImageUrls, resolveProductImageUrl } from '../../services/runtimeConfig'
 import { usePricingSettings } from '../../composables/usePricingSettings'
 import api from '../../services/api'
+import { waitForDiscoveryContent } from '../../services/discoveryContent'
 import { rememberViewedProduct } from '../../services/recentlyViewed'
 import { isSupplierOrderable } from '../../services/productAvailability'
 
@@ -877,15 +878,13 @@ const fetchReviews = async (productId, page = 1) => {
 
 const loadOnlineContent = async (productId) => {
   try {
-    const response = await fetchWithTimeout(`${API_BASE_URL}/product-discovery/products/${productId}/content`, {
-      headers: {
-        Accept: 'application/json',
-        ...(authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {}),
-      },
-    }, 45000)
-    if (!response.ok) throw new Error(`Online product lookup failed (${response.status}). Please try again later.`)
-    const json = await response.json()
-    if (String(route.params.id) !== String(productId)) return
+    const json = await waitForDiscoveryContent(
+      async () => (await api.get(`/product-discovery/products/${productId}/content`, {
+        params: { background: 1 }, timeout: 15000,
+      })).data,
+      () => String(route.params.id) === String(productId),
+    )
+    if (!json) return
     product.value = json.data
     productDetailCache.set(String(productId), json.data)
     saveCachedPayload(PRODUCT_DETAIL_STORAGE_PREFIX, String(productId), json.data)

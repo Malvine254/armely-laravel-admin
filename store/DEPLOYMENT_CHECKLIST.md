@@ -2,6 +2,47 @@
 
 ## Pre-Deployment
 
+### External catalog images and promotional photos
+
+- Deploy the store PHP changes together with `public/build/manifest.json` and
+  its generated assets. Clear Laravel view caches (`php artisan view:clear`)
+  and purge any cached storefront HTML/CDN responses so browsers load the new
+  hashed bundle. An old bundle in the browser console means the new frontend
+  has not reached that page; a GitHub push alone is not a server deployment.
+- External search saves eligible supplier matches to `products` immediately.
+  Verified descriptions, specifications and image URLs are subsequently saved
+  on those same rows. Repeated searches and failed verification preserve
+  previously verified content; unverified images are never attached.
+- Image verification now runs on the database `products-sync` queue rather
+  than blocking storefront content requests. Run a supervised worker from
+  the store directory:
+  `php artisan queue:work database --queue=products-sync --timeout=120 --tries=3`.
+  Preserve the database queue connection's existing 3700-second `retry_after`
+  because other catalog jobs on this connection can run for an hour. Do not
+  reduce it to the image job's timeout. Restart workers after deployment with
+  `php artisan queue:restart`. Keep workers for other queues running too.
+- Storefront pages poll briefly, then show a background-processing warning
+  if verification has not finished. Jobs remain unique per product until
+  completion or final failure, including while waiting in the queue; failed
+  attempts surface warnings and have a ten-minute cooldown before retry.
+  Check failed jobs and worker logs if images remain pending.
+- All five lifecycle promotional channels require actual saved product
+  photos. Single-product and cart reminders are skipped, with warnings in
+  the application log, if required photos are missing. Search/related grids
+  exclude imageless recommendations. Skipped sends are not marked delivered.
+  Local image files must exist under the store public directory; email URLs
+  use the public storefront address, not localhost or a duplicated `/store`.
+- Auth refresh requests are single-flight with a 15-second timeout and
+  one-to-five-minute failure backoff. A transient 500 preserves the session;
+  this reduces request overlap but does not diagnose a backend exception.
+  For continuing auth/quote 500s, inspect the production Laravel/PHP logs and
+  database connectivity. Quote notification mail already runs on a queue.
+- DoubleClick `ERR_BLOCKED_BY_CLIENT` is a browser/ad-blocker message, not a
+  product lookup or authentication error.
+- Regression checks (no customer mail is sent):
+  `php artisan test --filter="ProductDiscoveryTest|EmailPreferenceLifecycleTest|EmailTemplateDesignTest"`
+  and `node --test tests/js/discoveryContent.test.mjs tests/js/authRefresh.test.mjs tests/js/productDiscoveryPagination.test.mjs`.
+
 ### AI marketing foundation (dry-run only)
 
 - Deploy the store frontend and backend together, then run the store's

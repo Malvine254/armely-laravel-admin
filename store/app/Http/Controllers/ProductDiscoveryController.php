@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exceptions\TDSynnexApiException;
 use App\Models\User;
 use App\Models\Product;
+use App\Jobs\EnrichPriceAvailabilityProductImageJob;
 use App\Services\TDSynnexService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\ConnectionException;
@@ -90,6 +91,23 @@ class ProductDiscoveryController extends Controller
     {
         $product = Product::query()->where('tdsynnex_product_id', $productId)->firstOrFail();
         try {
+            if ($request->boolean('background')) {
+                $status = data_get($product->specifications, 'online_content_status');
+                $recentlyAttempted = $product->image_enrichment_attempted_at?->greaterThan(now()->subMinutes(10));
+                $needsContent = $status !== 'verified' || empty($product->images);
+                if ($needsContent && !$recentlyAttempted) {
+                    EnrichPriceAvailabilityProductImageJob::dispatch($product->id);
+                }
+
+                $pending = $needsContent && !$recentlyAttempted;
+
+                return response()->json([
+                    'success' => true,
+                    'data' => $this->catalog->cartProductPayload($product, $request->user('sanctum')),
+                    'warnings' => (array) data_get($product->specifications, 'online_content_warnings', []),
+                    'content_pending' => $pending,
+                ], $pending ? 202 : 200)->header('Cache-Control', 'private, no-store');
+            }
             $details = $this->supplier->enrichDiscoveredProduct($product);
             $payload = $this->catalog->cartProductPayload($product->fresh(), $request->user('sanctum'));
         } catch (TDSynnexApiException|ConnectionException|RequestException|QueryException $error) {

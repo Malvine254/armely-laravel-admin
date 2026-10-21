@@ -5,13 +5,14 @@ namespace App\Jobs;
 use App\Models\Product;
 use App\Services\TDSynnexService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class EnrichPriceAvailabilityProductImageJob implements ShouldQueue
+class EnrichPriceAvailabilityProductImageJob implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -20,6 +21,11 @@ class EnrichPriceAvailabilityProductImageJob implements ShouldQueue
     public int $tries = 3;
 
     public int $backoff = 3;
+
+    public function uniqueId(): string
+    {
+        return (string) $this->productId;
+    }
 
     public function __construct(public int $productId)
     {
@@ -55,5 +61,21 @@ class EnrichPriceAvailabilityProductImageJob implements ShouldQueue
                 'image_source' => (string) ($result['image_source'] ?? ''),
             ]);
         }
+    }
+
+    public function failed(?\Throwable $error): void
+    {
+        $product = Product::query()->find($this->productId);
+        if ($product) {
+            $spec = (array) $product->specifications;
+            $spec['online_content_warnings'] = ['Product image lookup failed. Please try again later.'];
+            $product->specifications = $spec;
+            $product->image_enrichment_attempted_at = now();
+            $product->save();
+        }
+        Log::error('Product image enrichment job failed.', [
+            'product_id' => $this->productId,
+            'exception' => $error ? $error::class : null,
+        ]);
     }
 }

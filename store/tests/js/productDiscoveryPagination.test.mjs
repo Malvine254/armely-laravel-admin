@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
+import { waitForDiscoveryContent } from '../../resources/js/services/discoveryContent.js'
 
 const source = await readFile(new URL('../../resources/js/views/catalog/Products.vue', import.meta.url), 'utf8')
 const ref = value => ({ value })
@@ -136,17 +137,19 @@ const setupEnrichment = () => {
     discoveryContentWarning: ref(''),
     discoveryFailureMessage: () => 'Online content is temporarily unavailable.',
     getPrimaryImageUrl: product => product.image_url || '',
-    api: { get: url => new Promise((resolve, reject) => requests.push({ url, resolve, reject })) },
+    waitForDiscoveryContent,
+    api: { get: (url, options) => new Promise((resolve, reject) => requests.push({ url, options, resolve, reject })) },
   }
   const controls = run(`let discoveryRequestId = 1;\n${extract('const enrichDiscoveryProducts = async', '\nconst availableVendors')}`,
     fixture, '({ enrich: enrichDiscoveryProducts, invalidate: () => discoveryRequestId++ })')
   return { ...fixture, ...controls, matches, requests }
 }
 
-test('content loads automatically and sequentially without blocking or repricing cards', async () => {
+test('content queues all visible products without blocking or repricing cards', async () => {
   const f = setupEnrichment()
   const work = f.enrich(f.matches, 1)
-  assert.equal(f.requests.length, 1)
+  assert.equal(f.requests.length, 3)
+  assert.deepEqual(f.requests[0].options, { params: { background: 1 }, timeout: 15000 })
   assert.equal(f.discoveryProducts.value[0].catalog_product.productPrice[0].rsPrice, 100)
   for (let index = 0; index < 3; index++) {
     assert.match(f.requests[index].url, new RegExp(`/products/${12345 + index}/content$`))
@@ -163,22 +166,22 @@ test('content loads automatically and sequentially without blocking or repricing
   assert.equal(f.discoveryContentWarning.value, '')
 })
 
-test('stale content responses cannot modify a new page or start further lookups', async () => {
+test('stale content responses cannot modify a new page or continue polling', async () => {
   const f = setupEnrichment()
   const work = f.enrich(f.matches, 1)
   f.invalidate()
-  f.requests[0].resolve({ data: { data: { productId: 'stale' } } })
+  for (const request of f.requests) request.resolve({ data: { data: { productId: 'stale' } } })
   await work
-  assert.equal(f.requests.length, 1)
+  assert.equal(f.requests.length, 3)
   assert.equal(f.discoveryProducts.value[0].catalog_product.productId, '12345')
 })
 
 test('rate limits stop automatic lookups explicitly without removing usable cards', async () => {
   const f = setupEnrichment()
   const work = f.enrich(f.matches, 1)
-  f.requests[0].reject({ response: { status: 429 } })
+  for (const request of f.requests) request.reject({ response: { status: 429 } })
   await work
-  assert.equal(f.requests.length, 1)
+  assert.equal(f.requests.length, 3)
   assert.equal(f.discoveryContentWarning.value, 'Online content is temporarily unavailable.')
   assert.equal(f.discoveryProducts.value.length, 3)
 })

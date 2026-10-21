@@ -291,6 +291,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { usePricingSettings } from '../../composables/usePricingSettings'
 import { trackSearchTerm, hasTrackingConsent, getSearchProfileTerms, getSearchSuggestions, loadSearchProfile } from '../../services/searchInsights'
 import api from '../../services/api'
+import { waitForDiscoveryContent } from '../../services/discoveryContent'
 import { buildStoreUrl, getProductImageUrls } from '../../services/runtimeConfig'
 import { buildProductsLocation, parseProductsRouteFilters, resolveCategoryFilterValue } from '../../services/productRoute'
 import { isSupplierOrderable } from '../../services/productAvailability'
@@ -552,18 +553,24 @@ const loadDiscoveryPage = async (page) => {
 }
 
 const enrichDiscoveryProducts = async (matches, requestId) => {
-  for (const match of matches) {
+  let rateLimited = false
+  await Promise.all(matches.map(async (match) => {
     if (requestId !== discoveryRequestId || !discoveryOpen.value) return
     const product = match.catalog_product
-    if (product.onlineContentStatus === 'verified' && getPrimaryImageUrl(product)) continue
+    if (product.onlineContentStatus === 'verified' && getPrimaryImageUrl(product)) return
     try {
-      const response = await api.get(`/product-discovery/products/${product.productId}/content`, { timeout: 45000 })
-      if (requestId !== discoveryRequestId) return
+      const content = await waitForDiscoveryContent(
+        async () => (await api.get(`/product-discovery/products/${product.productId}/content`, {
+          params: { background: 1 }, timeout: 15000,
+        })).data,
+        () => requestId === discoveryRequestId && discoveryOpen.value && !rateLimited,
+      )
+      if (!content) return
       discoveryProducts.value = discoveryProducts.value.map((item) => item.product_id === match.product_id
-        ? { ...item, catalog_product: response.data.data }
+        ? { ...item, catalog_product: content.data }
         : item)
-      if (!response.data.data.image_url || response.data.data.onlineContentStatus === 'unavailable') {
-        const providerUnavailable = (response.data.warnings || []).some((warning) =>
+      if (!content.data.image_url || content.data.onlineContentStatus === 'unavailable') {
+        const providerUnavailable = (content.warnings || []).some((warning) =>
           /provider.*(?:unavailable|could not complete)/i.test(warning))
         discoveryContentWarning.value = providerUnavailable
           ? 'The image search provider is temporarily unavailable. Product results are still available; please try the image lookup again later.'
@@ -571,10 +578,12 @@ const enrichDiscoveryProducts = async (matches, requestId) => {
       }
     } catch (requestError) {
       if (requestId !== discoveryRequestId) return
-      discoveryContentWarning.value = discoveryFailureMessage(requestError)
-      if (requestError.response?.status === 429) return
+      discoveryContentWarning.value = requestError.response
+        ? discoveryFailureMessage(requestError)
+        : requestError.message
+      if (requestError.response?.status === 429) rateLimited = true
     }
-  }
+  }))
 }
 
 const availableVendors = ref([])

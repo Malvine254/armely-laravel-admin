@@ -244,6 +244,11 @@ class EmailPreferenceLifecycleTest extends TestCase
             $table->boolean('is_available');
             $table->boolean('is_discontinued');
             $table->integer('quantity');
+            $table->json('images')->nullable();
+            $table->string('manufacturer')->nullable();
+            $table->unsignedBigInteger('category_id')->nullable();
+            $table->integer('storefront_score')->default(0);
+            $table->timestamps();
         });
         Schema::create('search_profiles', function (Blueprint $table) {
             $table->id();
@@ -304,7 +309,7 @@ class EmailPreferenceLifecycleTest extends TestCase
         ]);
         $user = User::create(['name' => 'Buyer', 'email' => 'links@example.com', 'password' => 'password']);
         $product = new \App\Models\Product(['product_name' => 'Laptop', 'tdsynnex_sku_no' => '9001',
-            'base_price' => 100, 'images' => ['/store/images/products/laptop.jpg']]);
+            'base_price' => 100, 'images' => ['https://images.example.com/images/products/laptop.jpg']]);
         $product->id = 101;
         $mailer = app(\App\Services\AzureGraphMailService::class);
         $this->assertTrue($mailer->sendSearchReminderEmail($user, 'laptop', [$product]));
@@ -322,6 +327,80 @@ class EmailPreferenceLifecycleTest extends TestCase
         $this->travel(61)->seconds();
         $this->assertTrue($mailer->sendTestEmail('recipient@example.com'));
         \Illuminate\Support\Facades\Http::assertSentCount(5);
+    }
+
+    private function fakePromotionalTransport(): void
+    {
+        \Illuminate\Support\Facades\Cache::flush();
+        config(['services.azure.tenant_id' => 'test-tenant', 'services.azure.client_id' => 'test-client',
+            'services.azure.client_secret' => 'test-only-secret', 'services.azure.from_email' => 'sender@example.com']);
+        \Illuminate\Support\Facades\Http::preventStrayRequests();
+        \Illuminate\Support\Facades\Http::fake([
+            'login.microsoftonline.com/*' => \Illuminate\Support\Facades\Http::response(['access_token' => 'token', 'expires_in' => 3600]),
+            'graph.microsoft.com/*' => \Illuminate\Support\Facades\Http::response([], 202),
+        ]);
+    }
+
+    public function test_every_promotional_channel_includes_the_saved_product_photo(): void
+    {
+        $this->createSearchCampaignTables();
+        $this->fakePromotionalTransport();
+        $user = User::create(['name' => 'Buyer', 'email' => 'photos@example.com', 'password' => 'password']);
+        $photo = 'https://images.example.com/verified-workstation.jpg';
+        $product = \App\Models\Product::create(['tdsynnex_sku_no' => '9001', 'product_name' => 'Workstation',
+            'mfg_part_no' => 'MODEL-1', 'base_price' => 100, 'quantity' => 4, 'is_available' => true,
+            'is_discontinued' => false, 'manufacturer' => 'HP',
+            'images' => [[], ['imageUrl' => $photo, 'source' => 'openai-verified-online']]]);
+        $mailer = app(\App\Services\AzureGraphMailService::class);
+        $this->assertTrue($mailer->sendPriceDropAlertEmail($user, $product, 120, 100, 20, 16.67));
+        $this->assertTrue($mailer->sendAbandonedCartReminderEmail($user, [
+            ['product_id' => $product->id, 'product_name' => $product->product_name, 'unit_price' => 100, 'quantity' => 1],
+        ], now()));
+        $this->assertTrue($mailer->sendViewedProductReminderEmail($user, $product, now(), 100));
+        $this->assertTrue($mailer->sendFavoriteProductReminderEmail($user, $product, now(), 100));
+        $this->assertTrue($mailer->sendSearchReminderEmail($user, 'workstation', [$product]));
+        $messages = \Illuminate\Support\Facades\Http::recorded(fn ($request) => str_contains($request->url(), 'graph.microsoft.com'));
+        $this->assertCount(5, $messages);
+        foreach ($messages as [$request]) {
+            $this->assertStringContainsString("src='{$photo}'", $request['message']['body']['content']);
+        }
+    }
+
+    public function test_promotional_channels_do_not_send_when_required_photos_are_missing(): void
+    {
+        $this->createSearchCampaignTables();
+        $this->fakePromotionalTransport();
+        $user = User::create(['name' => 'Buyer', 'email' => 'missing@example.com', 'password' => 'password']);
+        $product = \App\Models\Product::create(['tdsynnex_sku_no' => '9001', 'product_name' => 'Workstation',
+            'mfg_part_no' => 'MODEL-1', 'base_price' => 100, 'quantity' => 4, 'is_available' => true,
+            'is_discontinued' => false, 'images' => ['/store/images/products/nonexistent-test-photo.jpg']]);
+        $mailer = app(\App\Services\AzureGraphMailService::class);
+        $this->assertFalse($mailer->sendPriceDropAlertEmail($user, $product, 120, 100, 20, 16.67));
+        $this->assertFalse($mailer->sendAbandonedCartReminderEmail($user, [['product_id' => $product->id]], now()));
+        $this->assertFalse($mailer->sendViewedProductReminderEmail($user, $product, now(), 100));
+        $this->assertFalse($mailer->sendFavoriteProductReminderEmail($user, $product, now(), 100));
+        $this->assertFalse($mailer->sendSearchReminderEmail($user, 'workstation', [$product]));
+        \Illuminate\Support\Facades\Http::assertNothingSent();
+    }
+
+    public function test_local_marketing_images_are_public_and_do_not_duplicate_the_store_mount(): void
+    {
+        $path = public_path('images/products/marketing-test-photo.png');
+        file_put_contents($path, 'test-image');
+        try {
+            $mailer = app(\App\Services\AzureGraphMailService::class);
+            $method = new \ReflectionMethod($mailer, 'productImageUrl');
+            foreach (['/store/images/products/marketing-test-photo.png',
+                'http://localhost/store/images/products/marketing-test-photo.png'] as $candidate) {
+                $product = new \App\Models\Product(['images' => [['imagePath' => $candidate]]]);
+                $url = $method->invoke($mailer, $product);
+                $this->assertStringEndsWith('/images/products/marketing-test-photo.png', $url);
+                $this->assertStringNotContainsString('/store/store/', $url);
+                $this->assertStringNotContainsString('localhost', $url);
+            }
+        } finally {
+            unlink($path);
+        }
     }
 
     public function test_historical_supplier_view_events_can_trigger_canonical_reminders(): void

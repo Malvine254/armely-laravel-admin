@@ -1078,10 +1078,15 @@ class TDSynnexService
         });
         $product->refresh();
         $spec = (array) $product->specifications;
-        $spec['online_specifications'] = $details['specifications'];
-        $spec['online_sources'] = $details['sources'];
+        if ($details['specifications'] !== []) {
+            $spec['online_specifications'] = $details['specifications'];
+        }
+        if ($details['sources'] !== []) {
+            $spec['online_sources'] = $details['sources'];
+        }
         $spec['online_content_warnings'] = array_values(array_unique($details['warnings']));
-        $spec['online_content_status'] = $details['online_details_found'] ? 'verified' : 'unavailable';
+        $spec['online_content_status'] = $details['online_details_found']
+            || data_get($spec, 'online_content_status') === 'verified' ? 'verified' : 'unavailable';
         $product->specifications = $spec;
         if ($details['description'] !== '') {
             $product->description = $details['description'];
