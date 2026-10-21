@@ -17,15 +17,32 @@
   than blocking storefront content requests. Run a supervised worker from
   the store directory:
   `php artisan queue:work database --queue=products-sync --timeout=120 --tries=3`.
-  Preserve the database queue connection's existing 3700-second `retry_after`
-  because other catalog jobs on this connection can run for an hour. Do not
-  reduce it to the image job's timeout. Restart workers after deployment with
+  Set `DB_QUEUE_RETRY_AFTER=7300` in the server environment: the shared
+  database connection also runs image-download jobs with a 7200-second timeout.
+  The default 3700-second reservation is too short for those jobs. Do not
+  reduce it to the enrichment job's timeout. Restart workers after deployment with
   `php artisan queue:restart`. Keep workers for other queues running too.
 - Storefront pages poll briefly, then show a background-processing warning
   if verification has not finished. Jobs remain unique per product until
   completion or final failure, including while waiting in the queue; failed
   attempts surface warnings and have a ten-minute cooldown before retry.
   Check failed jobs and worker logs if images remain pending.
+- Production environment files are private and are not included in GitHub.
+  Keep `APP_ENV=production`, `APP_DEBUG=false`, `LOG_LEVEL=warning`,
+  `SESSION_SECURE_COOKIE=true`, and `SESSION_SAME_SITE=lax` for HTTPS.
+  File sessions/cache require writable `storage` directories. When setting
+  `QUEUE_CONNECTION=database`, supervise workers covering `default`,
+  `products-sync`, and `products-metadata`; a worker for only `products-sync`
+  does not process default-queue notifications. Keep the existing application
+  key, database credentials and integration secrets unchanged.
+  Laravel normally reads `.env`, not `.env.prod`: securely apply the reviewed
+  values to the server's store `.env`, then run `php artisan config:cache`,
+  `php artisan view:clear`, and `php artisan queue:restart` from the store
+  directory. Confirm worker restarts and queue progress before declaring
+  deployment complete. These commands do not replace checking production logs
+  or database connectivity. A 300-second supplier runtime budget can still
+  outlast PHP/proxy/browser request limits; queueing images does not remove
+  that risk from synchronous supplier searches.
 - All five lifecycle promotional channels require actual saved product
   photos. Single-product and cart reminders are skipped, with warnings in
   the application log, if required photos are missing. Search/related grids
