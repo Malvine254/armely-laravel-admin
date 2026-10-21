@@ -120,6 +120,9 @@
                 </div>
               </div>
               <div class="flex flex-wrap items-center gap-3">
+                <button v-if="searchQuery && visibleProductsCount > 0" @click="searchOutsideCatalog" :disabled="discoveryLoading" class="rounded-lg border border-[#2F5597] px-4 py-2 text-sm font-semibold text-[#2F5597] disabled:opacity-60">
+                  {{ discoveryLoading ? 'Searching supplier…' : 'Search outside catalog' }}
+                </button>
                 <label class="text-sm text-gray-600 font-medium whitespace-nowrap">Sort by:</label>
                 <select
                   v-model="sortBy"
@@ -136,6 +139,47 @@
               </div>
             </div>
 
+            <section v-if="discoveryOpen" class="mb-6 rounded-xl border border-blue-100 bg-blue-50/50 p-5" aria-live="polite">
+              <div class="flex items-center justify-between gap-3">
+                <h3 class="text-lg font-bold text-[#102a52]">Outside-catalog product search</h3>
+                <button @click="resetDiscovery" class="text-sm font-semibold text-slate-600">Close</button>
+              </div>
+              <p class="mt-1 text-sm text-slate-600">Identify a supplier product, then load online details and an image URL. These results are informational; pricing, stock, and exact configuration require verification.</p>
+              <p v-if="discoveryLoading" class="mt-4 text-sm">Searching the supplier API…</p>
+              <p v-if="discoveryError" role="alert" class="mt-4 text-sm font-semibold text-red-700">{{ discoveryError }}</p>
+              <p v-if="discoveryMessage && !discoveryLoading" class="mt-4 text-sm text-slate-700">{{ discoveryMessage }}</p>
+              <ul class="mt-4 space-y-3">
+                <li v-for="product in discoveryProducts" :key="product.product_id" class="rounded-lg border border-slate-200 bg-white p-4">
+                  <h4 class="font-bold text-slate-900">{{ product.name }}</h4>
+                  <p class="mt-1 text-sm text-slate-600">{{ product.manufacturer }} · Part: {{ product.part_number || 'Not supplied' }} · SKU: {{ product.product_id }}</p>
+                  <p v-if="product.supplier_description" class="mt-2 text-sm text-slate-700">{{ product.supplier_description }}</p>
+                  <button @click="loadDiscoveryDetails(product)" :disabled="!!discoveryDetailsLoading" class="mt-3 rounded-lg bg-[#2F5597] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                    {{ discoveryDetailsLoading === product.product_id ? 'Looking up online details…' : 'View online details & image' }}
+                  </button>
+                </li>
+              </ul>
+              <article v-if="discoveryDetails" class="mt-5 rounded-lg border border-blue-200 bg-white p-4">
+                <h4 class="font-bold text-[#102a52]">{{ discoveryDetails.name }}</h4>
+                <p v-for="warning in discoveryDetails.warnings" :key="warning" class="mt-2 text-sm font-semibold text-amber-800">{{ warning }}</p>
+                <div v-if="discoveryDetails.image_url" class="mt-4">
+                  <img v-if="!discoveryImageFailed" :src="discoveryDetails.image_url" :alt="discoveryDetails.name" @error="discoveryImageFailed = true" referrerpolicy="no-referrer" class="h-48 w-full object-contain" />
+                  <p v-else class="text-sm text-amber-800">The external image could not be displayed.</p>
+                  <a :href="discoveryDetails.image_url" target="_blank" rel="noopener noreferrer" class="mt-2 block break-all text-sm text-blue-700 underline">Open online image URL</a>
+                </div>
+                <p v-if="discoveryDetails.description" class="mt-4 whitespace-pre-line text-sm text-slate-700">{{ discoveryDetails.description }}</p>
+                <dl v-if="discoveryDetails.specifications.length" class="mt-4 divide-y divide-slate-100">
+                  <div v-for="(spec, index) in discoveryDetails.specifications" :key="index" class="grid grid-cols-2 gap-3 py-2 text-sm">
+                    <dt class="font-semibold text-slate-700">{{ spec.name }}</dt>
+                    <dd class="text-slate-600">{{ spec.value }}</dd>
+                  </div>
+                </dl>
+                <div v-if="discoveryDetails.sources.length" class="mt-4 flex flex-wrap gap-3 text-sm">
+                  <span class="font-semibold">Sources:</span>
+                  <a v-for="(source, index) in discoveryDetails.sources" :key="index" :href="source.url" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline">{{ source.name }}</a>
+                </div>
+              </article>
+            </section>
+
             <!-- Empty State -->
             <div v-if="visibleProductsCount === 0" class="bg-white rounded-xl border border-gray-200 px-5 py-9 sm:px-8">
               <div class="text-center">
@@ -143,49 +187,21 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
               </svg>
               <h3 class="text-xl font-bold text-gray-900 mb-2">No Products Found</h3>
-              <p class="text-gray-600 mb-6">Try adjusting your search or ask our procurement team to source it.</p>
+              <p class="text-gray-600 mb-6">Try adjusting your search or search outside our catalog for product details.</p>
               <p v-if="supplierLookupQueued" class="mx-auto mb-5 max-w-xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
                 We didn’t find a local match, so we’re checking the supplier catalog. Please retry in a moment; any verified result will be added automatically.
               </p>
               <button @click="resetFilters" class="px-6 py-2 text-white font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
                 Clear Filters
               </button>
-              <button v-if="searchQuery" @click="openSourcingRequest" class="ml-2 rounded-lg border border-[#2F5597] px-6 py-2 font-semibold text-[#2F5597] transition hover:bg-blue-50">
-                Request sourcing
+              <button v-if="searchQuery" @click="searchOutsideCatalog" :disabled="discoveryLoading" class="ml-2 rounded-lg border border-[#2F5597] px-6 py-2 font-semibold text-[#2F5597] transition hover:bg-blue-50 disabled:opacity-60">
+                {{ discoveryLoading ? 'Searching supplier…' : 'Search outside catalog' }}
               </button>
               <button v-if="supplierLookupQueued" @click="performSearch(true)" class="ml-2 rounded-lg border border-amber-500 px-6 py-2 font-semibold text-amber-700 transition hover:bg-amber-50">
                 Retry search
               </button>
               </div>
 
-              <form v-if="showSourcingForm" @submit.prevent="submitSourcingRequest" class="mx-auto mt-8 max-w-2xl rounded-xl border border-blue-100 bg-blue-50/50 p-5 text-left">
-                <h4 class="font-bold text-[#102a52]">Can’t find this product?</h4>
-                <p class="mt-1 text-sm text-slate-600">We’ll verify supplier availability, pricing, and warranty before offering it for purchase.</p>
-                <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                  <label class="text-sm font-semibold text-slate-700 sm:col-span-2">Product searched
-                    <input v-model.trim="sourcingForm.search_query" required maxlength="500" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-[#2F5597]" />
-                  </label>
-                  <label class="text-sm font-semibold text-slate-700">Manufacturer
-                    <input v-model.trim="sourcingForm.manufacturer" maxlength="100" placeholder="e.g. Dell" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-[#2F5597]" />
-                  </label>
-                  <label class="text-sm font-semibold text-slate-700">Model or part number
-                    <input v-model.trim="sourcingForm.model_or_part_number" maxlength="150" placeholder="e.g. RB14250" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-[#2F5597]" />
-                  </label>
-                  <label class="text-sm font-semibold text-slate-700">Quantity
-                    <input v-model.number="sourcingForm.quantity" type="number" min="1" max="100000" required class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-[#2F5597]" />
-                  </label>
-                  <label class="text-sm font-semibold text-slate-700 sm:col-span-2">Additional details
-                    <textarea v-model.trim="sourcingForm.notes" maxlength="2000" rows="3" placeholder="Required configuration, delivery date, or alternatives you would accept" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-[#2F5597]"></textarea>
-                  </label>
-                </div>
-                <p v-if="sourcingError" class="mt-3 text-sm font-semibold text-red-700">{{ sourcingError }}</p>
-                <div class="mt-4 flex justify-end gap-2">
-                  <button type="button" @click="showSourcingForm = false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button>
-                  <button type="submit" :disabled="sourcingSubmitting" class="rounded-lg bg-[#2F5597] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
-                    {{ sourcingSubmitting ? 'Sending…' : 'Send sourcing request' }}
-                  </button>
-                </div>
-              </form>
             </div>
 
             <!-- Horizontal product cards -->
@@ -472,12 +488,16 @@ const pageLoading = ref(false)
 const error = ref('')
 const searchQuery = ref('')
 const supplierLookupQueued = ref(false)
-const showSourcingForm = ref(false)
-const sourcingSubmitting = ref(false)
-const sourcingError = ref('')
-const sourcingForm = reactive({
-  search_query: '', manufacturer: '', model_or_part_number: '', quantity: 1, notes: '',
-})
+const discoveryOpen = ref(false)
+const discoveryLoading = ref(false)
+const discoveryDetailsLoading = ref('')
+const discoveryError = ref('')
+const discoveryMessage = ref('')
+const discoveryProducts = ref([])
+const discoveryDetails = ref(null)
+const discoveryImageFailed = ref(false)
+let discoveryRequestId = 0
+let discoveryQuery = ''
 const currentPage = ref(1)
 // Prevents the route watcher from double-fetching when we call router.replace ourselves
 let ownRouterReplace = false
@@ -496,41 +516,60 @@ const shareNote = ref('')
 const shareGeneratedLink = ref('')
 const shareSubmitting = ref(false)
 
-const inferSourcingIdentifiers = (query) => {
-  const value = String(query || '').trim()
-  const modelMatch = value.match(/\(([A-Z0-9][A-Z0-9-]{3,})\)|\b([A-Z]{1,5}\d[A-Z0-9-]{3,})\b/i)
-  const manufacturer = CURATED_VENDOR_ALLOWLIST.find((vendor) =>
-    value.toUpperCase().includes(vendor.toUpperCase())
-  ) || ''
-  return { manufacturer, model: modelMatch?.[1] || modelMatch?.[2] || '' }
+const resetDiscovery = () => {
+  discoveryRequestId++
+  discoveryOpen.value = false
+  discoveryLoading.value = false
+  discoveryDetailsLoading.value = ''
+  discoveryError.value = ''
+  discoveryMessage.value = ''
+  discoveryProducts.value = []
+  discoveryDetails.value = null
 }
 
-const openSourcingRequest = () => {
-  if (!authStore.isAuthenticated) {
-    router.push({ name: 'login', query: { redirect: route.fullPath } })
+watch(searchQuery, resetDiscovery)
+
+const discoveryFailureMessage = (requestError) => requestError.response?.status === 429
+  ? 'Too many lookups. Please wait a minute and try again.'
+  : 'Product lookup could not be completed. Please try again shortly.'
+
+const searchOutsideCatalog = async () => {
+  resetDiscovery()
+  discoveryOpen.value = true
+  discoveryQuery = searchQuery.value.trim()
+  if (discoveryQuery.length < 2 || discoveryQuery.length > 200) {
+    discoveryError.value = 'Enter a product name or part number between 2 and 200 characters.'
     return
   }
-  const inferred = inferSourcingIdentifiers(searchQuery.value)
-  sourcingForm.search_query = searchQuery.value
-  sourcingForm.manufacturer = inferred.manufacturer
-  sourcingForm.model_or_part_number = inferred.model
-  sourcingError.value = ''
-  showSourcingForm.value = true
+  const requestId = discoveryRequestId
+  discoveryLoading.value = true
+  try {
+    const response = await api.get('/product-discovery', { params: { search: discoveryQuery } })
+    if (requestId !== discoveryRequestId) return
+    discoveryProducts.value = response.data.data
+    discoveryMessage.value = response.data.message
+  } catch (requestError) {
+    if (requestId === discoveryRequestId) discoveryError.value = discoveryFailureMessage(requestError)
+  } finally {
+    if (requestId === discoveryRequestId) discoveryLoading.value = false
+  }
 }
 
-const submitSourcingRequest = async () => {
-  sourcingSubmitting.value = true
-  sourcingError.value = ''
+const loadDiscoveryDetails = async (product) => {
+  const requestId = ++discoveryRequestId
+  discoveryDetailsLoading.value = product.product_id
+  discoveryError.value = ''
+  discoveryDetails.value = null
+  discoveryImageFailed.value = false
   try {
-    const response = await api.post('/product-sourcing-requests', sourcingForm)
-    toastStore.addToast(response.data?.message || 'Sourcing request sent.', 'success', 5000)
-    showSourcingForm.value = false
-    sourcingForm.quantity = 1
-    sourcingForm.notes = ''
+    const response = await api.get('/product-discovery/details', {
+      params: { search: discoveryQuery, product_id: product.product_id },
+    })
+    if (requestId === discoveryRequestId) discoveryDetails.value = response.data.data
   } catch (requestError) {
-    sourcingError.value = requestError.response?.data?.message || 'We could not send your request. Please try again.'
+    if (requestId === discoveryRequestId) discoveryError.value = discoveryFailureMessage(requestError)
   } finally {
-    sourcingSubmitting.value = false
+    if (requestId === discoveryRequestId) discoveryDetailsLoading.value = ''
   }
 }
 

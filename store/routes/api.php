@@ -13,6 +13,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SearchProfileController;
 use App\Http\Controllers\ProductSourcingRequestController;
+use App\Http\Controllers\ProductDiscoveryController;
 use App\Http\Controllers\AdminImportedProductController;
 use App\Http\Controllers\BehaviorEventController;
 use App\Http\Controllers\PriceAlertSubscriptionController;
@@ -75,6 +76,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/img-proxy', [ProductController::class, 'imageProxy']);
 
     // Products endpoints
+    Route::get('/product-discovery', [ProductDiscoveryController::class, 'search'])->middleware('throttle:10,1');
+    Route::get('/product-discovery/details', [ProductDiscoveryController::class, 'details'])->middleware('throttle:10,1');
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/featured', [ProductController::class, 'featured']);
     Route::get('/products/popular-categories', [ProductController::class, 'popularCategories']);

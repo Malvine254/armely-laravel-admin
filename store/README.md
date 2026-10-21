@@ -7,6 +7,38 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Outside-catalog product discovery
+
+The products page offers **Search outside catalog** both for empty searches and
+alongside existing results. It identifies up to ten products using the TD SYNNEX
+PriceAvailability API and the configured AP SKU source files, bypassing the local
+storefront filters. Select **View online details & image** to enrich that specific
+supplier identity. No sourcing request, notification, or product import is created.
+
+- `GET /api/v1/product-discovery?search=...` returns supplier identities only, not
+  internal supplier prices.
+- `GET /api/v1/product-discovery/details?search=...&product_id=...` accepts only an
+  identity from that supplier search and returns online descriptions, available
+  specifications, an external HTTPS image URL, sources, and missing-data warnings.
+- Configure TD SYNNEX credentials and AP files as for the existing supplier search.
+  Enable `ICECAT_ENABLED` and configure `ICECAT_USERNAME`, `ICECAT_PASSWORD` and,
+  when required by the account, `ICECAT_APP_KEY` for structured online descriptions,
+  specifications, and images. Coverage depends on the account and product.
+- Optional `SERPAPI_IMAGE_ENABLED=true` plus `SERPAPI_API_KEY` enables bounded web
+  and image searches when Icecat lacks a description or image. Only search results
+  containing the identified part number are accepted. Web descriptions are search
+  excerpts, not full specifications. They must be checked against the cited source.
+- Discovery is public, throttled to ten requests per minute per endpoint, and
+  online results are cached for ten minutes. Missing content is explicitly marked;
+  it is never invented. External images can be blocked or removed by their host.
+  These informational results cannot be purchased without catalog verification.
+
+Deploy from the `store` directory with `php artisan migrate --force` and
+`npm run build`. The notification repair migration restores numeric MySQL
+`notifications.id` auto-increment after imports that stripped it, preserving
+existing rows. Back up production before migrations; nonstandard ID/key schemas
+stop with an explicit error instead of being converted silently.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

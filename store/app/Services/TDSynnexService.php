@@ -250,7 +250,7 @@ class TDSynnexService
 
         $maxMatches = max(1, $maxMatches);
         $cacheKey = 'tdsynnex:xml:priceavailability:search:' . md5(json_encode([
-            'search-v1',
+            'search-v2',
             $needle,
             $maxMatches,
             (string) config('tdsynnex.price_availability.flat_file_path', ''),
@@ -2251,6 +2251,7 @@ class TDSynnexService
     {
         $matches = [];
         $seen = [];
+        $terms = preg_split('/\s+/', trim($needle), -1, PREG_SPLIT_NO_EMPTY);
 
         foreach ($this->discoverApFiles() as $apFile) {
             $file = new \SplFileObject($apFile, 'r');
@@ -2287,7 +2288,11 @@ class TDSynnexService
                 ])));
 
                 if (!str_contains($haystack, $needle)) {
-                    continue;
+                    foreach ($terms as $term) {
+                        if (!str_contains($haystack, $term)) {
+                            continue 2;
+                        }
+                    }
                 }
 
                 $seen[$sku] = true;
@@ -2608,6 +2613,110 @@ class TDSynnexService
         }
     }
 
+    public function discoverOnlineProductDetails(array $product): array
+    {
+        $sku = (string) ($product['productId'] ?? '');
+        $meta = [
+            'mpn' => (string) ($product['mfgPartNo'] ?? ''),
+            'manufacturer' => (string) ($product['manufacturer'] ?? $product['vendorName'] ?? ''),
+            'upc' => (string) ($product['upc'] ?? ''),
+        ];
+        $key = 'tdsynnex:discovery:v1:' . md5(json_encode([$sku, $meta]));
+
+        return Cache::remember($key, 600, function () use ($sku, $meta, $product) {
+            $icecat = $this->fetchIcecatProductData($sku, $meta, (string) ($product['productName'] ?? ''));
+            $description = trim(strip_tags((string) ($icecat['description'] ?? '')));
+            $image = (string) ($icecat['image_url'] ?? '');
+            $specifications = (array) ($icecat['specifications'] ?? []);
+            $sources = [];
+            $warnings = [];
+            if ($description !== '' || $image !== '' || $specifications !== []) {
+                $sources[] = ['name' => 'Icecat', 'url' => 'https://icecat.biz/'];
+            }
+
+            $serpEnabled = config('tdsynnex.serpapi.enabled', false)
+                && trim((string) config('tdsynnex.serpapi.api_key', '')) !== '';
+            if ($serpEnabled && $meta['mpn'] !== '' && ($description === '' || $image === '')) {
+                $query = $meta['manufacturer'] . ' "' . $meta['mpn'] . '"';
+                // Interactive lookups use one request per missing asset, not the batch resolver's retries.
+                foreach (['google', 'google_images'] as $engine) {
+                    if (($engine === 'google' && $description !== '') || ($engine === 'google_images' && $image !== '')) {
+                        continue;
+                    }
+                    try {
+                        $response = Http::acceptJson()->connectTimeout(2)->timeout(6)->get(
+                            (string) config('tdsynnex.serpapi.endpoint', 'https://serpapi.com/search.json'),
+                            [
+                                'api_key' => config('tdsynnex.serpapi.api_key'),
+                                'engine' => $engine,
+                                'q' => $query,
+                                'num' => 5,
+                            ]
+                        )->throw();
+                        if ($response->json('error')) {
+                            Log::warning('Product discovery web provider returned an error.', ['sku' => $sku]);
+                            $warnings[] = 'The online search provider could not complete the lookup. Please retry later.';
+                            continue;
+                        }
+                        $rows = (array) $response->json($engine === 'google' ? 'organic_results' : 'images_results', []);
+                        foreach ($rows as $row) {
+                            $text = (string) ($row['title'] ?? '') . ' ' . (string) ($row['link'] ?? '');
+                            if (!preg_match('/(?<![a-z0-9])' . preg_quote($meta['mpn'], '/') . '(?![a-z0-9])/i', urldecode($text))) {
+                                continue;
+                            }
+                            $sourceUrl = $this->discoveryPublicUrl((string) ($row['link'] ?? ''));
+                            if ($sourceUrl === '') {
+                                continue;
+                            }
+                            if ($engine === 'google') {
+                                $description = trim(strip_tags((string) ($row['snippet'] ?? '')));
+                                if ($description === '') {
+                                    continue;
+                                }
+                            } else {
+                                $image = $this->discoveryPublicUrl($this->extractImageUrlFromSerpApiResult($row));
+                                if ($image === '') {
+                                    continue;
+                                }
+                            }
+                            $sources[] = ['name' => (string) ($row['source'] ?? 'Web search'), 'url' => $sourceUrl];
+                            break;
+                        }
+                    } catch (\Illuminate\Http\Client\ConnectionException|\Illuminate\Http\Client\RequestException $error) {
+                        Log::warning('Product discovery web lookup failed.', ['sku' => $sku, 'error' => $error->getMessage()]);
+                        $warnings[] = 'The online search provider is temporarily unavailable. Please retry later.';
+                    }
+                }
+            }
+
+            $image = $this->discoveryPublicUrl($image);
+            if ($description === '' || $image === '' || $specifications === []) {
+                $warnings[] = 'Some online details are unavailable. Missing descriptions, specifications, or images have not been generated.';
+            }
+
+            return [
+                'description' => $description,
+                'specifications' => $specifications,
+                'image_url' => $image,
+                'sources' => $sources,
+                'warnings' => array_values(array_unique($warnings)),
+                'online_details_found' => $description !== '' || $image !== '' || $specifications !== [],
+            ];
+        });
+    }
+
+    private function discoveryPublicUrl(string $url): string
+    {
+        $host = (string) parse_url($url, PHP_URL_HOST);
+        if (!filter_var($url, FILTER_VALIDATE_URL) || parse_url($url, PHP_URL_SCHEME) !== 'https'
+            || $host === '' || !str_contains($host, '.') || strtolower($host) === 'localhost'
+            || (filter_var($host, FILTER_VALIDATE_IP) && !filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE))) {
+            return '';
+        }
+
+        return $url;
+    }
+
     private function fetchIcecatProductData(string $sku, array $meta, string $description = ''): array
     {
         if (!config('tdsynnex.icecat.enabled', true)) {
@@ -2725,7 +2834,17 @@ class TDSynnexService
 
                 $image = $this->extractPrimaryImageFromIcecatData($json);
                 $longDescription = $this->extractLongDescriptionFromIcecatData($json);
-                if ($image !== '' || $longDescription !== '') {
+                $specifications = [];
+                foreach ((array) data_get($json, 'data.FeaturesGroups', []) as $group) {
+                    foreach ((array) ($group['Features'] ?? []) as $feature) {
+                        $name = trim((string) data_get($feature, 'Feature.Name.Value', ''));
+                        $value = trim(strip_tags((string) ($feature['PresentationValue'] ?? '')));
+                        if ($name !== '' && $value !== '') {
+                            $specifications[] = ['name' => $name, 'value' => $value];
+                        }
+                    }
+                }
+                if ($image !== '' || $longDescription !== '' || $specifications !== []) {
                     Log::info('Icecat MATCH', [
                         'sku' => $sku,
                         'upc' => $upc,
@@ -2739,6 +2858,7 @@ class TDSynnexService
                     return [
                         'image_url' => $image,
                         'description' => $longDescription,
+                        'specifications' => $specifications,
                         'match_reason' => (string) $attempt['used'],
                         'matched_brand' => (string) ($attempt['brand'] ?? ''),
                         'matched_code' => (string) ($attempt['code'] ?? ''),
