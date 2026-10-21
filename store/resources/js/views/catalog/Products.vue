@@ -1776,6 +1776,9 @@ const performSearch = async (resetPage = true, background = false) => {
           }
         })
 
+        if (requestId !== activeSearchRequestId) {
+          return { data: [], total: 0, serverPaged: useServerPaged, stale: true }
+        }
         if (!response.data?.success) {
           error.value = 'Failed to fetch products'
           return { data: [], total: 0, serverPaged: true }
@@ -1858,6 +1861,9 @@ const performSearch = async (resetPage = true, background = false) => {
         return { data: [], total: 0, serverPaged: useServerPaged }
       }
     } catch (err) {
+      if (requestId !== activeSearchRequestId) {
+        return { data: [], total: 0, serverPaged: useServerPaged, stale: true }
+      }
       error.value = getProductsApiErrorMessage(err)
       console.error('❌ Product fetch error:', err)
       return { data: [], total: 0, serverPaged: useServerPaged }
@@ -1869,11 +1875,15 @@ const performSearch = async (resetPage = true, background = false) => {
   try {
     await requestPromise
   } finally {
-    if (!background && requestId === activeSearchRequestId) {
+    // Auth restoration can replace the foreground request with a background
+    // refresh. The newest request still owns any existing loading indicator.
+    if (requestId === activeSearchRequestId) {
       loading.value = false
       pageLoading.value = false
     }
-    pendingRequests.delete(cacheKey)
+    if (pendingRequests.get(cacheKey) === requestPromise) {
+      pendingRequests.delete(cacheKey)
+    }
   }
 }
 

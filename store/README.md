@@ -13,6 +13,10 @@ Navigation menu counts use one streamed eligible-product query per cold cache,
 then reuse the result for 30 minutes. Category name rules, stock/price filters,
 and manufacturer counts are preserved without repeated full-catalog regex scans.
 This avoids blocking the single-threaded local PHP server while the menu loads.
+When authentication restores during an initial product fetch, the replacement
+request owns the loading indicator and clears it on either success or failure.
+Stale responses cannot overwrite newer results/errors or remove newer pending
+requests. Run the focused regression with `node --test tests/js/productLoading.test.mjs`.
 
 The products page offers **Search outside catalog** both for empty searches and
 alongside existing results. It identifies up to ten products using the TD SYNNEX
