@@ -33,10 +33,18 @@ supplier identity. No sourcing request, notification, or product import is creat
   Enable `ICECAT_ENABLED` and configure `ICECAT_USERNAME`, `ICECAT_PASSWORD` and,
   when required by the account, `ICECAT_APP_KEY` for structured online descriptions,
   specifications, and images. Coverage depends on the account and product.
-- Optional `SERPAPI_IMAGE_ENABLED=true` plus `SERPAPI_API_KEY` enables bounded web
-  and image searches when Icecat lacks a description or image. Only search results
-  containing the identified part number are accepted. Web descriptions are search
-  excerpts, not full specifications. They must be checked against the cited source.
+- `SERPAPI_IMAGE_ENABLED=true` plus `SERPAPI_API_KEY` enables the second step:
+  search the internet using the exact **title returned by TD SYNNEX**, appending
+  `specifications` for web results, and using that title directly for image search.
+  These searches also run when Icecat already has data. Matching results must
+  corroborate the supplier part number or the title's model identifiers (or all
+  meaningful title words when no model identifier exists). No customer-entered
+  title or URL is trusted as the product identity.
+  Explicitly labelled specifications and structured search-result attributes
+  supplement Icecat fields; values are not inferred from prose. Descriptions can
+  be search excerpts. Sources are linked, and absent specs/images stay marked
+  unavailable rather than being generated. Without SerpAPI, the response explicitly
+  reports that title-based internet search needs configuration.
 - Discovery is public, throttled to ten requests per minute per endpoint, and
   online results are cached for ten minutes. Missing content is explicitly marked;
   it is never invented. External images can be blocked or removed by their host.

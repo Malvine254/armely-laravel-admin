@@ -137,7 +137,8 @@ class ProductDiscoveryTest extends TestCase
                 ->assertJsonPath('data.specifications.0.value', '32 GB')
                 ->assertJsonPath('data.image_url', 'https://images.icecat.biz/product.jpg')
                 ->assertJsonPath('data.online_details_found', true)
-                ->assertJsonPath('data.warnings', []);
+                ->assertJsonPath('data.internet_search_query', 'HP ZBook Workstation')
+                ->assertJsonPath('data.warnings.0', 'Internet title search is not configured. Enable SerpAPI and configure its API key to search the supplier product title for specifications and images.');
         }
         Http::assertSentCount(1);
     }
@@ -190,5 +191,81 @@ class ProductDiscoveryTest extends TestCase
         $this->assertSame('https://images.example.com/ABC123.jpg', $details['image_url']);
         $this->assertSame('https://example.com/ABC123', $details['sources'][0]['url']);
         Http::assertSentCount(3);
+    }
+
+    public function test_supplier_title_drives_both_internet_queries_and_returns_specifications_without_a_part_number(): void
+    {
+        $this->configureOnlineProviders();
+        config(['tdsynnex.icecat.enabled' => false, 'tdsynnex.serpapi.enabled' => true, 'tdsynnex.serpapi.api_key' => 'test-key']);
+        $product = [...$this->product(), 'productName' => 'HP ZBOOK 8 G1AS W11 PRO', 'mfgPartNo' => ''];
+        Http::fake(['serpapi.com/*' => Http::response([
+            'organic_results' => [
+                ['title' => 'HP ZBook 9 G1AS W11 PRO', 'link' => 'https://example.com/wrong', 'snippet' => 'Memory: 8 GB'],
+                [
+                    'title' => 'HP ZBook 8 G1AS W11 PRO',
+                    'link' => 'https://example.com/zbook',
+                    'snippet' => 'Processor: Ryzen 7; Memory: 32 GB; Storage: 1 TB SSD',
+                    'rich_snippet' => ['top' => ['detected_extensions' => ['screen_size' => '14 inches', 'rating' => 5, 'price' => 1200]]],
+                ],
+            ],
+            'images_results' => [[
+                'title' => 'HP ZBook 8 G1AS W11 PRO',
+                'link' => 'https://example.com/zbook',
+                'original' => 'https://images.example.com/zbook.jpg',
+            ]],
+        ])]);
+
+        $details = app(TDSynnexService::class)->discoverOnlineProductDetails($product);
+        $this->assertSame('HP ZBOOK 8 G1AS W11 PRO', $details['internet_search_query']);
+        $this->assertSame('https://images.example.com/zbook.jpg', $details['image_url']);
+        $specs = collect($details['specifications'])->pluck('value', 'name')->all();
+        $this->assertSame(['Screen Size' => '14 inches', 'Processor' => 'Ryzen 7', 'Memory' => '32 GB', 'Storage' => '1 TB SSD'], $specs);
+        Http::assertSent(fn ($request) => $request['engine'] === 'google' && $request['q'] === 'HP ZBOOK 8 G1AS W11 PRO specifications');
+        Http::assertSent(fn ($request) => $request['engine'] === 'google_images' && $request['q'] === 'HP ZBOOK 8 G1AS W11 PRO');
+        Http::assertSentCount(2);
+    }
+
+    public function test_internet_title_search_supplements_complete_icecat_data_without_overwriting_its_specs(): void
+    {
+        $this->configureOnlineProviders();
+        config(['tdsynnex.serpapi.enabled' => true, 'tdsynnex.serpapi.api_key' => 'test-key']);
+        Http::fake([
+            'live.icecat.biz/*' => Http::response(['data' => [
+                'Image' => ['HighPic' => 'https://images.icecat.biz/product.jpg'],
+                'GeneralInfo' => ['Description' => ['LongDesc' => 'Icecat description']],
+                'FeaturesGroups' => [['Features' => [[
+                    'Feature' => ['Name' => ['Value' => 'Memory']], 'PresentationValue' => '32 GB',
+                ]]]],
+            ]]),
+            'serpapi.com/*' => Http::response([
+                'organic_results' => [[
+                    'title' => 'HP ABC123',
+                    'link' => 'https://example.com/ABC123',
+                    'snippet' => 'Memory: 16 GB; Storage: 1 TB SSD',
+                ]],
+                'images_results' => [[
+                    'title' => 'HP ABC123',
+                    'link' => 'https://example.com/ABC123',
+                    'original' => 'https://images.example.com/ABC123.jpg',
+                ]],
+            ]),
+        ]);
+
+        $details = app(TDSynnexService::class)->discoverOnlineProductDetails($this->product());
+        $this->assertSame('Icecat description', $details['description']);
+        $this->assertSame(['Memory' => '32 GB', 'Storage' => '1 TB SSD'], collect($details['specifications'])->pluck('value', 'name')->all());
+        $this->assertSame([], $details['warnings']);
+        Http::assertSentCount(3);
+    }
+
+    public function test_title_search_cache_changes_when_the_supplier_title_changes(): void
+    {
+        $this->configureOnlineProviders();
+        config(['tdsynnex.icecat.enabled' => false, 'tdsynnex.serpapi.enabled' => true, 'tdsynnex.serpapi.api_key' => 'test-key']);
+        Http::fake(['serpapi.com/*' => Http::response(['organic_results' => [], 'images_results' => []])]);
+        $supplier = app(TDSynnexService::class);
+        $supplier->discoverOnlineProductDetails($this->product());
+        $supplier->discoverOnlineProductDetails([...$this->product(), 'productName' => 'HP ZBook Updated Title']);
+        Http::assertSentCount(4);
     }
 }

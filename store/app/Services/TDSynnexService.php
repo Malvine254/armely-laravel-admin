@@ -2621,10 +2621,11 @@ class TDSynnexService
             'manufacturer' => (string) ($product['manufacturer'] ?? $product['vendorName'] ?? ''),
             'upc' => (string) ($product['upc'] ?? ''),
         ];
-        $key = 'tdsynnex:discovery:v1:' . md5(json_encode([$sku, $meta]));
+        $title = trim((string) ($product['productName'] ?? ''));
+        $key = 'tdsynnex:discovery:v2:' . md5(json_encode([$sku, $meta, $title]));
 
-        return Cache::remember($key, 600, function () use ($sku, $meta, $product) {
-            $icecat = $this->fetchIcecatProductData($sku, $meta, (string) ($product['productName'] ?? ''));
+        return Cache::remember($key, 600, function () use ($sku, $meta, $title) {
+            $icecat = $this->fetchIcecatProductData($sku, $meta, $title);
             $description = trim(strip_tags((string) ($icecat['description'] ?? '')));
             $image = (string) ($icecat['image_url'] ?? '');
             $specifications = (array) ($icecat['specifications'] ?? []);
@@ -2636,20 +2637,17 @@ class TDSynnexService
 
             $serpEnabled = config('tdsynnex.serpapi.enabled', false)
                 && trim((string) config('tdsynnex.serpapi.api_key', '')) !== '';
-            if ($serpEnabled && $meta['mpn'] !== '' && ($description === '' || $image === '')) {
-                $query = $meta['manufacturer'] . ' "' . $meta['mpn'] . '"';
-                // Interactive lookups use one request per missing asset, not the batch resolver's retries.
+            if ($serpEnabled && $title !== '') {
+                // The authoritative supplier title drives both web searches.
+                // Part numbers corroborate matches but never replace that title.
                 foreach (['google', 'google_images'] as $engine) {
-                    if (($engine === 'google' && $description !== '') || ($engine === 'google_images' && $image !== '')) {
-                        continue;
-                    }
                     try {
                         $response = Http::acceptJson()->connectTimeout(2)->timeout(6)->get(
                             (string) config('tdsynnex.serpapi.endpoint', 'https://serpapi.com/search.json'),
                             [
                                 'api_key' => config('tdsynnex.serpapi.api_key'),
                                 'engine' => $engine,
-                                'q' => $query,
+                                'q' => $title . ($engine === 'google' ? ' specifications' : ''),
                                 'num' => 5,
                             ]
                         )->throw();
@@ -2660,8 +2658,11 @@ class TDSynnexService
                         }
                         $rows = (array) $response->json($engine === 'google' ? 'organic_results' : 'images_results', []);
                         foreach ($rows as $row) {
+                            if (!is_array($row)) {
+                                continue;
+                            }
                             $text = (string) ($row['title'] ?? '') . ' ' . (string) ($row['link'] ?? '');
-                            if (!preg_match('/(?<![a-z0-9])' . preg_quote($meta['mpn'], '/') . '(?![a-z0-9])/i', urldecode($text))) {
+                            if (!$this->discoveryMatchesSupplier($text, $title, $meta['mpn'])) {
                                 continue;
                             }
                             $sourceUrl = $this->discoveryPublicUrl((string) ($row['link'] ?? ''));
@@ -2669,9 +2670,20 @@ class TDSynnexService
                                 continue;
                             }
                             if ($engine === 'google') {
-                                $description = trim(strip_tags((string) ($row['snippet'] ?? '')));
-                                if ($description === '') {
+                                $snippet = trim(strip_tags((string) ($row['snippet'] ?? '')));
+                                $webSpecs = $this->discoveryWebSpecifications($row);
+                                if ($snippet === '' && $webSpecs === []) {
                                     continue;
+                                }
+                                if ($description === '') {
+                                    $description = $snippet;
+                                }
+                                $knownNames = array_map(static fn (array $spec): string => strtolower($spec['name']), $specifications);
+                                foreach ($webSpecs as $spec) {
+                                    if (!in_array(strtolower($spec['name']), $knownNames, true)) {
+                                        $specifications[] = $spec;
+                                        $knownNames[] = strtolower($spec['name']);
+                                    }
                                 }
                             } else {
                                 $image = $this->discoveryPublicUrl($this->extractImageUrlFromSerpApiResult($row));
@@ -2680,13 +2692,17 @@ class TDSynnexService
                                 }
                             }
                             $sources[] = ['name' => (string) ($row['source'] ?? 'Web search'), 'url' => $sourceUrl];
-                            break;
+                            if ($engine === 'google_images') {
+                                break;
+                            }
                         }
                     } catch (\Illuminate\Http\Client\ConnectionException|\Illuminate\Http\Client\RequestException $error) {
                         Log::warning('Product discovery web lookup failed.', ['sku' => $sku, 'error' => $error->getMessage()]);
                         $warnings[] = 'The online search provider is temporarily unavailable. Please retry later.';
                     }
                 }
+            } elseif (!$serpEnabled) {
+                $warnings[] = 'Internet title search is not configured. Enable SerpAPI and configure its API key to search the supplier product title for specifications and images.';
             }
 
             $image = $this->discoveryPublicUrl($image);
@@ -2701,8 +2717,69 @@ class TDSynnexService
                 'sources' => $sources,
                 'warnings' => array_values(array_unique($warnings)),
                 'online_details_found' => $description !== '' || $image !== '' || $specifications !== [],
+                'internet_search_query' => $title,
             ];
         });
+    }
+
+    private function discoveryMatchesSupplier(string $text, string $title, string $partNumber): bool
+    {
+        $text = urldecode($text);
+        $hasTerm = static fn (string $term): bool => (bool) preg_match(
+            '/(?<![a-z0-9])' . preg_quote($term, '/') . '(?![a-z0-9])/i', $text
+        );
+        if ($partNumber !== '' && $hasTerm($partNumber)) {
+            return true;
+        }
+
+        $terms = array_values(array_unique(preg_split('/[^a-z0-9-]+/i', strtolower($title), -1, PREG_SPLIT_NO_EMPTY) ?: []));
+        $modelTerms = array_values(array_filter($terms, static fn (string $term): bool => (bool) preg_match('/[a-z]/i', $term) && (bool) preg_match('/\d/', $term)));
+        $identityTerms = $modelTerms !== []
+            ? array_values(array_filter($terms, static fn (string $term): bool => (bool) preg_match('/\d/', $term)))
+            : array_values(array_filter($terms, static fn (string $term): bool => strlen($term) >= 3));
+        if ($identityTerms === [] || ($modelTerms === [] && count($identityTerms) < 2)) {
+            return false;
+        }
+        foreach ($identityTerms as $term) {
+            if (!$hasTerm($term)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function discoveryWebSpecifications(array $result): array
+    {
+        $specifications = [];
+        foreach (['top', 'bottom'] as $position) {
+            $extensions = data_get($result, "rich_snippet.{$position}.detected_extensions", []);
+            if (!is_array($extensions)) {
+                continue;
+            }
+            foreach ($extensions as $key => $value) {
+                if (!is_string($key) || !is_scalar($value) || is_bool($value)
+                    || preg_match('/rating|review|price|currency|stock|delivery|shipping/i', $key)) {
+                    continue;
+                }
+                $name = ucwords(str_replace('_', ' ', $key));
+                $specifications[] = ['name' => $name, 'value' => trim(strip_tags((string) $value))];
+            }
+        }
+
+        // Keep only explicitly labelled specifications; do not infer values from prose.
+        $snippet = trim(strip_tags((string) ($result['snippet'] ?? '')));
+        preg_match_all(
+            '/(?:^|[;|\n.])\s*(processor|cpu|memory|ram|storage|graphics|gpu|display|screen size|operating system|weight|dimensions|ports|connectivity|resolution|battery)\s*:\s*([^;|\n]+?)(?=\.\s+[A-Z]|[;|\n]|$)/i',
+            $snippet,
+            $matches,
+            PREG_SET_ORDER
+        );
+        foreach ($matches as $match) {
+            $specifications[] = ['name' => ucwords(strtolower($match[1])), 'value' => trim($match[2])];
+        }
+
+        return array_values(array_filter($specifications, static fn (array $spec): bool => $spec['value'] !== ''));
     }
 
     private function discoveryPublicUrl(string $url): string

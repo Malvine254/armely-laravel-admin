@@ -144,7 +144,7 @@
                 <h3 class="text-lg font-bold text-[#102a52]">Outside-catalog product search</h3>
                 <button @click="resetDiscovery" class="text-sm font-semibold text-slate-600">Close</button>
               </div>
-              <p class="mt-1 text-sm text-slate-600">Identify a supplier product, then load online details and an image URL. These results are informational; pricing, stock, and exact configuration require verification.</p>
+              <p class="mt-1 text-sm text-slate-600">First identify a product in TD SYNNEX, then search the internet using its supplier title for specifications and images. These results are informational; pricing, stock, and exact configuration require verification.</p>
               <p v-if="discoveryLoading" class="mt-4 text-sm">Searching the supplier API…</p>
               <p v-if="discoveryError" role="alert" class="mt-4 text-sm font-semibold text-red-700">{{ discoveryError }}</p>
               <p v-if="discoveryMessage && !discoveryLoading" class="mt-4 text-sm text-slate-700">{{ discoveryMessage }}</p>
@@ -160,6 +160,7 @@
               </ul>
               <article v-if="discoveryDetails" class="mt-5 rounded-lg border border-blue-200 bg-white p-4">
                 <h4 class="font-bold text-[#102a52]">{{ discoveryDetails.name }}</h4>
+                <p v-if="discoveryDetails.internet_search_query" class="mt-2 text-sm text-slate-600">Internet search title: {{ discoveryDetails.internet_search_query }}</p>
                 <p v-for="warning in discoveryDetails.warnings" :key="warning" class="mt-2 text-sm font-semibold text-amber-800">{{ warning }}</p>
                 <div v-if="discoveryDetails.image_url" class="mt-4">
                   <img v-if="!discoveryImageFailed" :src="discoveryDetails.image_url" :alt="discoveryDetails.name" @error="discoveryImageFailed = true" referrerpolicy="no-referrer" class="h-48 w-full object-contain" />
