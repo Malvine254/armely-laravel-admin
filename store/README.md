@@ -23,6 +23,12 @@ alongside existing results. It identifies up to ten products using the TD SYNNEX
 PriceAvailability API and the configured AP SKU source files, bypassing the local
 storefront filters. Select **View online details & image** to enrich that specific
 supplier identity. No sourcing request, notification, or product import is created.
+Exact numeric TD SYNNEX SKUs (5-12 digits) are queried directly through
+PriceAvailability even when absent from the local AP files. Renewed/refurbished
+and zero-stock products remain discoverable; discovery does not imply in-stock
+availability. Title/MPN searches still depend on the configured AP index to locate
+supplier SKUs, so a recently added product missing from that index should be
+looked up by its exact TD SYNNEX SKU.
 
 - `GET /api/v1/product-discovery?search=...` returns supplier identities only, not
   internal supplier prices.

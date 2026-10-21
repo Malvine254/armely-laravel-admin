@@ -250,7 +250,7 @@ class TDSynnexService
 
         $maxMatches = max(1, $maxMatches);
         $cacheKey = 'tdsynnex:xml:priceavailability:search:' . md5(json_encode([
-            'search-v2',
+            'search-v3-direct-sku',
             $needle,
             $maxMatches,
             (string) config('tdsynnex.price_availability.flat_file_path', ''),
@@ -259,7 +259,8 @@ class TDSynnexService
         ]));
 
         $loader = function () use ($needle, $maxMatches) {
-            $matchedSkus = $this->findMatchingSkusInApFiles($needle, $maxMatches);
+            $directSku = (bool) preg_match('/^\d{5,12}$/', $needle);
+            $matchedSkus = $directSku ? [$needle] : $this->findMatchingSkusInApFiles($needle, $maxMatches);
             if (empty($matchedSkus)) {
                 return [];
             }
@@ -277,6 +278,13 @@ class TDSynnexService
 
                 foreach ($rows as $row) {
                     $normalized = $this->normalizePriceAvailabilityProduct($row, $metadata);
+                    if ($directSku && (
+                        (string) ($normalized['productId'] ?? '') !== $needle
+                        || trim((string) ($row['description'] ?? '')) === ''
+                        || preg_match('/not\s*found|invalid|error/i', (string) ($row['status'] ?? ''))
+                    )) {
+                        continue;
+                    }
                     if (!empty($normalized)) {
                         $allProducts[] = $normalized;
                     }
@@ -2697,7 +2705,11 @@ class TDSynnexService
                             }
                         }
                     } catch (\Illuminate\Http\Client\ConnectionException|\Illuminate\Http\Client\RequestException $error) {
-                        Log::warning('Product discovery web lookup failed.', ['sku' => $sku, 'error' => $error->getMessage()]);
+                        Log::warning('Product discovery web lookup failed.', [
+                            'sku' => $sku,
+                            'exception' => $error::class,
+                            'status' => $error instanceof \Illuminate\Http\Client\RequestException ? $error->response->status() : null,
+                        ]);
                         $warnings[] = 'The online search provider is temporarily unavailable. Please retry later.';
                     }
                 }

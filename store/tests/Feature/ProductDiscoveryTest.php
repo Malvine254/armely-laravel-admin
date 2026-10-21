@@ -268,4 +268,50 @@ class ProductDiscoveryTest extends TestCase
         $supplier->discoverOnlineProductDetails([...$this->product(), 'productName' => 'HP ZBook Updated Title']);
         Http::assertSentCount(4);
     }
+
+    public function test_exact_sku_missing_from_ap_files_is_queried_directly_and_includes_renewed_zero_stock_laptops(): void
+    {
+        config([
+            'tdsynnex.price_availability.flat_file_path' => '',
+            'tdsynnex.price_availability.flat_files_dir' => 'tests/fixtures/no-ap-files',
+            'tdsynnex.price_availability.customer_no' => 'test-customer',
+            'tdsynnex.price_availability.username' => 'test-user',
+            'tdsynnex.price_availability.password' => 'test-password',
+        ]);
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $supplier->shouldReceive('postPriceAvailabilityXml')->once()
+            ->withArgs(fn (string $xml, string $region, bool $test) => str_contains($xml, '<synnexSKU>15428226</synnexSKU>'))
+            ->andReturn(['PriceAvailabilityList' => [
+                'synnexSKU' => '15428226',
+                'mfgPN' => 'BX8M7UTR#ABA',
+                'status' => 'Active',
+                'description' => 'MANUFACTURER RENEWED HP ZBOOK 8 14 INCH',
+                'totalQuantity' => '0',
+            ]]);
+        $this->app->instance(TDSynnexService::class, $supplier);
+
+        $this->getJson('/api/v1/product-discovery?search=15428226')
+            ->assertOk()
+            ->assertJsonPath('data.0.product_id', '15428226')
+            ->assertJsonPath('data.0.part_number', 'BX8M7UTR#ABA')
+            ->assertJsonPath('data.0.name', 'MANUFACTURER RENEWED HP ZBOOK 8 14 INCH')
+            ->assertJsonMissingPath('data.0.productPrice');
+    }
+
+    public function test_unknown_direct_sku_does_not_become_a_product_from_a_supplier_error_row(): void
+    {
+        config([
+            'tdsynnex.price_availability.customer_no' => 'test-customer',
+            'tdsynnex.price_availability.username' => 'test-user',
+            'tdsynnex.price_availability.password' => 'test-password',
+        ]);
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $supplier->shouldReceive('postPriceAvailabilityXml')->once()->andReturn([
+            'PriceAvailabilityList' => ['synnexSKU' => '99999999', 'status' => 'Not Found'],
+        ]);
+        $this->app->instance(TDSynnexService::class, $supplier);
+
+        $this->getJson('/api/v1/product-discovery?search=99999999')
+            ->assertOk()->assertJsonPath('data', []);
+    }
 }
