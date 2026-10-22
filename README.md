@@ -52,6 +52,10 @@ Ad hoc PHP diagnostics and one-off verification scripts should live in `test_php
 
 - The homepage client-directory link uses `clients.index`, registered at `/clients` and rendered by `resources/views/clients/index.blade.php`. Clear the production route cache after deploying route changes.
 
+## Mela chat widget styling
+
+- The public layout loads `public/css/mela-chat.css` synchronously alongside the search stylesheet. Both are required: the search stylesheet does not include the chat panel or floating-launcher styles. The chat stylesheet URL uses its file modification time for cache busting.
+
 ## Blog article styling
 
 - Public blog content uses `public/css/blog-modern.css`. Blue table headers (including legacy first-row headers) retain white text and a dark-blue background on hover; the pale hover highlight applies only to ordinary data rows.

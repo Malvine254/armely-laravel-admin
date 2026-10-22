@@ -14,6 +14,7 @@ class ClientsPageTest extends TestCase
         $this->get(route('clients.index'))
             ->assertOk()
             ->assertViewIs('clients.index')
+            ->assertSee('href="'.asset('css/mela-chat.css').'?v='.filemtime(public_path('css/mela-chat.css')).'"', false)
             ->assertSee('<title>Our Clients | Armely</title>', false)
             ->assertSee('Sage Butte Energy');
     }
