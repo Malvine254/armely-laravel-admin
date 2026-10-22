@@ -48,6 +48,10 @@ Ad hoc PHP diagnostics and one-off verification scripts should live in `test_php
 - `/mela-security-and-compliance/download/{id}` (`mela.security.download`) uses the controller's existing signature and expiry validation, including normalization of legacy email query strings.
 - After deploying route changes, run `php artisan route:clear` and `php artisan view:clear`. If production uses cached routes, rebuild them with `php artisan route:cache`. Confirm all three routes with `php artisan route:list --name=mela.security`.
 
+## Public client directory
+
+- The homepage client-directory link uses `clients.index`, registered at `/clients` and rendered by `resources/views/clients/index.blade.php`. Clear the production route cache after deploying route changes.
+
 ## Blog article styling
 
 - Public blog content uses `public/css/blog-modern.css`. Blue table headers (including legacy first-row headers) retain white text and a dark-blue background on hover; the pale hover highlight applies only to ordinary data rows.
