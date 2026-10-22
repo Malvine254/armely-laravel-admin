@@ -42,6 +42,12 @@ Ad hoc PHP diagnostics and one-off verification scripts should live in `test_php
 - Decode stored entity-encoded content titles with `App\Support\EmailText::decode`, then let Blade escape the result. Never render decoded content as raw HTML.
 - After deployment, clear compiled views with `php artisan view:clear` and request a new download email to verify the production file path and link.
 
+## Mela security documentation routes
+
+- `/mela-security-and-compliance` serves the documentation request page (`mela.security`). Its POST endpoint (`mela.security.request`) uses the existing validation, reCAPTCHA, and email workflow and is limited to 10 requests per minute.
+- `/mela-security-and-compliance/download/{id}` (`mela.security.download`) uses the controller's existing signature and expiry validation, including normalization of legacy email query strings.
+- After deploying route changes, run `php artisan route:clear` and `php artisan view:clear`. If production uses cached routes, rebuild them with `php artisan route:cache`. Confirm all three routes with `php artisan route:list --name=mela.security`.
+
 ## Blog article styling
 
 - Public blog content uses `public/css/blog-modern.css`. Blue table headers (including legacy first-row headers) retain white text and a dark-blue background on hover; the pale hover highlight applies only to ordinary data rows.

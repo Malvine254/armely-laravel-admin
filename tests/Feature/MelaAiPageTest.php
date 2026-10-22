@@ -99,6 +99,29 @@ class MelaAiPageTest extends TestCase
             ->assertSee('https://www.youtube-nocookie.com/embed/etFEuJzx6cA?rel=0', false);
     }
 
+    public function test_security_documentation_page_and_footer_links_render(): void
+    {
+        $this->get(route('mela.security'))
+            ->assertOk()
+            ->assertSee('Mela Meeting Assistant Security &amp; Compliance Documentation', false)
+            ->assertSee(route('mela.security.request'), false)
+            ->assertSee('href="'.route('mela.security').'"', false);
+    }
+
+    public function test_security_documentation_request_route_validates_input(): void
+    {
+        $this->postJson(route('mela.security.request'), [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['name', 'email', 'g-recaptcha-response']);
+    }
+
+    public function test_unsigned_security_documentation_download_requires_a_new_link(): void
+    {
+        $this->get(route('mela.security.download', ['id' => 1]))
+            ->assertRedirect(route('mela.security'))
+            ->assertSessionHasErrors('access');
+    }
+
     private function prepareSchema(): void
     {
         Schema::dropIfExists('company_portfolios');

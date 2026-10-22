@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\MelaSecurityController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\TablesController;
@@ -594,6 +595,13 @@ Route::get('/mela-ai', [HomeController::class, 'melaAi'])->name('mela-ai');
 Route::get('/mela-meeting-assistant', [HomeController::class, 'melaMeetingAssistant'])->name('mela-meeting-assistant');
 Route::view('/mela-ai-terms-of-use', 'legal.mela-terms-of-use')->name('mela.terms');
 Route::view('/mela-ai-privacy-policy', 'legal.mela-ai-privacy-policy')->name('mela.privacy');
+Route::get('/mela-security-and-compliance', [MelaSecurityController::class, 'show'])->name('mela.security');
+Route::post('/mela-security-and-compliance', [MelaSecurityController::class, 'submitRequest'])
+    ->middleware('throttle:10,1')
+    ->name('mela.security.request');
+Route::get('/mela-security-and-compliance/download/{id}', [MelaSecurityController::class, 'download'])
+    ->whereNumber('id')
+    ->name('mela.security.download');
 Route::redirect('/mela-meeting-assistant-terms-of-use', '/mela-ai-terms-of-use', 301);
 Route::redirect('/mela-meeting-assistant-privacy-policy', '/mela-ai-privacy-policy', 301);
 Route::redirect('/mela-meeting-assistant/terms-of-use', '/mela-ai-terms-of-use', 301);
