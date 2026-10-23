@@ -53,6 +53,11 @@ Ad hoc PHP diagnostics and one-off verification scripts should live in `test_php
 - The admin-authenticated route group registers GET and POST `/admin/profile/photo` as `admin.profile.photo` and `admin.profile.photo.update`. Photos stay on the private local disk and are served only for the signed-in active admin.
 - The same group registers the Mela knowledge dashboard, status, reindex, stop, schedule, and session endpoints used by the shared admin navigation and Mela views.
 - After deploying these routes, run `php artisan route:clear` and `php artisan view:clear`, then rebuild the route cache if used. Confirm registration with `php artisan route:list --name=admin.profile` and `php artisan route:list --name=admin.mela`.
+- Admin case-study and white-paper downloads use their original authenticated endpoints. Content mutations again trigger `ReindexMelaKnowledgeAfterContentChange`.
+- The original Mela admin URLs are restored: `/admin/mela/knowledge` returns status JSON and `/admin/mela/knowledge/manage` serves the dashboard. `/admin/mela/knowledge/status` remains a compatible status alias.
+- Restored public URLs include tokenized `/job-board/{publicToken}`, `/mela`, Mela help, and the original security-documentation URLs. Legacy signed download URLs are served directly rather than redirected so signatures remain valid.
+- Run `php vendor/bin/phpunit tests/Feature/RouteRegistrationTest.php` to check literal named-route references across application views/controllers, restored URLs, admin authentication, shared layout rendering, and automatic-index middleware registration.
+- `tests/Feature/AdminPageSmokeTest.php` requests each admin landing page with an authenticated admin and a profile photo. The dashboard case requires MySQL and is explicitly skipped on SQLite because existing dashboard queries use `STR_TO_DATE`.
 
 ## Public client directory
 
