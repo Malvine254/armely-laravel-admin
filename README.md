@@ -48,6 +48,12 @@ Ad hoc PHP diagnostics and one-off verification scripts should live in `test_php
 - `/mela-security-and-compliance/download/{id}` (`mela.security.download`) uses the controller's existing signature and expiry validation, including normalization of legacy email query strings.
 - After deploying route changes, run `php artisan route:clear` and `php artisan view:clear`. If production uses cached routes, rebuild them with `php artisan route:cache`. Confirm all three routes with `php artisan route:list --name=mela.security`.
 
+## Admin profile photos and Mela routes
+
+- The admin-authenticated route group registers GET and POST `/admin/profile/photo` as `admin.profile.photo` and `admin.profile.photo.update`. Photos stay on the private local disk and are served only for the signed-in active admin.
+- The same group registers the Mela knowledge dashboard, status, reindex, stop, schedule, and session endpoints used by the shared admin navigation and Mela views.
+- After deploying these routes, run `php artisan route:clear` and `php artisan view:clear`, then rebuild the route cache if used. Confirm registration with `php artisan route:list --name=admin.profile` and `php artisan route:list --name=admin.mela`.
+
 ## Public client directory
 
 - The homepage client-directory link uses `clients.index`, registered at `/clients` and rendered by `resources/views/clients/index.blade.php`. Clear the production route cache after deploying route changes.

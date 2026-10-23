@@ -9,6 +9,8 @@ use App\Http\Controllers\Admin\TablesController;
 use App\Http\Controllers\Admin\AdminsController;
 use App\Http\Controllers\Admin\ReportsController;
 use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\MelaKnowledgeController;
+use App\Http\Controllers\Admin\MelaSessionController;
 use App\Http\Controllers\Admin\CareerController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\CompanyContentController;
@@ -830,6 +832,17 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     // Admin User Management
     Route::get('/profile', [ProfileController::class, 'show'])->name('admin.profile');
     Route::post('/profile', [ProfileController::class, 'update'])->name('admin.profile.update');
+    Route::get('/profile/photo', [ProfileController::class, 'photo'])->name('admin.profile.photo');
+    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('admin.profile.photo.update');
+
+    Route::get('/mela/knowledge', [MelaKnowledgeController::class, 'index'])->name('admin.mela.knowledge.manage');
+    Route::get('/mela/knowledge/status', [MelaKnowledgeController::class, 'status'])->name('admin.mela.knowledge.status');
+    Route::post('/mela/knowledge/reindex', [MelaKnowledgeController::class, 'reindex'])->name('admin.mela.knowledge.reindex');
+    Route::post('/mela/knowledge/stop', [MelaKnowledgeController::class, 'stopReindex'])->name('admin.mela.knowledge.stop');
+    Route::post('/mela/knowledge/schedule', [MelaKnowledgeController::class, 'schedule'])->name('admin.mela.knowledge.schedule');
+    Route::delete('/mela/knowledge/schedule', [MelaKnowledgeController::class, 'cancelSchedule'])->name('admin.mela.knowledge.schedule.cancel');
+    Route::get('/mela/sessions', [MelaSessionController::class, 'index'])->name('admin.mela.sessions.index');
+    Route::get('/mela/sessions/{conversation}', [MelaSessionController::class, 'show'])->name('admin.mela.sessions.show');
 
     Route::get('/admins', [AdminsController::class, 'index'])->name('admin.admins');
     Route::post('/admins', [AdminsController::class, 'store'])->name('admin.admins.store');
