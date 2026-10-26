@@ -29,6 +29,59 @@
     font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
+.product-description {
+    overflow-wrap: anywhere;
+}
+
+.product-description p,
+.product-description ul,
+.product-description ol {
+    margin: 0 0 1rem;
+}
+
+.product-description ul,
+.product-description ol {
+    padding-left: 1.5rem;
+}
+
+.product-description ul {
+    list-style: disc;
+}
+
+.product-description ol {
+    list-style: decimal;
+}
+
+.product-description li {
+    margin: 0.35rem 0;
+    padding-left: 0.25rem;
+}
+
+.product-description h4 {
+    margin: 1.25rem 0 0.5rem;
+    font-weight: 600;
+    color: #102a52;
+}
+
+.product-description > :first-child {
+    margin-top: 0;
+}
+
+.product-description > :last-child {
+    margin-bottom: 0;
+}
+
+@media (min-width: 640px) {
+    .product-description .product-compatibility-list {
+        columns: 2;
+        column-gap: 2rem;
+    }
+
+    .product-description .product-compatibility-list li {
+        break-inside: avoid;
+    }
+}
+
 /* Consistent, comfortably sized data tables throughout the admin portal. */
 .admin-font table {
   width: 100%;

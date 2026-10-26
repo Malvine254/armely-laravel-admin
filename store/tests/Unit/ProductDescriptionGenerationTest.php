@@ -32,6 +32,7 @@ class ProductDescriptionGenerationTest extends TestCase
         Http::assertSent(fn ($request) => $request['response_format']['type'] === 'json_object'
             && json_decode($request['messages'][1]['content'], true) === $facts
             && str_contains($request['messages'][0]['content'], 'Do not infer specifications')
+            && str_contains($request['messages'][0]['content'], 'Format the plain-text description as a short overview paragraph')
             && str_contains($request['messages'][0]['content'], 'Website evidence is available'));
     }
 

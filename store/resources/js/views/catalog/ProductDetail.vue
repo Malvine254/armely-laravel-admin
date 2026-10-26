@@ -194,7 +194,7 @@
             <div v-if="activeTab === 'description' && productDescription">
               <div class="relative">
                 <div
-                  class="prose prose-sm max-w-none text-gray-700 leading-relaxed overflow-hidden transition-all duration-300"
+                  class="product-description max-w-none text-gray-700 leading-relaxed overflow-hidden transition-all duration-300"
                   :class="{ 'max-h-40': !descriptionExpanded && isDescriptionLong }"
                   v-html="productDescription"
                 ></div>
@@ -226,7 +226,7 @@
                   </div>
                   <div class="min-w-0">
                     <p class="text-xs text-gray-500">Description</p>
-                    <p class="text-sm font-medium text-gray-900 break-words">{{ specificationDescription }}</p>
+                    <div class="product-description text-sm font-medium text-gray-900 break-words" v-html="specificationDescription"></div>
                   </div>
                 </div>
                 <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -705,6 +705,7 @@ import api from '../../services/api'
 import { waitForDiscoveryContent } from '../../services/discoveryContent'
 import { rememberViewedProduct } from '../../services/recentlyViewed'
 import { isSupplierOrderable } from '../../services/productAvailability'
+import { formatProductDescription } from '../../services/productDescription'
 
 const router = useRouter()
 const route = useRoute()
@@ -1246,12 +1247,11 @@ const productDescription = computed(() => {
   const name = (product.value.productName || '').trim()
   // Only show description if it's meaningful (different from product name)
   if (!desc || desc === name) return ''
-  // Sanitize: allow only safe formatting tags, strip everything else
-  return desc.replace(/<(?!\/?(br|b|i|strong|em|p|ul|ol|li)\b)[^>]*>/gi, '')
+  return formatProductDescription(desc)
 })
 
 const specificationDescription = computed(() => {
-  return String(product.value?.description || '').trim()
+  return formatProductDescription(product.value?.description)
 })
 
 watch(normalizedImages, (images) => {

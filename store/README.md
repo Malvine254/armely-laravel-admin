@@ -82,6 +82,22 @@ can still be imperfect: review generated descriptions and image matches.
 Enrichment metadata and tagged AI content survive subsequent catalog imports/syncs.
 No model-generated image URLs or synthetic product images are used.
 
+### Description presentation
+
+The storefront description tab and the description in Specifications format existing saved content and newly
+generated text into safe HTML at display time. No database rewrite or AI rerun
+is needed for existing products. Paragraphs, headings, bullets and numbered lists
+have explicit spacing and list markers. Long supplier compatibility text with
+an explicit compatibility phrase and at least three comma-separated entries is
+displayed as a responsive two-column list on larger screens; model names and
+supplied warranty wording are retained.
+Long prose is split at sentence boundaries, without adding product claims.
+New AI descriptions are requested as an overview plus plain-text bullets when
+appropriate; raw descriptions remain unchanged in storage.
+Existing HTML is parsed and rebuilt with formatting tags only, without source
+attributes, scripts, images, embedded content or links. Read More / Show Less
+continues to work with formatted descriptions.
+
 Required: the existing store `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`,
 `AZURE_OPENAI_DEPLOYMENT`, and `AZURE_OPENAI_API_VERSION` settings. For internet
 website/image lookup, `BING_IMAGE_ENABLED` defaults to true and needs no search API

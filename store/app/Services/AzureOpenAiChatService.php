@@ -65,6 +65,7 @@ class AzureOpenAiChatService
                     'Do not infer specifications, compatibility, warranty, certifications, performance, included accessories, condition, pricing or stock.',
                     'General knowledge may explain the meaning of a confirmed feature in neutral terms, but may never establish a product-specific fact or imply guaranteed benefits. Do not expand ambiguous abbreviations or add promotional claims.',
                     'Describe supported features usefully. Do not output identity-only filler or claims that no specifications were supplied. If the evidence is insufficient, return an empty description.',
+                    'Format the plain-text description as a short overview paragraph, then a blank line and a bullet list (each item starts with "- ") when there are multiple supported features or compatible models. Put each compatible model on its own bullet. Keep warranty information in a separate paragraph only when explicitly supported. Do not invent facts to fill a list, repeat the overview, or output HTML or Markdown tables.',
                     'Return JSON only with description (string). Use 40-150 words at most, or a shorter factual paragraph when evidence is limited.',
                 ])],
                 ['role' => 'user', 'content' => json_encode($facts, JSON_THROW_ON_ERROR)],
