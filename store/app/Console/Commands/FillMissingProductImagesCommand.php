@@ -35,7 +35,7 @@ class FillMissingProductImagesCommand extends Command
                             {--dry-run        : Count and list products needing images without processing}
                             {--quiet-output   : Suppress per-product lines (useful for log capture)}';
 
-    protected $description = 'Fill missing product images using Icecat → GTIN → SerpAPI → scraping → Bing waterfall, with optional parallel workers';
+    protected $description = 'Fill missing product images using Icecat → GTIN → scraping → Bing waterfall, with optional parallel workers';
 
     public function handle(TDSynnexService $service): int
     {

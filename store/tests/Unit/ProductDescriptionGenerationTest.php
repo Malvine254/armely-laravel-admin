@@ -47,17 +47,28 @@ class ProductDescriptionGenerationTest extends TestCase
             ]);
         }
         foreach ($contents as $content) {
-            $this->assertNull(app(AzureOpenAiChatService::class)->generateProductDescription(['product_name' => 'HP ZBook 8 workstation']));
+            $this->assertNull(app(AzureOpenAiChatService::class)->generateProductDescription([
+                'product_name' => 'HP ZBook 8 workstation', 'verified_website_description' => 'HP workstation with 32 GB memory.',
+            ]));
         }
     }
 
     public function test_provider_failure_and_missing_configuration_do_not_generate_content(): void
     {
         Http::fake(['description.example.com/*' => Http::response(['error' => 'unavailable'], 503)]);
-        $this->assertNull(app(AzureOpenAiChatService::class)->generateProductDescription([]));
+        $this->assertNull(app(AzureOpenAiChatService::class)->generateProductDescription(['verified_website_description' => 'HP workstation.']));
         config(['services.azure_openai.deployment' => '']);
         Http::fake();
         $this->assertNull(app(AzureOpenAiChatService::class)->generateProductDescription([]));
+        Http::assertNothingSent();
+    }
+
+    public function test_catalog_identity_without_website_evidence_does_not_trigger_generation(): void
+    {
+        Http::fake();
+        $this->assertNull(app(AzureOpenAiChatService::class)->generateProductDescription([
+            'product_name' => 'HP E-Series E24u G5', 'manufacturer' => 'HP', 'part_number' => '9VH73AA',
+        ]));
         Http::assertNothingSent();
     }
 

@@ -41,7 +41,7 @@ cancel existing work.
 Description/image enrichment sends no email notifications. Existing product,
 price and availability synchronization emails remain unchanged.
 
-The existing Icecat/SerpAPI lookup retrieves evidence using the saved supplier
+Direct Bing web and image searches (plus optional Icecat) retrieve evidence using the saved supplier
 identity. The existing vision-capable Azure OpenAI deployment verifies descriptions
 and candidate images; only a matching image with reported confidence >= 0.95 is
 assigned. AI writes an original description using the verified website description,
@@ -50,19 +50,23 @@ specifications. General knowledge may explain confirmed features in neutral term
 but must not establish additional product-specific facts. A second AI fact-check
 must approve every product-specific claim before generated text is saved. If
 generation or fact-checking fails, an already verified website excerpt is retained;
-without one, the description stays missing for review. No evidence means at most
-a short identity-only paragraph, not an invented specification sheet.
+without one, the description stays missing for review. Without verified website
+text or specifications, generation is skipped: identity-only paragraphs are not
+published as researched descriptions.
 It must not infer missing specifications, compatibility, warranty, or claims.
-Generated text is marked `ai-generated-from-verified-web-evidence` or
-`ai-generated-from-catalog-facts` for review. AI output
+Generated text is marked `ai-generated-from-verified-web-evidence` for review.
+Older `ai-generated-from-catalog-facts` descriptions are marked **Needs research**,
+included in missing-description counts, and eligible for replacement, even during
+the normal retry cooldown. Manual and verified descriptions stay untouched. AI output
 can still be imperfect: review generated descriptions and image matches.
 Enrichment metadata and tagged AI content survive subsequent catalog imports/syncs.
 No model-generated image URLs or synthetic product images are used.
 
 Required: the existing store `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`,
 `AZURE_OPENAI_DEPLOYMENT`, and `AZURE_OPENAI_API_VERSION` settings. For internet
-image lookup, set `SERPAPI_IMAGE_ENABLED=true` and `SERPAPI_API_KEY`; Icecat is
-also supported with the settings below. Without search coverage or a confident
+website/image lookup, `BING_IMAGE_ENABLED` defaults to true and needs no search API
+key. No SerpAPI requests are made, including by the legacy image resolver.
+Icecat is also supported with the settings below. Without search coverage or a confident
 match, the image stays missing and admin shows a warning. AI/provider failures
 never manufacture content or report the product as complete.
 
@@ -168,9 +172,9 @@ populate the same card image area.
   Enable `ICECAT_ENABLED` and configure `ICECAT_USERNAME`, `ICECAT_PASSWORD` and,
   when required by the account, `ICECAT_APP_KEY` for structured online descriptions,
   specifications, and images. Coverage depends on the account and product.
-- `SERPAPI_IMAGE_ENABLED=true` plus `SERPAPI_API_KEY` enables the second step:
-  search the internet using the exact **title returned by TD SYNNEX**, appending
-  `specifications` for web results, and using that title directly for image search.
+- Direct Bing HTML search is enabled by default (`BING_IMAGE_ENABLED=true`).
+  It searches the exact **title returned by TD SYNNEX**, manufacturer and part
+  number, appending `specifications` for web results.
   These searches also run when Icecat already has data. Matching results must
   corroborate the supplier part number or the title's model identifiers (or all
   meaningful title words when no model identifier exists). No customer-entered
@@ -178,11 +182,15 @@ populate the same card image area.
   A regional part such as `ABC123#ABA` may locate an `ABC123` model page or an
   `ABC123ABA` URL; OpenAI still checks the full supplier configuration before
   approving content or sharing a physical-model photo.
-  Explicitly labelled specifications and structured search-result attributes
+  Explicitly labelled specifications in search-result excerpts
   supplement Icecat fields; values are not inferred from prose. Descriptions can
   be search excerpts. Sources are linked, and absent specs/images stay marked
-  unavailable rather than being generated. Without SerpAPI, the response explicitly
-  reports that title-based internet search needs configuration.
+  unavailable rather than being generated. Bing source-page URLs and original image
+  URLs are preserved for AI verification. Bing redirect destinations are decoded,
+  but only public HTTPS evidence is accepted. Captchas, HTTP errors and empty or
+  unrecognized result pages surface warnings; no access controls are bypassed.
+  Direct search depends on Bing availability and HTML layout and does not
+  guarantee results. Disabling Bing explicitly surfaces a configuration warning.
 - Configure the existing `AZURE_OPENAI_*` credentials/deployment with vision chat
   support. OpenAI compares supplier identity with the actual candidate images and
   online evidence. It can only approve existing descriptions/specification indices

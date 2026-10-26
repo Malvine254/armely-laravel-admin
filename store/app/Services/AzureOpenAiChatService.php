@@ -41,6 +41,11 @@ class AzureOpenAiChatService
             Log::warning('OpenAI product-description generation is not configured.');
             return null;
         }
+        if (trim((string) ($facts['verified_website_description'] ?? '')) === ''
+            && empty($facts['verified_specifications'])) {
+            Log::warning('Product description requires verified website evidence; catalog-only generation was skipped.');
+            return null;
+        }
 
         $response = $this->postChatCompletion([
             'messages' => [
@@ -51,7 +56,7 @@ class AzureOpenAiChatService
                     'Use verified_website_description and verified_specifications as factual evidence. website_sources are provenance, not permission to invent facts from a URL.',
                     'Do not infer specifications, compatibility, warranty, certifications, performance, included accessories, condition, pricing or stock.',
                     'General knowledge may explain the meaning of a confirmed feature in neutral terms, but may never establish a product-specific fact or imply guaranteed benefits. Do not expand ambiguous abbreviations or add promotional claims.',
-                    'If little is known, write a brief factual identification paragraph; never pad it with invented benefits.',
+                    'Describe supported features usefully. Do not output identity-only filler or claims that no specifications were supplied. If the evidence is insufficient, return an empty description.',
                     'Return JSON only with description (string). Use 40-150 words at most, or a shorter factual paragraph when evidence is limited.',
                 ])],
                 ['role' => 'user', 'content' => json_encode($facts, JSON_THROW_ON_ERROR)],

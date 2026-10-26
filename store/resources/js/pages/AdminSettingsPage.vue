@@ -681,7 +681,7 @@
         <section aria-labelledby="ai-product-content-title" class="rounded-lg border border-[#2F5597]/20 bg-[#2F5597]/5 p-5 space-y-4">
           <div>
             <h4 id="ai-product-content-title" class="font-semibold text-gray-900">AI Product Descriptions &amp; Images</h4>
-            <p class="mt-1 text-sm text-gray-600">Populate missing descriptions and find verified matching images for all saved store products. Existing descriptions and usable images are preserved.</p>
+            <p class="mt-1 text-sm text-gray-600">Search Bing directly for descriptions and matching images for all saved store products. No search API key is required. AI verifies evidence and image identity; descriptions without website evidence stay pending review. Existing verified descriptions and usable images are preserved.</p>
             <p class="mt-2 text-xs text-gray-500">The button queues the catalog and requests a background worker, which saves results directly to the database. AI/search usage charges may apply. Uncertain image matches remain missing for review; recently attempted products have a 24-hour cooldown.</p>
           </div>
           <div v-if="productContentStats" class="grid grid-cols-1 gap-3 sm:grid-cols-3">

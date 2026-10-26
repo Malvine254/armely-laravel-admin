@@ -541,6 +541,27 @@ class ProductDiscoveryTest extends TestCase
         $this->getJson('/api/v1/product-discovery?search=ZBook&per_page=101')->assertUnprocessable();
     }
 
+    private function bingResponse(array $results): \Closure
+    {
+        return static function ($request) use ($results) {
+            $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_HTML5);
+            $html = '<html><body>';
+            if (str_contains($request->url(), '/images/search')) {
+                foreach ($results['images_results'] ?? [] as $row) {
+                    $metadata = ['t' => $row['title'], 'purl' => $row['link'], 'murl' => $row['original']];
+                    $html .= '<a class="iusc" m="'.$escape(json_encode($metadata)).'"></a>';
+                }
+            } else {
+                foreach ($results['organic_results'] ?? [] as $row) {
+                    $html .= '<li class="b_algo"><h2><a href="'.$escape($row['link']).'">'.$escape($row['title'])
+                        .'</a></h2><div class="b_caption"><p>'.$escape($row['snippet']).'</p></div></li>';
+                }
+            }
+
+            return Http::response($html.'</body></html>');
+        };
+    }
+
     private function configureOnlineProviders(): void
     {
         $verifier = Mockery::mock(\App\Services\AzureOpenAiChatService::class);
@@ -556,6 +577,7 @@ class ProductDiscoveryTest extends TestCase
             'tdsynnex.icecat.password' => 'test-password',
             'tdsynnex.icecat.endpoint' => 'https://live.icecat.biz/api',
             'tdsynnex.serpapi.enabled' => false,
+            'tdsynnex.bing.enabled' => false,
         ]);
         Http::preventStrayRequests();
     }
@@ -593,7 +615,7 @@ class ProductDiscoveryTest extends TestCase
                 ->assertJsonPath('data.productPrice.0.rsPrice', 100)
                 ->assertJsonPath('data.availableQuantity', 4)
                 ->assertJsonPath('data.internet_search_query', 'HP ZBook Workstation')
-                ->assertJsonPath('data.warnings.0', 'Internet title search is not configured. Enable SerpAPI and configure its API key to search the supplier product title for specifications and images.');
+                ->assertJsonPath('data.warnings.0', 'Bing search is disabled. Enable BING_IMAGE_ENABLED for website and image lookup; no search API key is required.');
         }
         Http::assertSentCount(1);
     }
@@ -626,10 +648,10 @@ class ProductDiscoveryTest extends TestCase
     public function test_web_fallback_uses_exact_part_results_and_rejects_unsafe_image_urls(): void
     {
         $this->configureOnlineProviders();
-        config(['tdsynnex.serpapi.enabled' => true, 'tdsynnex.serpapi.api_key' => 'test-key']);
+        config(['tdsynnex.bing.enabled' => true]);
         Http::fake([
             'live.icecat.biz/*' => Http::response(['msg' => 'no_product']),
-            'serpapi.com/*' => Http::response([
+            'www.bing.com/*' => $this->bingResponse([
                 'organic_results' => [
                     ['title' => 'Different ABC1234 model', 'link' => 'https://example.com/ABC1234', 'snippet' => 'Wrong model'],
                     ['title' => 'HP ABC123', 'link' => 'https://example.com/ABC123', 'snippet' => 'Exact model description'],
@@ -651,8 +673,8 @@ class ProductDiscoveryTest extends TestCase
     public function test_regional_part_numbers_accept_model_pages_without_the_region_suffix_but_not_longer_part_numbers(): void
     {
         $this->configureOnlineProviders();
-        config(['tdsynnex.icecat.enabled' => false, 'tdsynnex.serpapi.enabled' => true, 'tdsynnex.serpapi.api_key' => 'test-key']);
-        Http::fake(['serpapi.com/*' => Http::response([
+        config(['tdsynnex.icecat.enabled' => false, 'tdsynnex.bing.enabled' => true]);
+        Http::fake(['www.bing.com/*' => $this->bingResponse([
             'organic_results' => [
                 ['title' => 'Different ABC1234 model', 'link' => 'https://example.com/ABC1234', 'snippet' => 'Wrong model'],
                 ['title' => 'HP ABC123', 'link' => 'https://example.com/ABC123', 'snippet' => 'Exact physical model evidence'],
@@ -670,9 +692,9 @@ class ProductDiscoveryTest extends TestCase
     public function test_supplier_title_drives_both_internet_queries_and_returns_specifications_without_a_part_number(): void
     {
         $this->configureOnlineProviders();
-        config(['tdsynnex.icecat.enabled' => false, 'tdsynnex.serpapi.enabled' => true, 'tdsynnex.serpapi.api_key' => 'test-key']);
+        config(['tdsynnex.icecat.enabled' => false, 'tdsynnex.bing.enabled' => true]);
         $product = [...$this->product(), 'productName' => 'HP ZBOOK 8 G1AS W11 PRO', 'mfgPartNo' => ''];
-        Http::fake(['serpapi.com/*' => Http::response([
+        Http::fake(['www.bing.com/*' => $this->bingResponse([
             'organic_results' => [
                 ['title' => 'HP ZBook 9 G1AS W11 PRO', 'link' => 'https://example.com/wrong', 'snippet' => 'Memory: 8 GB'],
                 [
@@ -693,16 +715,16 @@ class ProductDiscoveryTest extends TestCase
         $this->assertSame('HP ZBOOK 8 G1AS W11 PRO', $details['internet_search_query']);
         $this->assertSame('https://images.example.com/zbook.jpg', $details['image_url']);
         $specs = collect($details['specifications'])->pluck('value', 'name')->all();
-        $this->assertSame(['Screen Size' => '14 inches', 'Processor' => 'Ryzen 7', 'Memory' => '32 GB', 'Storage' => '1 TB SSD'], $specs);
-        Http::assertSent(fn ($request) => $request['engine'] === 'google' && $request['q'] === 'HP ZBOOK 8 G1AS W11 PRO specifications');
-        Http::assertSent(fn ($request) => $request['engine'] === 'google_images' && $request['q'] === 'HP ZBOOK 8 G1AS W11 PRO');
+        $this->assertSame(['Processor' => 'Ryzen 7', 'Memory' => '32 GB', 'Storage' => '1 TB SSD'], $specs);
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'bing.com/search?') && $request['q'] === 'HP ZBOOK 8 G1AS W11 PRO HP specifications');
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'bing.com/images/search?') && $request['q'] === 'HP ZBOOK 8 G1AS W11 PRO HP');
         Http::assertSentCount(2);
     }
 
     public function test_internet_title_search_supplements_complete_icecat_data_without_overwriting_its_specs(): void
     {
         $this->configureOnlineProviders();
-        config(['tdsynnex.serpapi.enabled' => true, 'tdsynnex.serpapi.api_key' => 'test-key']);
+        config(['tdsynnex.bing.enabled' => true]);
         Http::fake([
             'live.icecat.biz/*' => Http::response(['data' => [
                 'Image' => ['HighPic' => 'https://images.icecat.biz/product.jpg'],
@@ -711,7 +733,7 @@ class ProductDiscoveryTest extends TestCase
                     'Feature' => ['Name' => ['Value' => 'Memory']], 'PresentationValue' => '32 GB',
                 ]]]],
             ]]),
-            'serpapi.com/*' => Http::response([
+            'www.bing.com/*' => $this->bingResponse([
                 'organic_results' => [[
                     'title' => 'HP ABC123',
                     'link' => 'https://example.com/ABC123',
@@ -735,12 +757,43 @@ class ProductDiscoveryTest extends TestCase
     public function test_title_search_cache_changes_when_the_supplier_title_changes(): void
     {
         $this->configureOnlineProviders();
-        config(['tdsynnex.icecat.enabled' => false, 'tdsynnex.serpapi.enabled' => true, 'tdsynnex.serpapi.api_key' => 'test-key']);
-        Http::fake(['serpapi.com/*' => Http::response(['organic_results' => [], 'images_results' => []])]);
+        config(['tdsynnex.icecat.enabled' => false, 'tdsynnex.bing.enabled' => true]);
+        Http::fake(['www.bing.com/*' => $this->bingResponse(['organic_results' => [], 'images_results' => []])]);
         $supplier = app(TDSynnexService::class);
         $supplier->discoverOnlineProductDetails($this->product());
         $supplier->discoverOnlineProductDetails([...$this->product(), 'productName' => 'HP ZBook Updated Title']);
         Http::assertSentCount(4);
+    }
+
+    public function test_direct_bing_search_never_calls_serpapi_even_when_old_settings_are_enabled(): void
+    {
+        $this->configureOnlineProviders();
+        config(['tdsynnex.icecat.enabled' => false, 'tdsynnex.bing.enabled' => true,
+            'tdsynnex.serpapi.enabled' => true, 'tdsynnex.serpapi.api_key' => 'unused-old-key']);
+        Http::fake(['www.bing.com/*' => $this->bingResponse([
+            'organic_results' => [['title' => 'HP ABC123', 'link' => 'https://hp.com/ABC123',
+                'snippet' => 'HP workstation. Memory: 32 GB']],
+            'images_results' => [['title' => 'HP ABC123', 'link' => 'https://hp.com/ABC123',
+                'original' => 'https://hp.com/workstation.jpg']],
+        ])]);
+        $details = app(TDSynnexService::class)->discoverOnlineProductDetails($this->product());
+        $this->assertSame('HP workstation. Memory: 32 GB', $details['description']);
+        $this->assertSame('https://hp.com/workstation.jpg', $details['image_candidates'][0]['image_url']);
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'serpapi'));
+        Http::assertSentCount(2);
+    }
+
+    public function test_blocked_bing_search_is_explicit_and_does_not_publish_unverified_content(): void
+    {
+        $this->configureOnlineProviders();
+        config(['tdsynnex.icecat.enabled' => false, 'tdsynnex.bing.enabled' => true]);
+        Http::fake(['www.bing.com/*' => Http::response('<div id="b_captcha">Verify you are human</div>')]);
+        $details = app(TDSynnexService::class)->discoverOnlineProductDetails($this->product());
+        $this->assertSame('', $details['description']);
+        $this->assertSame([], $details['image_candidates']);
+        $this->assertFalse($details['online_details_found']);
+        $this->assertStringContainsString('blocked', implode(' ', $details['warnings']));
+        Http::assertSentCount(2);
     }
 
     public function test_exact_sku_missing_from_ap_files_is_queried_but_zero_stock_is_not_displayed(): void

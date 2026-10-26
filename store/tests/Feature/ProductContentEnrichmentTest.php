@@ -75,7 +75,9 @@ class ProductContentEnrichmentTest extends TestCase
     {
         $supplier = Mockery::mock(TDSynnexService::class);
         $supplier->shouldReceive('verifiedOnlineProductDetails')->once()->andReturn(array_merge([
-            'description' => '', 'image_url' => '', 'specifications' => [], 'sources' => [], 'warnings' => [],
+            'description' => '', 'image_url' => '',
+            'specifications' => $generated === null ? [] : [['name' => 'Memory', 'value' => '32 GB']],
+            'sources' => [], 'warnings' => [],
         ], $details));
         $ai = Mockery::mock(AzureOpenAiChatService::class);
         if ($generated !== null) {
@@ -128,7 +130,7 @@ class ProductContentEnrichmentTest extends TestCase
         $this->providers([], 'HP ZBook 8 workstation from HP, manufacturer part ABC123.')->enrich($product);
         $product->refresh();
         $this->assertFalse($product->needsDescription());
-        $this->assertSame('ai-generated-from-catalog-facts', $product->specifications['description_source']);
+        $this->assertSame('ai-generated-from-verified-web-evidence', $product->specifications['description_source']);
         $this->assertSame([], $product->images);
         $this->assertSame('needs_review', $product->specifications['content_enrichment_status']);
         $this->assertNotEmpty($product->specifications['content_enrichment_warnings']);
@@ -176,11 +178,11 @@ class ProductContentEnrichmentTest extends TestCase
         $supplier = Mockery::mock(TDSynnexService::class);
         $supplier->shouldReceive('verifiedOnlineProductDetails')->once()->andReturn([]);
         $ai = Mockery::mock(AzureOpenAiChatService::class);
-        $ai->shouldReceive('generateProductDescription')->once()->andReturnNull();
+        $ai->shouldNotReceive('generateProductDescription');
         (new ProductContentEnrichmentService($supplier, $ai))->enrich($product);
         $this->assertNull($product->fresh()->description);
         $this->assertSame('needs_review', $product->fresh()->specifications['content_enrichment_status']);
-        $this->assertStringContainsString('AI could not generate', $product->fresh()->specifications['content_enrichment_warnings'][0]);
+        $this->assertStringContainsString('No verified website', $product->fresh()->specifications['content_enrichment_warnings'][0]);
     }
 
     public function test_complete_products_do_not_call_any_provider(): void
@@ -440,5 +442,27 @@ class ProductContentEnrichmentTest extends TestCase
         $migration->up();
         $this->assertTrue(Schema::hasColumn('products', 'images_enrichment_attempted_at'));
         $this->assertTrue(Schema::hasColumn('products', 'description_enrichment_attempted_at'));
+    }
+
+    public function test_catalog_only_fallback_is_not_ready_and_can_be_researched_again_immediately(): void
+    {
+        $product = $this->product([
+            'description' => 'The HP ZBook 8 is a product manufactured by HP. No specifications were supplied.',
+            'specifications' => ['description_source' => 'ai-generated-from-catalog-facts',
+                'content_enrichment_status' => 'complete'],
+            'description_enrichment_attempted_at' => now(),
+            'content_enrichment_attempted_at' => now(),
+        ]);
+        $this->assertTrue($product->needsDescription());
+        $this->assertSame(1, Product::missingDescription()->count());
+        Queue::fake();
+        $this->assertSame(1, app(ProductContentEnrichmentService::class)->queueMissing(0, 'description'));
+        Queue::assertPushed(EnrichProductContentJob::class, fn ($job) => $job->productId === $product->id);
+        $this->providers([
+            'description' => 'Verified HP ZBook 8 workstation with 32 GB memory.',
+        ])->enrich($product, 'description');
+        $product->refresh();
+        $this->assertFalse($product->needsDescription());
+        $this->assertSame('openai-verified-online', $product->specifications['description_source']);
     }
 }

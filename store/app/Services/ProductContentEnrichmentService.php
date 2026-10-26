@@ -23,7 +23,8 @@ class ProductContentEnrichmentService
         // Oldest/unattempted products go first so unresolved items cannot starve the rest.
         $products = Product::query()
             ->where(fn (Builder $q) => $q->whereNull($attemptColumn)
-                ->orWhere($attemptColumn, '<=', now()->subDay()))
+                ->orWhere($attemptColumn, '<=', now()->subDay())
+                ->when($mode !== 'images', fn (Builder $q) => $q->orWhere('specifications->description_source', 'ai-generated-from-catalog-facts')))
             ->orderBy($attemptColumn)->orderBy('id')
             ->cursor();
         foreach ($products as $product) {
@@ -64,7 +65,9 @@ class ProductContentEnrichmentService
         $description = trim((string) ($details['description'] ?? ''));
         $descriptionSource = 'openai-verified-online';
         $warnings = (array) ($details['warnings'] ?? []);
-        if ($mode !== 'images' && $product->needsDescription()) {
+        $verifiedSpecs = (array) (($details['specifications'] ?? []) ?: data_get($product->specifications, 'online_specifications', []));
+        $hasEvidence = $description !== '' || $verifiedSpecs !== [];
+        if ($mode !== 'images' && $product->needsDescription() && $hasEvidence) {
             $verifiedDescription = $description;
             $generated = $this->ai->generateProductDescription([
                 'product_name' => (string) $product->product_name,
@@ -72,15 +75,18 @@ class ProductContentEnrichmentService
                 'part_number' => (string) $product->mfg_part_no,
                 'verified_website_description' => $verifiedDescription,
                 'website_sources' => (array) ($details['sources'] ?? []),
-                'verified_specifications' => (array) (($details['specifications'] ?? []) ?: data_get($product->specifications, 'online_specifications', [])),
+                'verified_specifications' => $verifiedSpecs,
             ]);
             $description = $generated ?? $verifiedDescription;
             $descriptionSource = $generated === null ? 'openai-verified-online'
-                : ($verifiedDescription !== '' || ! empty($details['specifications'])
-                    ? 'ai-generated-from-verified-web-evidence' : 'ai-generated-from-catalog-facts');
+                : 'ai-generated-from-verified-web-evidence';
             if ($description === '') {
                 $warnings[] = 'AI could not generate a factual product description. Check the AI configuration and retry.';
             }
+        }
+        if ($mode !== 'images' && $product->needsDescription() && ! $hasEvidence) {
+            $description = '';
+            $warnings[] = 'No verified website description or specifications were found. Description needs research; identity-only AI text is not considered complete.';
         }
 
         DB::transaction(function () use ($product, $details, $description, $descriptionSource, $warnings, $mode): void {

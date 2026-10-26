@@ -94,14 +94,16 @@ class Product extends Model
     {
         $description = trim((string) $this->description);
 
-        return $description === '' || strcasecmp($description, trim((string) $this->product_name)) === 0;
+        return $description === '' || strcasecmp($description, trim((string) $this->product_name)) === 0
+            || data_get($this->specifications, 'description_source') === 'ai-generated-from-catalog-facts';
     }
 
     public function scopeMissingDescription(Builder $query): Builder
     {
         return $query->where(fn (Builder $q) => $q->whereNull('description')
             ->orWhereRaw("TRIM(description) = ''")
-            ->orWhereRaw('LOWER(TRIM(description)) = LOWER(TRIM(product_name))'));
+            ->orWhereRaw('LOWER(TRIM(description)) = LOWER(TRIM(product_name))')
+            ->orWhere('specifications->description_source', 'ai-generated-from-catalog-facts'));
     }
 
     public function hasUsableImage(): bool

@@ -1047,7 +1047,7 @@ class TDSynnexService
             'mfgPartNo' => (string) $product->mfg_part_no,
             'upc' => (string) data_get($product->specifications, 'upc', ''),
         ];
-        $key = 'tdsynnex:verified-content:v3:' . md5(json_encode($identity));
+        $key = 'tdsynnex:verified-content:v4-bing:' . md5(json_encode($identity));
         return Cache::remember($key, now()->addMinutes(10), function () use ($identity) {
             $details = $this->discoverOnlineProductDetails($identity);
             $verification = !empty($details['online_details_found'])
@@ -2866,18 +2866,6 @@ class TDSynnexService
             }
 
             if (empty($images)) {
-                $serpapi = $this->fetchSerpApiProductImageData($sku, $meta, $description);
-                $serpapiImage = trim((string) ($serpapi['image_url'] ?? ''));
-                if ($serpapiImage !== '' && $this->isValidImageUrl($serpapiImage)) {
-                    $images[] = [
-                        'imageUrl' => $serpapiImage,
-                        'source' => (string) ($serpapi['source'] ?? 'serpapi-image'),
-                    ];
-                    $resolvedDescription = trim((string) ($serpapi['description'] ?? ''));
-                }
-            }
-
-            if (empty($images)) {
                 $scraped = $this->fetchScrapedProductImageData($sku, $meta, $description);
                 $scrapedImage = trim((string) ($scraped['image_url'] ?? ''));
                 if ($scrapedImage !== '' && $this->isValidImageUrl($scrapedImage)) {
@@ -2941,7 +2929,7 @@ class TDSynnexService
             'upc' => (string) ($product['upc'] ?? ''),
         ];
         $title = trim((string) ($product['productName'] ?? ''));
-        $key = 'tdsynnex:discovery:v5:' . md5(json_encode([$sku, $meta, $title]));
+        $key = 'tdsynnex:discovery:v6-bing:' . md5(json_encode([$sku, $meta, $title]));
 
         return Cache::remember($key, 600, function () use ($sku, $meta, $title) {
             $icecat = $this->fetchIcecatProductData($sku, $meta, $title);
@@ -2958,30 +2946,17 @@ class TDSynnexService
                 $sources[] = ['name' => 'Icecat', 'url' => 'https://icecat.biz/'];
             }
 
-            $serpEnabled = config('tdsynnex.serpapi.enabled', false)
-                && trim((string) config('tdsynnex.serpapi.api_key', '')) !== '';
-            if ($serpEnabled && $title !== '') {
-                // The authoritative supplier title drives both web searches.
-                // Part numbers corroborate matches but never replace that title.
-                foreach (['google', 'google_images'] as $engine) {
+            $searchEnabled = (bool) config('tdsynnex.bing.enabled', true);
+            if ($searchEnabled && $title !== '') {
+                $query = trim($title.' '.$meta['manufacturer'].' '.$meta['mpn']);
+                foreach (['web', 'images'] as $engine) {
                     try {
-                        $response = Http::acceptJson()
-                            ->connectTimeout(max(2, min(5, (int) config('tdsynnex.serpapi.connect_timeout', 3))))
-                            ->timeout(max(6, min(10, (int) config('tdsynnex.serpapi.timeout', 10))))->get(
-                            (string) config('tdsynnex.serpapi.endpoint', 'https://serpapi.com/search.json'),
-                            [
-                                'api_key' => config('tdsynnex.serpapi.api_key'),
-                                'engine' => $engine,
-                                'q' => $title . ($engine === 'google' ? ' specifications' : ''),
-                                'num' => 5,
-                            ]
-                        )->throw();
-                        if ($response->json('error')) {
-                            Log::warning('Product discovery web provider returned an error.', ['sku' => $sku]);
-                            $warnings[] = 'The online search provider could not complete the lookup. Please retry later.';
-                            continue;
+                        $rows = app(BingProductSearchService::class)->search(
+                            $query.($engine === 'web' ? ' specifications' : ''), $engine === 'images'
+                        );
+                        if ($rows === []) {
+                            $warnings[] = 'Bing returned no usable '.$engine.' search results. The search page may be unavailable or its format may have changed.';
                         }
-                        $rows = (array) $response->json($engine === 'google' ? 'organic_results' : 'images_results', []);
                         foreach ($rows as $row) {
                             if (!is_array($row)) {
                                 continue;
@@ -2994,7 +2969,7 @@ class TDSynnexService
                             if ($sourceUrl === '') {
                                 continue;
                             }
-                            if ($engine === 'google') {
+                            if ($engine === 'web') {
                                 $snippet = trim(strip_tags((string) ($row['snippet'] ?? '')));
                                 $webSpecs = $this->discoveryWebSpecifications($row);
                                 if ($snippet === '' && $webSpecs === []) {
@@ -3011,7 +2986,7 @@ class TDSynnexService
                                     }
                                 }
                             } else {
-                                $candidate = $this->discoveryPublicUrl($this->extractImageUrlFromSerpApiResult($row));
+                                $candidate = $this->discoveryPublicUrl((string) ($row['original'] ?? ''));
                                 if ($candidate === '') {
                                     continue;
                                 }
@@ -3020,27 +2995,30 @@ class TDSynnexService
                                 }
                                 $imageCandidates[] = ['image_url' => $candidate, 'title' => strip_tags((string) ($row['title'] ?? '')), 'source_url' => $sourceUrl];
                             }
-                            $sources[] = ['name' => (string) ($row['source'] ?? 'Web search'), 'url' => $sourceUrl];
-                            if ($engine === 'google_images' && count($imageCandidates) >= 3) {
+                            $sources[] = ['name' => 'Bing search result', 'url' => $sourceUrl];
+                            if ($engine === 'images' && count($imageCandidates) >= 3) {
                                 break;
                             }
                         }
-                    } catch (\Illuminate\Http\Client\ConnectionException|\Illuminate\Http\Client\RequestException $error) {
+                    } catch (\Illuminate\Http\Client\ConnectionException|\Illuminate\Http\Client\RequestException|\UnexpectedValueException $error) {
                         Log::warning('Product discovery web lookup failed.', [
                             'sku' => $sku,
                             'exception' => $error::class,
                             'status' => $error instanceof \Illuminate\Http\Client\RequestException ? $error->response->status() : null,
                         ]);
-                        $warnings[] = 'The online search provider is temporarily unavailable. Please retry later.';
+                        $warnings[] = 'Bing '.$engine.' lookup is unavailable or blocked. Please retry later; no search restrictions were bypassed.';
                     }
                 }
-            } elseif (!$serpEnabled) {
-                $warnings[] = 'Internet title search is not configured. Enable SerpAPI and configure its API key to search the supplier product title for specifications and images.';
+            } elseif (!$searchEnabled) {
+                $warnings[] = 'Bing search is disabled. Enable BING_IMAGE_ENABLED for website and image lookup; no search API key is required.';
             }
 
             $image = $this->discoveryPublicUrl($image);
             if ($description === '' || $image === '' || $specifications === []) {
                 $warnings[] = 'Some online details are unavailable. Missing descriptions, specifications, or images have not been generated.';
+            }
+            if ($searchEnabled && $sources === []) {
+                $warnings[] = 'No search result matched this exact product identity. Unrelated search results were rejected; this product needs research.';
             }
 
             return [
@@ -3716,128 +3694,6 @@ class TDSynnexService
         }
 
         return '';
-    }
-
-    private function fetchSerpApiProductImageData(string $sku, array $meta, string $description = ''): array
-    {
-        if (!config('tdsynnex.serpapi.enabled', false)) {
-            return ['image_url' => '', 'source' => ''];
-        }
-
-        $apiKey = trim((string) config('tdsynnex.serpapi.api_key', ''));
-        if ($apiKey === '') {
-            return ['image_url' => '', 'source' => ''];
-        }
-
-        $queries = $this->buildSerpApiImageQueries($sku, $meta, $description);
-        if (empty($queries)) {
-            return ['image_url' => '', 'source' => ''];
-        }
-
-        $endpoint = trim((string) config('tdsynnex.serpapi.endpoint', 'https://serpapi.com/search.json'));
-        $timeout = max(2, (int) config('tdsynnex.serpapi.timeout', 10));
-        $connectTimeout = max(1, (int) config('tdsynnex.serpapi.connect_timeout', 3));
-        $num = max(1, min(20, (int) config('tdsynnex.serpapi.num', 5)));
-        $maxQueries = max(1, min(6, (int) config('tdsynnex.serpapi.max_queries', 3)));
-        $retryAttempts = max(1, min(5, (int) config('tdsynnex.serpapi.retry_attempts', 3)));
-        $retryDelayMs = max(100, min(5000, (int) config('tdsynnex.serpapi.retry_delay_ms', 350)));
-        $queries = array_slice($queries, 0, $maxQueries);
-
-        $baseParams = [
-            'api_key' => $apiKey,
-            'engine' => (string) config('tdsynnex.serpapi.engine', 'google_images'),
-            'num' => $num,
-        ];
-
-        $tbm = trim((string) config('tdsynnex.serpapi.tbm', 'isch'));
-        if ($tbm !== '') {
-            $baseParams['tbm'] = $tbm;
-        }
-
-        $gl = trim((string) config('tdsynnex.serpapi.gl', 'us'));
-        if ($gl !== '') {
-            $baseParams['gl'] = $gl;
-        }
-
-        $hl = trim((string) config('tdsynnex.serpapi.hl', 'en'));
-        if ($hl !== '') {
-            $baseParams['hl'] = $hl;
-        }
-
-        try {
-            \Illuminate\Support\Facades\DB::disconnect();
-
-            foreach ($queries as $query) {
-                $params = array_merge($baseParams, ['q' => $query]);
-
-                for ($attempt = 1; $attempt <= $retryAttempts; $attempt++) {
-                    try {
-                        $response = Http::acceptJson()
-                            ->connectTimeout($connectTimeout)
-                            ->timeout($timeout)
-                            ->get($endpoint, $params);
-
-                        if ($response->failed()) {
-                            Log::debug('SerpAPI image lookup failed', [
-                                'sku' => $sku,
-                                'status' => $response->status(),
-                                'query' => $query,
-                                'attempt' => $attempt,
-                            ]);
-
-                            continue;
-                        }
-
-                        $json = $response->json();
-                        if (!is_array($json)) {
-                            continue;
-                        }
-
-                        $results = (array) ($json['images_results'] ?? []);
-                        foreach ($results as $result) {
-                            if (!is_array($result)) {
-                                continue;
-                            }
-
-                            $imageUrl = $this->extractImageUrlFromSerpApiResult($result);
-                            if ($imageUrl === '' || !$this->isValidImageUrl($imageUrl)) {
-                                continue;
-                            }
-
-                            Log::info('SerpAPI MATCH', [
-                                'sku' => $sku,
-                                'query' => $query,
-                                'attempt' => $attempt,
-                                'image' => $imageUrl,
-                            ]);
-
-                            return [
-                                'image_url' => $imageUrl,
-                                'source' => 'serpapi-image',
-                            ];
-                        }
-                    } catch (\Throwable $e) {
-                        Log::debug('SerpAPI image lookup exception', [
-                            'sku' => $sku,
-                            'query' => $query,
-                            'attempt' => $attempt,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-
-                    if ($attempt < $retryAttempts) {
-                        usleep($retryDelayMs * 1000);
-                    }
-                }
-            }
-        } catch (\Throwable $e) {
-            Log::debug('SerpAPI image lookup outer exception', [
-                'sku' => $sku,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        return ['image_url' => '', 'source' => ''];
     }
 
     private function extractImageUrlFromSerpApiResult(array $result): string
