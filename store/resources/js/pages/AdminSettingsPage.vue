@@ -678,6 +678,28 @@
       </div>
 
       <div class="p-6 space-y-6">
+        <section aria-labelledby="ai-product-content-title" class="rounded-lg border border-[#2F5597]/20 bg-[#2F5597]/5 p-5 space-y-4">
+          <div>
+            <h4 id="ai-product-content-title" class="font-semibold text-gray-900">AI Product Descriptions &amp; Images</h4>
+            <p class="mt-1 text-sm text-gray-600">Populate missing descriptions and find verified matching images for all saved store products. Existing descriptions and usable images are preserved.</p>
+            <p class="mt-2 text-xs text-gray-500">The button queues the catalog and requests a background worker, which saves results directly to the database. AI/search usage charges may apply. Uncertain image matches remain missing for review; recently attempted products have a 24-hour cooldown.</p>
+          </div>
+          <div v-if="productContentStats" class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div class="rounded-lg bg-white p-3"><p class="text-xs text-gray-500">Saved products</p><p class="font-semibold text-gray-900">{{ formatNumber(productContentStats.total) }}</p></div>
+            <div class="rounded-lg bg-white p-3"><p class="text-xs text-gray-500">Missing descriptions</p><p class="font-semibold text-amber-700">{{ formatNumber(productContentStats.without_descriptions) }}</p></div>
+            <div class="rounded-lg bg-white p-3"><p class="text-xs text-gray-500">Missing images</p><p class="font-semibold text-amber-700">{{ formatNumber(productContentStats.without_images) }}</p></div>
+          </div>
+          <p v-if="productContentMessage" role="status" class="text-sm whitespace-pre-line" :class="productContentHasError ? 'text-rose-700' : 'text-[#2F5597]'">{{ productContentMessage }}</p>
+          <div class="flex flex-wrap gap-3">
+            <button type="button" @click="populateProductContent" :disabled="productContentLoading || catalogWorkerLoading || catalogStopLoading" class="rounded-lg bg-[#2F5597] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1e3a6b] disabled:opacity-50">
+              <i :class="productContentLoading ? 'fas fa-spinner fa-spin mr-2' : 'fas fa-wand-magic-sparkles mr-2'"></i>{{ productContentLoading ? 'Starting population...' : 'Populate Missing Descriptions & Images' }}
+            </button>
+            <button type="button" @click="refreshProductContentStats" :disabled="productContentStatsLoading" class="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 disabled:opacity-50">{{ productContentStatsLoading ? 'Refreshing...' : 'Refresh Content Counts' }}</button>
+            <router-link to="/admin/products" class="rounded-lg px-5 py-2.5 text-sm font-semibold text-[#2F5597] underline">Review Product Results</router-link>
+          </div>
+          <p class="text-xs text-gray-500">You can leave this page while the worker runs. Refresh counts to check progress; per-product warnings and retry buttons are under All Products. If this host blocks worker startup, use the configured hosting queue worker. The database must be online and deployment migrations installed.</p>
+        </section>
+
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
             <p class="text-xs uppercase tracking-widest text-gray-500">Product Source</p>
@@ -1318,6 +1340,11 @@ let syncPollTimer = null
 const catalogActionLoading = ref(false)
 const catalogStopLoading = ref(false)
 const catalogWorkerLoading = ref(false)
+const productContentLoading = ref(false)
+const productContentStatsLoading = ref(false)
+const productContentStats = ref(null)
+const productContentMessage = ref('')
+const productContentHasError = ref(false)
 const showQuickBooksSecret = ref(false)
 const showAddAdminModal = ref(false)
 const currentUserId = ref(null)
@@ -1672,7 +1699,56 @@ const stopAllBackgroundJobs = async () => {
   }
 }
 
+const refreshProductContentStats = async () => {
+  productContentStatsLoading.value = true
+  try {
+    const response = await api.get('/admin/products', { params: { per_page: 10 } })
+    if (!response.data.success || !response.data.stats) {
+      throw new Error(response.data.message || 'Product content counts are unavailable.')
+    }
+    productContentStats.value = response.data.stats
+  } catch (error) {
+    showToast(error.response?.data?.message || error.message || 'Failed to refresh product content counts.', 'error')
+  } finally {
+    productContentStatsLoading.value = false
+  }
+}
+
+const populateProductContent = async () => {
+  if (productContentLoading.value || catalogWorkerLoading.value || catalogStopLoading.value) return
+  if (!window.confirm('Populate missing descriptions and verified images for all saved store products? This uses AI/search APIs and may incur charges. Existing content will be kept.')) return
+
+  productContentLoading.value = true
+  productContentMessage.value = ''
+  productContentHasError.value = false
+  let queued = false
+  try {
+    const response = await api.post('/admin/products/enrich-content')
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Product content could not be queued.')
+    }
+    queued = true
+    productContentMessage.value = 'Catalog enrichment requested. Starting the background worker...'
+    const worker = await api.post('/admin/settings/catalog/start-worker')
+    if (!worker.data.success) {
+      throw new Error(worker.data.message || 'The background worker could not be started.')
+    }
+    productContentMessage.value = `Catalog enrichment is queued. ${worker.data.message || 'Background worker startup requested.'} Results are saved to the database as products finish. Refresh content counts to check progress.`
+    showToast('Product content queued and worker startup requested.', 'success')
+  } catch (error) {
+    const reason = error.response?.data?.message || error.message || 'Unable to start product content population.'
+    productContentHasError.value = true
+    productContentMessage.value = queued
+      ? `Enrichment is queued, but worker startup failed: ${reason} Use Start Products Worker below to retry, or have the hosting queue worker process products-sync. No completed population is confirmed.`
+      : reason
+    showToast(productContentMessage.value, 'error')
+  } finally {
+    productContentLoading.value = false
+  }
+}
+
 const startProductsSyncWorker = async () => {
+  if (productContentLoading.value) return
   catalogWorkerLoading.value = true
   try {
     const response = await api.post('/admin/settings/catalog/start-worker')
@@ -2093,6 +2169,9 @@ const bulkDeleteLogs = async (scope) => {
 
 const switchTab = (id) => {
   activeTab.value = id
+  if (id === 'catalog') {
+    refreshProductContentStats()
+  }
   if (id === 'activity_logs') {
     if (adminLogs.value.length === 0) fetchAdminLogs()
   }

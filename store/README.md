@@ -16,6 +16,18 @@ product, not just outside-catalog imports or currently visible storefront items.
 Existing descriptions and usable images are not replaced by this process.
 Blank descriptions and descriptions identical to the title need enrichment.
 
+You can also run this directly from **Settings > Catalog Ops > AI Product
+Descriptions & Images**. Click **Populate Missing Descriptions & Images** and
+confirm. It queues enrichment for all eligible saved products, then calls the
+existing **Start Products Worker** action so a supported host can process and save
+the results without terminal commands. **Refresh Content Counts** shows remaining
+missing descriptions/images; **Review Product Results** opens per-product warnings
+and retry controls. The page distinguishes a queued request from a worker-start
+failure and never claims the database population has finished merely because it
+was queued. If worker startup is blocked (including on Windows), the existing
+hosting-managed `products-sync` worker is required. The database must be online
+and the deployment migration installed before running.
+
 The existing Icecat/SerpAPI lookup retrieves evidence using the saved supplier
 identity. The existing vision-capable Azure OpenAI deployment verifies descriptions
 and candidate images; only a matching image with reported confidence >= 0.95 is
