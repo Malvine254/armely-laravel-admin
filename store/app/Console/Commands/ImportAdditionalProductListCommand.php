@@ -477,7 +477,7 @@ class ImportAdditionalProductListCommand extends Command
     private function upsertBatch(array $rows): void
     {
         Product::upsert(
-            $rows,
+            Product::preserveEnrichedContent($rows),
             ['tdsynnex_product_id'],
             [
                 'tdsynnex_sku_no',

@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\EnrichPriceAvailabilityProductImageJob;
+use App\Jobs\EnrichProductContentJob;
+use App\Jobs\QueueMissingProductContentJob;
 use App\Models\Product;
+use App\Services\AzureOpenAiChatService;
 use App\Services\TDSynnexService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -55,28 +58,6 @@ class AdminImportedProductController extends Controller
         ))));
     }
 
-    private function hasUsableImage(Product $product): bool
-    {
-        foreach ((array) $product->images as $image) {
-            $url = is_array($image)
-                ? trim((string) ($image['imageUrl'] ?? $image['url'] ?? ''))
-                : trim((string) $image);
-
-            if (str_starts_with($url, 'http')) {
-                return true;
-            }
-
-            if (str_starts_with($url, '/')) {
-                $path = (string) parse_url($url, PHP_URL_PATH);
-                if ($path !== '' && is_file(public_path(ltrim($path, '/')))) {
-                    return true;
-                }
-            }
-        }
-
-        return in_array((int) $product->tdsynnex_product_id, $this->localImageProductIds(), true);
-    }
-
     private function authorizeAdmin(Request $request): void
     {
         abort_unless(in_array((string) $request->user()?->role, ['admin', 'super_admin'], true), 403);
@@ -104,6 +85,9 @@ class AdminImportedProductController extends Controller
 
         $imageFilter = trim((string) $request->query('image_filter', 'all'));
         $this->applyImageFilter($query, $imageFilter);
+        if ($request->boolean('missing_description')) {
+            $query->missingDescription();
+        }
 
         $products = $query->orderByDesc('updated_at')
             ->paginate(min(100, max(10, (int) $request->query('per_page', 10))));
@@ -117,7 +101,12 @@ class AdminImportedProductController extends Controller
             'price' => \App\Support\OfferPricing::sellPrice($product),
             'quantity' => (int) ($product->quantity ?: data_get($product->specifications, 'availableQuantity', 0)),
             'available' => (bool) $product->is_available,
-            'has_image' => $this->hasUsableImage($product),
+            'has_image' => $product->hasUsableImage(),
+            'has_description' => !$product->needsDescription(),
+            'description' => $product->description,
+            'description_source' => data_get($product->specifications, 'description_source'),
+            'content_status' => data_get($product->specifications, 'content_enrichment_status'),
+            'content_warnings' => (array) data_get($product->specifications, 'content_enrichment_warnings', []),
             'updated_at' => optional($product->updated_at)->toIso8601String(),
         ]);
 
@@ -129,8 +118,30 @@ class AdminImportedProductController extends Controller
                 'available' => Product::where('is_available', true)->count(),
                 'with_images' => tap(Product::query(), fn ($query) => $this->applyImageFilter($query, 'with_image'))->count(),
                 'without_images' => tap(Product::query(), fn ($query) => $this->applyImageFilter($query, 'no_image'))->count(),
+                'without_descriptions' => Product::query()->missingDescription()->count(),
             ],
         ]);
+    }
+
+    public function enrichContent(Request $request, AzureOpenAiChatService $ai, ?Product $product = null): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+        if (!$ai->isConfigured()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Configure the store AZURE_OPENAI_* settings before enriching product content.',
+            ], 422);
+        }
+        if ($product) {
+            EnrichProductContentJob::dispatch($product->id);
+        } else {
+            QueueMissingProductContentJob::dispatch();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Background enrichment requested. The products-sync worker fills missing content only; refresh to see progress.',
+        ], 202);
     }
 
     public function index(Request $request): JsonResponse

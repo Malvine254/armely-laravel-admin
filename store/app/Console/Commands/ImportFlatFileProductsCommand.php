@@ -318,7 +318,7 @@ class ImportFlatFileProductsCommand extends Command
         }
 
         Product::upsert(
-            $rows,
+            Product::preserveEnrichedContent($rows),
             ['tdsynnex_product_id'],
             [
                 'tdsynnex_sku_no',

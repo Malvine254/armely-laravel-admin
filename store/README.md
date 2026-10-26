@@ -7,6 +7,52 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Catalog-wide AI descriptions and missing images
+
+Store admin **All Products** has a **Fill missing content - all products**
+button, per-product retries, a missing-description filter, coverage counts,
+description previews, and last-result warnings. This applies to every saved store
+product, not just outside-catalog imports or currently visible storefront items.
+Existing descriptions and usable images are not replaced by this process.
+Blank descriptions and descriptions identical to the title need enrichment.
+
+The existing Icecat/SerpAPI lookup retrieves evidence using the saved supplier
+identity. The existing vision-capable Azure OpenAI deployment verifies descriptions
+and candidate images; only a matching image with reported confidence >= 0.95 is
+assigned. When no verified description is available, AI writes a factual paragraph
+from the saved title, manufacturer, part number and verified specifications only.
+It must not infer missing specifications, compatibility, warranty, or claims.
+Generated text is marked `ai-generated-from-catalog-facts` for review. AI output
+can still be imperfect: review generated descriptions and image matches.
+Enrichment metadata and tagged AI content survive subsequent catalog imports/syncs.
+No model-generated image URLs or synthetic product images are used.
+
+Required: the existing store `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`,
+`AZURE_OPENAI_DEPLOYMENT`, and `AZURE_OPENAI_API_VERSION` settings. For internet
+image lookup, set `SERPAPI_IMAGE_ENABLED=true` and `SERPAPI_API_KEY`; Icecat is
+also supported with the settings below. Without search coverage or a confident
+match, the image stays missing and admin shows a warning. AI/provider failures
+never manufacture content or report the product as complete.
+
+Deploy and process from the `store` directory:
+
+```sh
+php artisan migrate --force
+php artisan products:enrich-content --limit=25
+php artisan queue:work database --queue=products-sync --timeout=3600 --tries=3
+```
+
+Omit `--limit` to request the entire eligible catalog. The admin button submits a
+background catalog scan rather than holding the web request open. Run Laravel's
+normal `schedule:run` every minute; once AI is configured, the hourly schedule
+requests up to 100 missing-content products automatically, including new imports.
+The database queue worker must remain running. Unresolved products have a 24-hour
+cooldown, with unattempted/oldest products first; per-product admin retries bypass
+the cooldown. Unique jobs prevent duplicate pending requests. API usage charges
+apply. Queue failures appear in the normal failed-job logs; per-product failures
+also appear in admin. A queued request is not a guarantee of description/image
+coverage: configuration errors or insufficient facts require review and retry.
+
 ## Outside-catalog product discovery
 
 Navigation menu counts use one streamed eligible-product query per cold cache,

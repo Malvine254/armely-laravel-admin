@@ -394,7 +394,7 @@ class TDSynnexService
             }
 
             Product::upsert(
-                $items,
+                Product::preserveEnrichedContent($items),
                 ['tdsynnex_product_id'],
                 [
                     'tdsynnex_sku_no',
@@ -1038,7 +1038,7 @@ class TDSynnexService
         return $product;
     }
 
-    public function enrichDiscoveredProduct(Product $product): array
+    public function verifiedOnlineProductDetails(Product $product): array
     {
         $identity = [
             'productId' => (string) $product->tdsynnex_product_id,
@@ -1048,7 +1048,7 @@ class TDSynnexService
             'upc' => (string) data_get($product->specifications, 'upc', ''),
         ];
         $key = 'tdsynnex:verified-content:v3:' . md5(json_encode($identity));
-        $details = Cache::remember($key, now()->addMinutes(10), function () use ($identity) {
+        return Cache::remember($key, now()->addMinutes(10), function () use ($identity) {
             $details = $this->discoverOnlineProductDetails($identity);
             $verification = !empty($details['online_details_found'])
                 ? app(AzureOpenAiChatService::class)->verifyProductEvidence($identity, $details)
@@ -1076,6 +1076,11 @@ class TDSynnexService
 
             return $details;
         });
+    }
+
+    public function enrichDiscoveredProduct(Product $product): array
+    {
+        $details = $this->verifiedOnlineProductDetails($product);
         $product->refresh();
         $spec = (array) $product->specifications;
         if ($details['specifications'] !== []) {

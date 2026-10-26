@@ -136,6 +136,12 @@ return Application::configure(basePath: dirname(__DIR__))
             ->when(fn (): bool => (bool) config('ai_marketing.enabled')
                 && (bool) config('ai_marketing.customer_intelligence_enabled'))
             ->withoutOverlapping();
+
+        $schedule->job(new \App\Jobs\QueueMissingProductContentJob(100))
+            ->hourly()
+            ->name('enrich-missing-product-content')
+            ->when(fn (): bool => app(\App\Services\AzureOpenAiChatService::class)->isConfigured())
+            ->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (Throwable $e, $request) {

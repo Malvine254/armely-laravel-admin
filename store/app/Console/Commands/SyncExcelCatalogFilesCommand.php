@@ -639,6 +639,7 @@ class SyncExcelCatalogFilesCommand extends Command
     /** @param array<string, mixed> $payload */
     private function saveOne(array $payload): void
     {
+        $payload = Product::preserveEnrichedContent([$payload])[0];
         $key = ['tdsynnex_product_id' => $payload['tdsynnex_product_id']];
 
         $fill = array_diff_key($payload, array_flip(['tdsynnex_product_id', 'created_at']));
@@ -657,6 +658,9 @@ class SyncExcelCatalogFilesCommand extends Command
         if (isset($fill['images']) && is_string($fill['images'])) {
             $decoded = json_decode($fill['images'], true);
             $fill['images'] = is_array($decoded) ? $decoded : [];
+        }
+        if (isset($fill['specifications']) && is_string($fill['specifications'])) {
+            $fill['specifications'] = json_decode($fill['specifications'], true, flags: JSON_THROW_ON_ERROR);
         }
 
         Product::updateOrCreate($key, $fill);

@@ -1,0 +1,371 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Console\Commands\SyncExcelCatalogFilesCommand;
+use App\Http\Middleware\EnsureUserIsActive;
+use App\Jobs\EnrichProductContentJob;
+use App\Jobs\QueueMissingProductContentJob;
+use App\Models\Product;
+use App\Models\User;
+use App\Services\AzureOpenAiChatService;
+use App\Services\ProductContentEnrichmentService;
+use App\Services\TDSynnexService;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Schema;
+use Mockery;
+use Tests\TestCase;
+
+class ProductContentEnrichmentTest extends TestCase
+{
+    private int $nextSku = 81000000;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutMiddleware(EnsureUserIsActive::class);
+        Http::preventStrayRequests();
+        Schema::create('app_settings', function (Blueprint $table): void {
+            $table->id();
+            $table->string('key')->unique();
+            $table->text('value')->nullable();
+            $table->timestamps();
+        });
+        Schema::create('products', function (Blueprint $table): void {
+            $table->id();
+            $table->integer('tdsynnex_product_id')->unique();
+            $table->integer('tdsynnex_sku_no')->nullable();
+            $table->string('vendor_id')->default('TD SYNNEX');
+            $table->string('product_name');
+            $table->string('manufacturer')->nullable();
+            $table->string('mfg_part_no')->nullable();
+            $table->text('description')->nullable();
+            $table->json('images')->nullable();
+            $table->json('specifications')->nullable();
+            $table->decimal('base_price', 12, 2)->default(100);
+            $table->decimal('retail_price', 12, 2)->nullable();
+            $table->integer('quantity')->default(5);
+            $table->boolean('is_available')->default(true);
+            $table->timestamp('content_enrichment_attempted_at')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    private function product(array $attributes = []): Product
+    {
+        return Product::create(array_merge([
+            'tdsynnex_product_id' => ++$this->nextSku,
+            'product_name' => 'HP ZBook 8 workstation',
+            'manufacturer' => 'HP',
+            'mfg_part_no' => 'ABC123',
+            'images' => [],
+            'specifications' => [],
+        ], $attributes));
+    }
+
+    private function providers(array $details, ?string $generated = null): ProductContentEnrichmentService
+    {
+        $supplier = Mockery::mock(TDSynnexService::class);
+        $supplier->shouldReceive('verifiedOnlineProductDetails')->once()->andReturn(array_merge([
+            'description' => '', 'image_url' => '', 'specifications' => [], 'sources' => [], 'warnings' => [],
+        ], $details));
+        $ai = Mockery::mock(AzureOpenAiChatService::class);
+        if ($generated !== null) {
+            $ai->shouldReceive('generateProductDescription')->once()->andReturn($generated);
+        } else {
+            $ai->shouldNotReceive('generateProductDescription');
+        }
+
+        return new ProductContentEnrichmentService($supplier, $ai);
+    }
+
+    private function admin(): void
+    {
+        $user = new User(['name' => 'Admin', 'role' => 'admin', 'status' => 'active']);
+        $user->id = 1;
+        $this->actingAs($user, 'sanctum');
+    }
+
+    private function configureAi(bool $configured = true): void
+    {
+        config(['services.azure_openai' => [
+            'endpoint' => 'https://enrichment.example.com',
+            'api_key' => 'test-key',
+            'deployment' => $configured ? 'test-model' : '',
+        ]]);
+    }
+
+    public function test_verified_content_is_persisted_without_changing_prices_or_stock(): void
+    {
+        $product = $this->product();
+        $this->providers([
+            'description' => 'Verified HP ZBook 8 workstation description.',
+            'image_url' => 'https://images.example.com/zbook.jpg',
+            'sources' => [['name' => 'Manufacturer', 'url' => 'https://hp.com/zbook']],
+        ])->enrich($product);
+        $product->refresh();
+        $this->assertSame('Verified HP ZBook 8 workstation description.', $product->description);
+        $this->assertSame('openai-verified-online', $product->images[0]['source']);
+        $this->assertSame('complete', $product->specifications['content_enrichment_status']);
+        $this->assertSame('openai-verified-online', $product->specifications['description_source']);
+        $this->assertNotNull($product->content_enrichment_attempted_at);
+        $this->assertSame('100.00', $product->base_price);
+        $this->assertSame(5, $product->quantity);
+        $this->assertNotNull(Cache::get('catalog:price_version'));
+    }
+
+    public function test_title_only_description_is_generated_but_uncertain_images_stay_missing(): void
+    {
+        $product = $this->product(['description' => '  hp zbook 8 WORKSTATION  ']);
+        $this->providers([], 'HP ZBook 8 workstation from HP, manufacturer part ABC123.')->enrich($product);
+        $product->refresh();
+        $this->assertFalse($product->needsDescription());
+        $this->assertSame('ai-generated-from-catalog-facts', $product->specifications['description_source']);
+        $this->assertSame([], $product->images);
+        $this->assertSame('needs_review', $product->specifications['content_enrichment_status']);
+        $this->assertNotEmpty($product->specifications['content_enrichment_warnings']);
+    }
+
+    public function test_existing_description_is_preserved_when_filling_an_image(): void
+    {
+        $product = $this->product(['description' => 'Administrator supplied description.']);
+        $this->providers(['description' => 'Different online text.', 'image_url' => 'https://images.example.com/zbook.jpg'])
+            ->enrich($product);
+        $this->assertSame('Administrator supplied description.', $product->fresh()->description);
+        $this->assertSame('https://images.example.com/zbook.jpg', $product->fresh()->images[0]['imageUrl']);
+    }
+
+    public function test_existing_image_is_preserved_when_generating_a_description(): void
+    {
+        $images = [['imageUrl' => 'https://images.example.com/manual.jpg', 'source' => 'manual']];
+        $product = $this->product(['images' => $images]);
+        $this->providers(['image_url' => 'https://images.example.com/replacement.jpg'],
+            'HP ZBook 8 workstation from HP, manufacturer part ABC123.')->enrich($product);
+        $this->assertSame($images, $product->fresh()->images);
+        $this->assertSame('complete', $product->fresh()->specifications['content_enrichment_status']);
+    }
+
+    public function test_content_added_by_admin_during_lookup_is_not_overwritten(): void
+    {
+        $product = $this->product();
+        $supplier = Mockery::mock(TDSynnexService::class);
+        $supplier->shouldReceive('verifiedOnlineProductDetails')->once()->andReturnUsing(function () use ($product): array {
+            $product->fresh()->update(['description' => 'Manual description entered during lookup.',
+                'images' => [['imageUrl' => 'https://images.example.com/manual.jpg']]]);
+
+            return ['description' => 'Online description to ignore.', 'image_url' => 'https://images.example.com/online.jpg'];
+        });
+        $ai = Mockery::mock(AzureOpenAiChatService::class);
+        $ai->shouldNotReceive('generateProductDescription');
+        (new ProductContentEnrichmentService($supplier, $ai))->enrich($product);
+        $this->assertSame('Manual description entered during lookup.', $product->fresh()->description);
+        $this->assertSame('https://images.example.com/manual.jpg', $product->fresh()->images[0]['imageUrl']);
+    }
+
+    public function test_generation_failure_is_explicit_and_leaves_description_missing(): void
+    {
+        $product = $this->product();
+        $supplier = Mockery::mock(TDSynnexService::class);
+        $supplier->shouldReceive('verifiedOnlineProductDetails')->once()->andReturn([]);
+        $ai = Mockery::mock(AzureOpenAiChatService::class);
+        $ai->shouldReceive('generateProductDescription')->once()->andReturnNull();
+        (new ProductContentEnrichmentService($supplier, $ai))->enrich($product);
+        $this->assertNull($product->fresh()->description);
+        $this->assertSame('needs_review', $product->fresh()->specifications['content_enrichment_status']);
+        $this->assertStringContainsString('AI could not generate', $product->fresh()->specifications['content_enrichment_warnings'][0]);
+    }
+
+    public function test_complete_products_do_not_call_any_provider(): void
+    {
+        $product = $this->product(['description' => 'Useful existing description.',
+            'images' => [['imageUrl' => 'https://images.example.com/manual.jpg']]]);
+        $service = new ProductContentEnrichmentService(Mockery::mock(TDSynnexService::class), Mockery::mock(AzureOpenAiChatService::class));
+        $service->enrich($product);
+        $this->assertNull($product->fresh()->content_enrichment_attempted_at);
+    }
+
+    public function test_catalog_queue_covers_all_vendors_honors_cooldown_and_prioritizes_unattempted_products(): void
+    {
+        Queue::fake();
+        $old = $this->product(['content_enrichment_attempted_at' => now()->subDays(2)]);
+        $this->product(['content_enrichment_attempted_at' => now()->subHours(23)]);
+        $this->product(['description' => 'Useful existing description.',
+            'images' => [['imageUrl' => 'https://images.example.com/manual.jpg']]]);
+        $new = $this->product(['vendor_id' => 'Other supplier']);
+        $service = app(ProductContentEnrichmentService::class);
+        $this->assertSame(1, $service->queueMissing(1));
+        Queue::assertPushed(EnrichProductContentJob::class, fn ($job) => $job->productId === $new->id);
+        Queue::assertPushed(EnrichProductContentJob::class, 1);
+        Queue::fake();
+        $this->assertSame(2, $service->queueMissing());
+        Queue::assertPushed(EnrichProductContentJob::class, fn ($job) => $job->productId === $old->id);
+        Queue::assertPushed(EnrichProductContentJob::class, 2);
+    }
+
+    public function test_admin_can_queue_catalog_and_individual_retries_but_customers_and_guests_cannot(): void
+    {
+        Queue::fake();
+        $this->configureAi();
+        $product = $this->product();
+        $this->postJson('/api/v1/admin/products/enrich-content')->assertUnauthorized();
+        $this->actingAs(new User(['role' => 'customer']), 'sanctum');
+        $this->postJson('/api/v1/admin/products/enrich-content')->assertForbidden();
+        $this->postJson("/api/v1/admin/products/{$product->id}/enrich-content")->assertForbidden();
+        $this->admin();
+        $this->postJson('/api/v1/admin/products/enrich-content')->assertStatus(202);
+        $this->postJson("/api/v1/admin/products/{$product->id}/enrich-content")->assertStatus(202);
+        Queue::assertPushed(QueueMissingProductContentJob::class);
+        Queue::assertPushed(EnrichProductContentJob::class, fn ($job) => $job->productId === $product->id);
+    }
+
+    public function test_missing_ai_configuration_is_reported_without_queuing(): void
+    {
+        Queue::fake();
+        $this->configureAi(false);
+        $this->admin();
+        $this->postJson('/api/v1/admin/products/enrich-content')->assertStatus(422);
+        $this->artisan('products:enrich-content')->assertFailed();
+        Queue::assertNothingPushed();
+    }
+
+    public function test_admin_description_filter_and_coverage_counts_include_title_only_descriptions(): void
+    {
+        $this->product(['description' => '  ']);
+        $this->product(['description' => ' hp ZBOOK 8 workstation ']);
+        $this->product(['description' => 'A useful product description.']);
+        $this->admin();
+        $this->getJson('/api/v1/admin/products?missing_description=1')
+            ->assertOk()->assertJsonPath('data.total', 2)
+            ->assertJsonPath('stats.without_descriptions', 2)
+            ->assertJsonPath('data.data.0.has_description', false);
+    }
+
+    public function test_terminal_job_failure_is_visible_and_does_not_fabricate_content(): void
+    {
+        $product = $this->product();
+        (new EnrichProductContentJob($product->id))->failed(new \RuntimeException('Provider unavailable'));
+        $this->assertSame('failed', $product->fresh()->specifications['content_enrichment_status']);
+        $this->assertNotNull($product->fresh()->content_enrichment_attempted_at);
+        $this->assertNull($product->fresh()->description);
+    }
+
+    public function test_enriched_content_survives_sync_payloads_while_supplier_fields_can_refresh(): void
+    {
+        $product = $this->product(['description' => 'AI description to preserve.',
+            'images' => [['imageUrl' => 'https://images.example.com/verified.jpg', 'source' => 'openai-verified-online']],
+            'specifications' => ['source' => 'old-feed', 'description_source' => 'ai-generated-from-catalog-facts',
+                'content_enrichment_status' => 'complete', 'online_sources' => [['url' => 'https://hp.com']]]]);
+        $rows = Product::preserveEnrichedContent([[
+            'tdsynnex_product_id' => $product->tdsynnex_product_id,
+            'description' => 'Supplier title only', 'images' => '[]',
+            'base_price' => 150, 'specifications' => json_encode(['source' => 'new-feed']),
+        ]]);
+        $this->assertSame('AI description to preserve.', $rows[0]['description']);
+        $this->assertSame($product->images, json_decode($rows[0]['images'], true));
+        $spec = json_decode($rows[0]['specifications'], true);
+        $this->assertSame('new-feed', $spec['source']);
+        $this->assertSame('complete', $spec['content_enrichment_status']);
+        $this->assertSame('ai-generated-from-catalog-facts', $spec['description_source']);
+        $this->assertSame(150, $rows[0]['base_price']);
+    }
+
+    public function test_command_queues_a_bounded_batch_and_rejects_invalid_limits(): void
+    {
+        Queue::fake();
+        $this->configureAi();
+        $this->product();
+        $this->product();
+        $this->artisan('products:enrich-content', ['--limit' => 1])->assertSuccessful();
+        Queue::assertPushed(EnrichProductContentJob::class, 1);
+        $this->artisan('products:enrich-content', ['--limit' => -1])->assertExitCode(2);
+    }
+
+    public function test_real_ai_verification_pipeline_only_assigns_images_at_the_confidence_threshold(): void
+    {
+        $this->configureAi();
+        $responses = Http::fakeSequence('enrichment.example.com/*');
+        foreach ([0.949, 0.95] as $confidence) {
+            $responses->push([
+                'choices' => [['message' => ['content' => json_encode([
+                    'description_matches' => true, 'specification_indices' => [],
+                    'image_index' => 0, 'image_confidence' => $confidence,
+                ])]]],
+            ]);
+        }
+        foreach ([0.949, 0.95] as $confidence) {
+            $product = $this->product();
+            $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+            $supplier->shouldReceive('discoverOnlineProductDetails')->once()->andReturn([
+                'description' => 'Verified HP ZBook 8 workstation description.',
+                'specifications' => [], 'image_url' => 'https://images.example.com/zbook.jpg',
+                'image_candidates' => [['image_url' => 'https://images.example.com/zbook.jpg',
+                    'title' => 'HP ZBook 8 ABC123', 'source_url' => 'https://hp.com/zbook']],
+                'sources' => [['name' => 'Manufacturer', 'url' => 'https://hp.com/zbook']],
+                'warnings' => [], 'online_details_found' => true,
+            ]);
+            (new ProductContentEnrichmentService($supplier, app(AzureOpenAiChatService::class)))->enrich($product);
+            $this->assertSame('Verified HP ZBook 8 workstation description.', $product->fresh()->description);
+            if ($confidence < 0.95) {
+                $this->assertSame([], $product->fresh()->images);
+                $this->assertSame('needs_review', $product->fresh()->specifications['content_enrichment_status']);
+            } else {
+                $this->assertSame('https://images.example.com/zbook.jpg', $product->fresh()->images[0]['imageUrl']);
+                $this->assertSame('complete', $product->fresh()->specifications['content_enrichment_status']);
+            }
+        }
+    }
+
+    public function test_excel_sync_persists_enriched_content_without_double_encoding_json(): void
+    {
+        $product = $this->product(['description' => 'AI description to preserve.',
+            'images' => [['imageUrl' => 'https://images.example.com/verified.jpg', 'source' => 'openai-verified-online']],
+            'specifications' => ['description_source' => 'ai-generated-from-catalog-facts']]);
+        $save = new \ReflectionMethod(SyncExcelCatalogFilesCommand::class, 'saveOne');
+        $save->invoke(new SyncExcelCatalogFilesCommand, [
+            'tdsynnex_product_id' => $product->tdsynnex_product_id,
+            'description' => 'Supplier title', 'images' => '[]', 'base_price' => 150,
+            'specifications' => json_encode(['source' => 'new-feed']),
+        ]);
+        $product->refresh();
+        $this->assertSame('AI description to preserve.', $product->description);
+        $this->assertSame('150.00', $product->base_price);
+        $this->assertSame('new-feed', $product->specifications['source']);
+        $this->assertSame('ai-generated-from-catalog-facts', $product->specifications['description_source']);
+        $this->assertSame('openai-verified-online', $product->images[0]['source']);
+    }
+
+    public function test_identity_changes_during_lookup_cannot_attach_old_model_content(): void
+    {
+        $product = $this->product();
+        $supplier = Mockery::mock(TDSynnexService::class);
+        $supplier->shouldReceive('verifiedOnlineProductDetails')->once()->andReturnUsing(function () use ($product): array {
+            $product->fresh()->update(['mfg_part_no' => 'DIFFERENT-MODEL']);
+
+            return ['description' => 'Old model description.', 'image_url' => 'https://images.example.com/old.jpg'];
+        });
+        $ai = Mockery::mock(AzureOpenAiChatService::class);
+        $ai->shouldNotReceive('generateProductDescription');
+        try {
+            (new ProductContentEnrichmentService($supplier, $ai))->enrich($product);
+            $this->fail('Changed product identity should trigger a retry.');
+        } catch (\RuntimeException $error) {
+            $this->assertStringContainsString('identity changed', $error->getMessage());
+        }
+        $this->assertSame([], $product->fresh()->images);
+        $this->assertNull($product->fresh()->description);
+        $this->assertNull($product->fresh()->content_enrichment_attempted_at);
+    }
+
+    public function test_content_enrichment_migration_is_reversible(): void
+    {
+        $migration = require database_path('migrations/2026_10_26_120000_add_content_enrichment_attempted_at_to_products.php');
+        $migration->down();
+        $this->assertFalse(Schema::hasColumn('products', 'content_enrichment_attempted_at'));
+        $migration->up();
+        $this->assertTrue(Schema::hasColumn('products', 'content_enrichment_attempted_at'));
+        $this->assertNull($this->product()->content_enrichment_attempted_at);
+    }
+}
