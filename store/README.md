@@ -54,6 +54,38 @@ cancel existing work.
 Description/image enrichment sends no email notifications. Existing product,
 price and availability synchronization emails remain unchanged.
 
+### Reviewing and repairing saved AI descriptions
+
+In **Settings > Catalog Ops**, use **Review & Repair AI Descriptions** to scan
+all AI-generated descriptions, including already-populated products, one per HTTP
+request (`mode: repair_descriptions`). This is separate from filling missing
+content and bypasses the normal retry cooldown. Keep the page open and use the
+existing progress/stop controls. Only `ai-generated-from-title`,
+`ai-generated-from-verified-web-evidence` and legacy
+`ai-generated-from-catalog-facts` sources are eligible. Untagged manual/supplier
+descriptions and `openai-verified-online` excerpts are excluded.
+
+AI researches the identity again and rewrites from website/title evidence, never
+using the old AI description as factual evidence. The generator and second
+checker require category-appropriate labels: RAM, Storage and CPU for complete
+computers when supported; RAM capacity, memory type/speed, form factor and voltage
+for memory modules when supplied; drive-specific attributes for storage, etc.
+Unknown fields are omitted. SSD/HDD storage is not called ROM, and compatible host
+specifications must not be attributed to an accessory.
+
+Approved replacements retain the original in `description_repair_backup` and its
+source in `description_repair_backup_source`. Each replacement also retains the
+immediately preceding text/source in `description_repair_previous` and
+`description_repair_previous_source`. These metadata survive imports. Concurrent
+description edits abort the repair rather than overwriting the edit. Normal
+background discovery also preserves tagged AI descriptions.
+If AI generation or checking fails, the old description is kept, not silently
+replaced with an unstructured excerpt, and `description_repair_status` is
+`needs_review`. All Products displays that status and the warnings. Successful
+reviews record `updated` or `unchanged`. AI checks do not guarantee accuracy;
+review unresolved products manually. This action does not change images, prices,
+stock, or send emails.
+
 Direct Bing web and image searches (plus optional Icecat) retrieve evidence using the saved supplier
 identity. The existing vision-capable Azure OpenAI deployment verifies descriptions
 and candidate images; only a matching image with reported confidence >= 0.95 is

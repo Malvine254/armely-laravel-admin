@@ -695,6 +695,9 @@
             <button type="button" @click="populateProductContent('description')" :disabled="productContentLoading || catalogWorkerLoading || catalogStopLoading" class="rounded-lg bg-[#2F5597] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1e3a6b] disabled:opacity-50">
               <i class="fas fa-align-left mr-2"></i>Populate Missing Descriptions
             </button>
+            <button type="button" @click="populateProductContent('repair_descriptions')" :disabled="productContentLoading || catalogWorkerLoading || catalogStopLoading" class="rounded-lg border border-[#2F5597] bg-white px-5 py-2.5 text-sm font-semibold text-[#2F5597] hover:bg-blue-50 disabled:opacity-50">
+              <i class="fas fa-check-double mr-2"></i>Review &amp; Repair AI Descriptions
+            </button>
             <button type="button" @click="populateProductContent('images')" :disabled="productContentLoading || catalogWorkerLoading || catalogStopLoading" class="rounded-lg bg-[#2F5597] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1e3a6b] disabled:opacity-50">
               <i class="fas fa-image mr-2"></i>Populate Missing Images
             </button>
@@ -702,6 +705,7 @@
             <router-link to="/admin/products" class="rounded-lg px-5 py-2.5 text-sm font-semibold text-[#2F5597] underline">Review Product Results</router-link>
             <button v-if="productContentLoading" type="button" @click="productContentStopRequested = true" :disabled="productContentStopRequested" class="rounded-lg border border-rose-300 px-5 py-2.5 text-sm font-semibold text-rose-700">{{ productContentStopRequested ? 'Stopping after current product...' : 'Stop After Current Product' }}</button>
           </div>
+          <p class="text-xs text-gray-600">Review &amp; Repair checks all AI-generated descriptions, including populated ones, and rewrites them with relevant labeled facts (RAM, Storage, CPU, etc., only when supported). Components get their own attributes, not invented computer specs. Original and previous text are backed up before replacement. Manual and supplier descriptions are excluded. Failed repairs keep the old text flagged for review.</p>
           <p class="text-xs text-gray-500">Progress and the last product's warnings appear here. Leaving the page stops new requests; already saved results are kept. A finished scan does not mean every product has website-verified content. If neither website evidence nor the title supports a useful description, it remains Needs research. The database must be online and deployment migrations installed.</p>
         </section>
 
@@ -1723,8 +1727,12 @@ const refreshProductContentStats = async () => {
 
 const populateProductContent = async (mode) => {
   if (productContentLoading.value || catalogWorkerLoading.value || catalogStopLoading.value) return
+  const repair = mode === 'repair_descriptions'
   const label = mode === 'images' ? 'images' : 'descriptions'
-  if (!window.confirm(`Populate missing ${label} one product at a time? Keep this page open. This uses AI/search APIs and may incur charges. Manual content is kept; older generic AI descriptions are repaired.`)) return
+  const confirmation = repair
+    ? 'Review and rewrite all AI-generated descriptions with category-appropriate labeled specifications? Original and previous text are backed up. Manual and supplier descriptions are excluded. Failed repairs keep the previous text flagged for review.'
+    : `Populate missing ${label} one product at a time? Manual content is kept; older generic AI descriptions are repaired.`
+  if (!window.confirm(`${confirmation} Keep this page open. This uses AI/search APIs and may incur charges.`)) return
 
   productContentLoading.value = true
   productContentMessage.value = ''
@@ -1733,7 +1741,7 @@ const populateProductContent = async (mode) => {
   productContentProgress.value = { processed: 0, ready: 0, review: 0 }
   let afterId = 0
   let lastResearchIssue = ''
-  productContentMessage.value = `Starting ${label} research. Waiting for the first product result...`
+  productContentMessage.value = repair ? 'Starting review of saved AI descriptions. Waiting for the first product result...' : `Starting ${label} research. Waiting for the first product result...`
   try {
     while (!productContentStopRequested.value) {
       const response = await api.post('/admin/products/process-content', { mode, after_id: afterId }, { timeout: 180000 })

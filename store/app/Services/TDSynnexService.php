@@ -1093,7 +1093,8 @@ class TDSynnexService
         $spec['online_content_status'] = $details['online_details_found']
             || data_get($spec, 'online_content_status') === 'verified' ? 'verified' : 'unavailable';
         $product->specifications = $spec;
-        if ($details['description'] !== '') {
+        $hasAiDescription = str_starts_with((string) ($spec['description_source'] ?? ''), 'ai-generated-');
+        if ($details['description'] !== '' && !$hasAiDescription) {
             $product->description = $details['description'];
         }
         if ($details['image_url'] !== '') {

@@ -10,6 +10,7 @@ const ref = value => ({ value })
 
 const setup = ({ confirm = true, fail = false, timeout = false, stop = false } = {}) => {
   const calls = []
+  const confirmations = []
   const toasts = []
   let refreshes = 0
   const fixture = {
@@ -20,7 +21,7 @@ const setup = ({ confirm = true, fail = false, timeout = false, stop = false } =
     productContentProgress: ref({ processed: 0, ready: 0, review: 0 }),
     productContentMessage: ref(''),
     productContentHasError: ref(false),
-    window: { confirm: () => confirm },
+    window: { confirm: message => { confirmations.push(message); return confirm } },
     setTimeout: callback => callback(),
     refreshProductContentStats: async () => { refreshes++ },
     api: {
@@ -41,7 +42,7 @@ const setup = ({ confirm = true, fail = false, timeout = false, stop = false } =
     showToast: (message, type) => toasts.push({ message, type }),
   }
   const action = new Function(...Object.keys(fixture), `${actionSource}; return populateProductContent`)(...Object.values(fixture))
-  return { ...fixture, run: (mode = 'description') => action(mode), calls, toasts, refreshes: () => refreshes }
+  return { ...fixture, run: (mode = 'description') => action(mode), calls, confirmations, toasts, refreshes: () => refreshes }
 }
 
 test('settings processes products directly without queue or worker calls, tracks outcomes and advances cursor', async () => {
@@ -70,7 +71,7 @@ test('a stalled cursor stops the scan instead of repeatedly processing a product
 })
 
 test('each button submits only its selected mode', async () => {
-  for (const mode of ['description', 'images']) {
+  for (const mode of ['description', 'images', 'repair_descriptions']) {
     const f = setup()
     await f.run(mode)
     assert.equal(f.calls[0].payload.mode, mode)
@@ -85,6 +86,16 @@ test('timeouts stop processing and report unknown current save status, not compl
   assert.match(f.productContentMessage.value, /Earlier saved results are kept/)
   assert.equal(f.productContentHasError.value, true)
   assert.equal(f.productContentLoading.value, false)
+})
+
+test('repair explicitly confirms replacing populated AI descriptions with backups and excludes manual content', async () => {
+  const f = setup()
+  await f.run('repair_descriptions')
+  assert.match(f.confirmations[0], /all AI-generated descriptions/)
+  assert.match(f.confirmations[0], /Original and previous text are backed up/)
+  assert.match(f.confirmations[0], /Manual and supplier descriptions are excluded/)
+  assert.match(f.confirmations[0], /Failed repairs keep the previous text flagged for review/)
+  assert.ok(f.calls.every(call => call.payload.mode === 'repair_descriptions'))
 })
 
 test('cancelled confirmation and existing operations do not submit requests', async () => {
@@ -118,6 +129,7 @@ test('stop waits for current product and prevents further requests', async () =>
 
 test('settings exposes separate actions, stop, coverage refresh and review link', () => {
   assert.match(source, /@click="populateProductContent\('description'\)"/)
+  assert.match(source, /@click="populateProductContent\('repair_descriptions'\)"/)
   assert.match(source, /@click="populateProductContent\('images'\)"/)
   assert.match(source, /Stop After Current Product/)
   assert.match(source, /@click="refreshProductContentStats"/)

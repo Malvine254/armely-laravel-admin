@@ -10,6 +10,12 @@ use Illuminate\Support\Facades\DB;
 
 class ProductContentEnrichmentService
 {
+    private const AI_DESCRIPTION_SOURCES = [
+        'ai-generated-from-catalog-facts',
+        'ai-generated-from-verified-web-evidence',
+        'ai-generated-from-title',
+    ];
+
     public function __construct(
         private readonly TDSynnexService $supplier,
         private readonly AzureOpenAiChatService $ai,
@@ -56,16 +62,22 @@ class ProductContentEnrichmentService
 
     public function processNext(string $mode, int $afterId): array
     {
+        $repair = $mode === 'repair_descriptions';
+        if ($repair) {
+            $mode = 'description';
+        }
         $this->validateMode($mode);
         $query = Product::query()->where('id', '>', $afterId)->orderBy('id');
-        if ($mode === 'description') {
+        if ($repair) {
+            $query->whereIn('specifications->description_source', self::AI_DESCRIPTION_SOURCES);
+        } elseif ($mode === 'description') {
             $query->missingDescription();
         }
         // Bound each HTTP scan even when most catalog products already have images.
         $batch = $query->limit(100)->get();
         foreach ($batch as $product) {
             $afterId = (int) $product->id;
-            if (! $this->needsContent($product, $mode)) {
+            if (! $repair && ! $this->needsContent($product, $mode)) {
                 continue;
             }
             $lock = Cache::lock('store:content-product:'.$product->id, 180);
@@ -74,16 +86,20 @@ class ProductContentEnrichmentService
                     'message' => 'Product '.$product->id.' is already being processed by another request.'];
             }
             try {
-                $this->enrich($product, $mode);
+                $this->enrich($product, $mode, $repair);
                 $product->refresh();
-                $ready = ! $this->needsContent($product, $mode);
+                $ready = $repair
+                    ? in_array(data_get($product->specifications, 'description_repair_status'), ['updated', 'unchanged'], true)
+                    : ! $this->needsContent($product, $mode);
 
                 return [
                     'done' => false, 'after_id' => $afterId, 'processed' => true,
                     'product_id' => $product->id, 'product_name' => $product->product_name,
                     'result' => $ready ? 'complete' : 'needs_review',
                     'warnings' => (array) data_get($product->specifications, 'content_enrichment_warnings', []),
-                    'message' => $ready ? 'Product content saved.' : 'No verified content found; product needs research.',
+                    'message' => $repair
+                        ? ($ready ? 'AI description reviewed and saved.' : 'Repair could not be approved. Previous description kept; manual review required.')
+                        : ($ready ? 'Product content saved.' : 'No approved content found; product needs research.'),
                 ];
             } finally {
                 $lock->release();
@@ -94,10 +110,14 @@ class ProductContentEnrichmentService
             'message' => $batch->count() < 100 ? 'Catalog scan finished.' : 'Scanning for products with missing content.'];
     }
 
-    public function enrich(Product $product, string $mode = 'both'): void
+    public function enrich(Product $product, string $mode = 'both', bool $repair = false): void
     {
         $this->validateMode($mode);
-        if (! $this->needsContent($product, $mode)) {
+        if ($repair && ($mode !== 'description'
+            || ! in_array(data_get($product->specifications, 'description_source'), self::AI_DESCRIPTION_SOURCES, true))) {
+            throw new \InvalidArgumentException('Only AI-generated descriptions can be repaired.');
+        }
+        if (! $repair && ! $this->needsContent($product, $mode)) {
             return;
         }
 
@@ -107,7 +127,7 @@ class ProductContentEnrichmentService
         $warnings = (array) ($details['warnings'] ?? []);
         $verifiedSpecs = (array) (($details['specifications'] ?? []) ?: data_get($product->specifications, 'online_specifications', []));
         $hasEvidence = $description !== '' || $verifiedSpecs !== [];
-        if ($mode !== 'images' && $product->needsDescription()) {
+        if ($mode !== 'images' && ($repair || $product->needsDescription())) {
             $verifiedDescription = $description;
             $generated = $this->ai->generateProductDescription([
                 'product_name' => (string) $product->product_name,
@@ -118,7 +138,8 @@ class ProductContentEnrichmentService
                 'verified_specifications' => $verifiedSpecs,
                 'allow_title_fallback' => true,
             ]);
-            $description = $generated ?? $verifiedDescription;
+            // Repairs require the structured, checked AI result, not an unstructured excerpt.
+            $description = $generated ?? ($repair ? '' : $verifiedDescription);
             $descriptionSource = $generated === null ? 'openai-verified-online'
                 : ($hasEvidence ? 'ai-generated-from-verified-web-evidence' : 'ai-generated-from-title');
             if ($generated !== null && ! $hasEvidence) {
@@ -129,7 +150,7 @@ class ProductContentEnrichmentService
             }
         }
 
-        DB::transaction(function () use ($product, $details, $description, $descriptionSource, $warnings, $mode): void {
+        DB::transaction(function () use ($product, $details, $description, $descriptionSource, $warnings, $mode, $repair): void {
             $current = Product::query()->lockForUpdate()->findOrFail($product->id);
             foreach (['product_name', 'manufacturer', 'mfg_part_no'] as $field) {
                 if ($current->$field !== $product->$field) {
@@ -138,13 +159,34 @@ class ProductContentEnrichmentService
             }
             // Recheck under the lock: an administrator may have supplied content during the lookup.
             $spec = (array) $current->specifications;
-            if ($mode !== 'images' && ($spec['description_source'] ?? '') === 'ai-generated-from-catalog-facts'
+            if ($repair) {
+                if ($current->description !== $product->description
+                    || ($spec['description_source'] ?? null) !== data_get($product->specifications, 'description_source')) {
+                    throw new \RuntimeException('Description changed during repair; no replacement was saved. Retry to review the latest content.');
+                }
+                $spec['description_repair_status'] = $description === '' ? 'needs_review'
+                    : ($description === (string) $current->description ? 'unchanged' : 'updated');
+                $spec['description_repair_attempted_at'] = now()->toIso8601String();
+                if ($description !== '') {
+                    if (! array_key_exists('description_repair_backup', $spec)) {
+                        $spec['description_repair_backup'] = (string) $current->description;
+                        $spec['description_repair_backup_source'] = $spec['description_source'];
+                    }
+                    $spec['description_repair_previous'] = (string) $current->description;
+                    $spec['description_repair_previous_source'] = $spec['description_source'];
+                    $current->description = $description;
+                    $spec['description_source'] = $descriptionSource;
+                } else {
+                    $warnings[] = 'AI description repair was not approved. Previous text was kept and requires manual review.';
+                }
+            }
+            if (! $repair && $mode !== 'images' && ($spec['description_source'] ?? '') === 'ai-generated-from-catalog-facts'
                 && $description === '') {
                 $spec['description_repair_backup'] ??= (string) $current->description;
                 $current->description = null;
                 $spec['description_source'] = 'needs-research';
             }
-            if ($mode !== 'images' && $current->needsDescription() && $description !== '') {
+            if (! $repair && $mode !== 'images' && $current->needsDescription() && $description !== '') {
                 $current->description = $description;
                 $spec['description_source'] = $descriptionSource;
             }
@@ -161,11 +203,12 @@ class ProductContentEnrichmentService
                 $warnings[] = 'No confidently matched product image was found. Check the search provider configuration or supply a verified image manually.';
             }
             $current->specifications = $spec;
-            $spec['content_enrichment_status'] = ! $current->needsDescription() && $current->hasUsableImage()
+            $repairFailed = ($spec['description_repair_status'] ?? '') === 'needs_review';
+            $spec['content_enrichment_status'] = ! $repairFailed && ! $current->needsDescription() && $current->hasUsableImage()
                 ? 'complete' : 'needs_review';
             $spec['content_enrichment_warnings'] = array_values(array_unique($warnings));
             $spec['content_enrichment_mode'] = $mode;
-            $spec['content_enrichment_result'] = $this->needsContent($current, $mode) ? 'needs_review' : 'complete';
+            $spec['content_enrichment_result'] = $repairFailed || $this->needsContent($current, $mode) ? 'needs_review' : 'complete';
             $current->specifications = $spec;
             $current->content_enrichment_attempted_at = now();
             if ($mode !== 'images') {

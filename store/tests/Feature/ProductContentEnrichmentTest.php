@@ -607,4 +607,136 @@ class ProductContentEnrichmentTest extends TestCase
         $this->postJson('/api/v1/admin/products/process-content', ['mode' => 'description', 'after_id' => 0])
             ->assertStatus(503)->assertJsonPath('success', false);
     }
+
+    public function test_repair_endpoint_rewrites_populated_ai_descriptions_and_preserves_manual_and_supplier_text(): void
+    {
+        Queue::fake();
+        $this->admin();
+        $old = 'HP workstation runs desktop applications. Choose a configuration that suits you.';
+        $manual = $this->product(['description' => 'Administrator description.']);
+        $supplierProduct = $this->product(['description' => 'Supplier excerpt.',
+            'specifications' => ['description_source' => 'openai-verified-online']]);
+        $sources = ['ai-generated-from-title', 'ai-generated-from-verified-web-evidence', 'ai-generated-from-catalog-facts'];
+        $products = [];
+        foreach ($sources as $source) {
+            $products[] = $this->product(['description' => $old, 'images' => [['imageUrl' => 'https://example.com/original.jpg']],
+                'specifications' => ['description_source' => $source],
+                'description_enrichment_attempted_at' => now()]);
+        }
+        $description = "HP ZBook workstation.\n\n- RAM: 32 GB DDR4\n- Storage: 512 GB SSD\n- CPU: Intel Core i5";
+        $supplier = Mockery::mock(TDSynnexService::class);
+        $supplier->shouldReceive('verifiedOnlineProductDetails')->times(3)->andReturn([
+            'description' => 'HP ZBook workstation with 32 GB DDR4 RAM, 512 GB SSD, Intel Core i5.',
+        ]);
+        $ai = Mockery::mock(AzureOpenAiChatService::class);
+        $ai->shouldReceive('isConfigured')->andReturnTrue();
+        $ai->shouldReceive('generateProductDescription')->times(3)->with(Mockery::on(
+            fn (array $facts): bool => ! array_key_exists('description', $facts)
+                && ! in_array($old, $facts, true)
+                && $facts['verified_website_description'] !== ''
+        ))->andReturn($description);
+        $this->app->instance(TDSynnexService::class, $supplier);
+        $this->app->instance(AzureOpenAiChatService::class, $ai);
+        $afterId = 0;
+        foreach ($products as $index => $product) {
+            $this->postJson('/api/v1/admin/products/process-content', [
+                'mode' => 'repair_descriptions', 'after_id' => $afterId,
+            ])->assertOk()->assertJsonPath('data.product_id', $product->id)
+                ->assertJsonPath('data.result', 'complete');
+            $afterId = $product->id;
+            $product->refresh();
+            $this->assertSame($description, $product->description);
+            $this->assertSame($old, $product->specifications['description_repair_backup']);
+            $this->assertSame($sources[$index], $product->specifications['description_repair_backup_source']);
+            $this->assertSame('updated', $product->specifications['description_repair_status']);
+            $this->assertSame('ai-generated-from-verified-web-evidence', $product->specifications['description_source']);
+            $this->assertSame('https://example.com/original.jpg', $product->images[0]['imageUrl']);
+            $this->assertSame('100.00', $product->base_price);
+            $this->assertSame(5, $product->quantity);
+        }
+        $this->postJson('/api/v1/admin/products/process-content', [
+            'mode' => 'repair_descriptions', 'after_id' => $afterId,
+        ])->assertOk()->assertJsonPath('data.done', true);
+        $this->assertSame('Administrator description.', $manual->fresh()->description);
+        $this->assertSame('Supplier excerpt.', $supplierProduct->fresh()->description);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_failed_repair_keeps_previous_ai_text_and_marks_it_for_review_even_with_existing_content(): void
+    {
+        $old = 'An existing AI description requiring review.';
+        $product = $this->product(['description' => $old,
+            'images' => [['imageUrl' => 'https://example.com/existing.jpg']],
+            'specifications' => ['description_source' => 'ai-generated-from-title']]);
+        // A raw excerpt cannot silently bypass the structured repair's failed AI check.
+        $service = $this->providers(['description' => 'Unstructured verified excerpt.']);
+        $result = $service->processNext('repair_descriptions', 0);
+        $this->assertSame('needs_review', $result['result']);
+        $this->assertSame($old, $product->fresh()->description);
+        $this->assertSame('needs_review', $product->fresh()->specifications['description_repair_status']);
+        $this->assertSame('needs_review', $product->fresh()->specifications['content_enrichment_status']);
+        $this->assertStringContainsString('Previous description kept', $result['message']);
+        $this->assertArrayNotHasKey('description_repair_backup', $product->fresh()->specifications);
+    }
+
+    public function test_repeated_repairs_keep_original_backup_and_latest_previous_text(): void
+    {
+        $product = $this->product(['description' => 'Earlier AI text.',
+            'specifications' => ['description_source' => 'ai-generated-from-title',
+                'description_repair_backup' => 'Original AI text.',
+                'description_repair_backup_source' => 'ai-generated-from-catalog-facts']]);
+        $description = "HP ZBook workstation.\n\n- RAM: 32 GB";
+        $this->providers([], $description)->processNext('repair_descriptions', 0);
+        $product->refresh();
+        $this->assertSame('Original AI text.', $product->specifications['description_repair_backup']);
+        $this->assertSame('Earlier AI text.', $product->specifications['description_repair_previous']);
+        $rows = Product::preserveEnrichedContent([[
+            'tdsynnex_product_id' => $product->tdsynnex_product_id,
+            'description' => '', 'specifications' => '{}',
+        ]]);
+        $this->assertSame($description, $rows[0]['description']);
+        $spec = json_decode($rows[0]['specifications'], true);
+        $this->assertSame('Original AI text.', $spec['description_repair_backup']);
+        $this->assertSame('Earlier AI text.', $spec['description_repair_previous']);
+        $this->assertSame('updated', $spec['description_repair_status']);
+    }
+
+    public function test_repair_cannot_replace_a_manual_edit_made_during_research(): void
+    {
+        $product = $this->product(['description' => 'Old AI text.',
+            'specifications' => ['description_source' => 'ai-generated-from-title']]);
+        $supplier = Mockery::mock(TDSynnexService::class);
+        $supplier->shouldReceive('verifiedOnlineProductDetails')->once()->andReturnUsing(function () use ($product): array {
+            $product->fresh()->update(['description' => 'Manual edit during research.']);
+
+            return [];
+        });
+        $ai = Mockery::mock(AzureOpenAiChatService::class);
+        $ai->shouldReceive('generateProductDescription')->once()->andReturn("HP workstation.\n\n- RAM: 32 GB");
+        try {
+            (new ProductContentEnrichmentService($supplier, $ai))->processNext('repair_descriptions', 0);
+            $this->fail('A concurrent edit must stop repair.');
+        } catch (\RuntimeException $error) {
+            $this->assertStringContainsString('Description changed during repair', $error->getMessage());
+        }
+        $this->assertSame('Manual edit during research.', $product->fresh()->description);
+        $this->assertArrayNotHasKey('description_repair_backup', $product->fresh()->specifications);
+    }
+
+    public function test_background_discovery_cannot_overwrite_a_repaired_ai_description(): void
+    {
+        $description = "Memory upgrade module.\n\n- RAM: 16 GB DDR4\n- Memory speed: 3200 MHz";
+        $product = $this->product(['description' => $description, 'specifications' => [
+            'description_source' => 'ai-generated-from-title', 'description_repair_status' => 'updated',
+            'description_repair_backup' => 'Old unclear description.',
+        ]]);
+        $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
+        $supplier->shouldReceive('verifiedOnlineProductDetails')->once()->andReturn([
+            'description' => 'Long unstructured supplier paragraph.', 'image_url' => '', 'specifications' => [],
+            'sources' => [], 'warnings' => [], 'online_details_found' => true,
+        ]);
+        $supplier->enrichDiscoveredProduct($product);
+        $this->assertSame($description, $product->fresh()->description);
+        $this->assertSame('Old unclear description.', $product->fresh()->specifications['description_repair_backup']);
+    }
 }

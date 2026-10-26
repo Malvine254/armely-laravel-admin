@@ -107,6 +107,7 @@ class AdminImportedProductController extends Controller
             'has_description' => !$product->needsDescription(),
             'description' => $product->description,
             'description_source' => data_get($product->specifications, 'description_source'),
+            'description_repair_status' => data_get($product->specifications, 'description_repair_status'),
             'content_status' => data_get($product->specifications, 'content_enrichment_status'),
             'content_warnings' => (array) data_get($product->specifications, 'content_enrichment_warnings', []),
             'updated_at' => optional($product->updated_at)->toIso8601String(),
@@ -153,7 +154,7 @@ class AdminImportedProductController extends Controller
     {
         $this->authorizeAdmin($request);
         $validated = $request->validate([
-            'mode' => ['required', 'in:description,images'],
+            'mode' => ['required', 'in:description,images,repair_descriptions'],
             'after_id' => ['required', 'integer', 'min:0'],
         ]);
         if (! $ai->isConfigured()) {

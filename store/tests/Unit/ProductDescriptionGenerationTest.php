@@ -55,6 +55,24 @@ class ProductDescriptionGenerationTest extends TestCase
         }
     }
 
+    public function test_ram_component_generation_requests_relevant_labels_and_quality_check_without_inventing_computer_specs(): void
+    {
+        $description = "Total Micro memory upgrade module.\n\n- RAM: 16 GB DDR4\n- Memory speed: 3200 MHz\n- Form factor: SODIMM\n- Voltage: 1.2 V";
+        Http::fakeSequence('description.example.com/*')
+            ->push(['choices' => [['message' => ['content' => json_encode(['description' => $description])]]]])
+            ->push(['choices' => [['message' => ['content' => '{"supported":true}']]]]);
+        $this->assertSame($description, app(AzureOpenAiChatService::class)->generateProductDescription([
+            'product_name' => 'Total Micro 16GB DDR4 3200MHz 1.2V SODIMM',
+            'allow_title_fallback' => true,
+        ]));
+        Http::assertSent(fn ($request) => str_contains($request['messages'][0]['content'], 'For a RAM module, use RAM capacity')
+            && str_contains($request['messages'][0]['content'], 'Call SSD/HDD capacity Storage, not ROM')
+            && str_contains($request['messages'][0]['content'], 'Skip unknown fields'));
+        Http::assertSent(fn ($request) => str_contains($request['messages'][0]['content'], 'Also reject confusing or low-quality descriptions')
+            && str_contains($request['messages'][0]['content'], 'host-device specifications attributed to an accessory'));
+        Http::assertSentCount(2);
+    }
+
     public function test_provider_failure_and_missing_configuration_do_not_generate_content(): void
     {
         Http::fake(['description.example.com/*' => Http::response(['error' => 'unavailable'], 503)]);
