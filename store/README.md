@@ -21,15 +21,28 @@ Descriptions & Images**. Click **Populate Missing Descriptions** or
 **Populate Missing Images** and confirm. Each action changes only the selected
 content type, with independent 24-hour retry cooldowns and unique jobs. The
 All Products page also offers separate bulk and per-product actions.
-It queues enrichment for all eligible saved products, then calls the
-existing **Start Products Worker** action so a supported host can process and save
-the results without terminal commands. **Refresh Content Counts** shows remaining
-missing descriptions/images; **Review Product Results** opens per-product warnings
-and retry controls. The page distinguishes a queued request from a worker-start
-failure and never claims the database population has finished merely because it
-was queued. If worker startup is blocked (including on Windows), the existing
-hosting-managed `products-sync` worker is required. The database must be online
-and the deployment migration installed before running.
+The Settings buttons process one product per authenticated HTTP request using
+`POST /api/v1/admin/products/process-content` (`mode`, `after_id`), saving each
+result before advancing. They do **not** queue work or start a detached process.
+Keep Settings open: it shows processed, ready and needs-research counts, the last
+product's warnings, and **Stop After Current Product**. Closing the page stops
+new requests; earlier saves remain. Manual runs bypass retry cooldowns, and a
+monotonic product-ID cursor prevents repeatedly processing an unresolved product
+in the same scan. **Refresh Content Counts** shows remaining missing content;
+**Review Product Results** opens per-product warnings. A finished scan can still
+have unresolved products; it does not mean every description was populated.
+Each request has a 180-second browser timeout and a 150-second PHP time limit;
+hosting proxy limits can be shorter and must accommodate the single-product
+lookup. Timeouts stop the browser loop and report unknown current save status.
+The database must be online and deployment migrations installed; missing columns
+produce an actionable error instead of a queued-success response.
+
+Older descriptions tagged `ai-generated-from-catalog-facts` are replaced with
+verified descriptions when evidence exists. When research fails, that tagged
+generic text is removed from the description field and retained in
+`specifications.description_repair_backup`; manual descriptions are never cleared.
+All Products bulk buttons, CLI commands and automatic enrichment still use the
+existing database queue and require the hosting-managed worker.
 Deploy the separate-attempt timestamps with `php artisan migrate --force`.
 The worker launcher uses the PHP CLI executable (not PHP-FPM) and redirects the
 entire background process group so the HTTP request does not wait for queue work.

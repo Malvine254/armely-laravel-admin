@@ -682,7 +682,7 @@
           <div>
             <h4 id="ai-product-content-title" class="font-semibold text-gray-900">AI Product Descriptions &amp; Images</h4>
             <p class="mt-1 text-sm text-gray-600">Search Bing directly for descriptions and matching images for all saved store products. No search API key is required. AI verifies evidence and image identity; descriptions without website evidence stay pending review. Existing verified descriptions and usable images are preserved.</p>
-            <p class="mt-2 text-xs text-gray-500">The button queues the catalog and requests a background worker, which saves results directly to the database. AI/search usage charges may apply. Uncertain image matches remain missing for review; recently attempted products have a 24-hour cooldown.</p>
+            <p class="mt-2 text-xs text-gray-500">Processes one product at a time and saves each result directly to the database. Keep this page open; no queue worker is required for these buttons. AI/search usage charges may apply. Manual runs retry missing content immediately and repair older generic AI descriptions only.</p>
           </div>
           <div v-if="productContentStats" class="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div class="rounded-lg bg-white p-3"><p class="text-xs text-gray-500">Saved products</p><p class="font-semibold text-gray-900">{{ formatNumber(productContentStats.total) }}</p></div>
@@ -690,6 +690,7 @@
             <div class="rounded-lg bg-white p-3"><p class="text-xs text-gray-500">Missing images</p><p class="font-semibold text-amber-700">{{ formatNumber(productContentStats.without_images) }}</p></div>
           </div>
           <p v-if="productContentMessage" role="status" class="text-sm whitespace-pre-line" :class="productContentHasError ? 'text-rose-700' : 'text-[#2F5597]'">{{ productContentMessage }}</p>
+          <p v-if="productContentProgress.processed" class="text-sm text-gray-700">Processed: {{ productContentProgress.processed }} | Ready: {{ productContentProgress.ready }} | Needs research: {{ productContentProgress.review }}</p>
           <div class="flex flex-wrap gap-3">
             <button type="button" @click="populateProductContent('description')" :disabled="productContentLoading || catalogWorkerLoading || catalogStopLoading" class="rounded-lg bg-[#2F5597] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1e3a6b] disabled:opacity-50">
               <i class="fas fa-align-left mr-2"></i>Populate Missing Descriptions
@@ -699,8 +700,9 @@
             </button>
             <button type="button" @click="refreshProductContentStats" :disabled="productContentStatsLoading" class="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 disabled:opacity-50">{{ productContentStatsLoading ? 'Refreshing...' : 'Refresh Content Counts' }}</button>
             <router-link to="/admin/products" class="rounded-lg px-5 py-2.5 text-sm font-semibold text-[#2F5597] underline">Review Product Results</router-link>
+            <button v-if="productContentLoading" type="button" @click="productContentStopRequested = true" :disabled="productContentStopRequested" class="rounded-lg border border-rose-300 px-5 py-2.5 text-sm font-semibold text-rose-700">{{ productContentStopRequested ? 'Stopping after current product...' : 'Stop After Current Product' }}</button>
           </div>
-          <p class="text-xs text-gray-500">You can leave this page while the worker runs. Refresh counts to check progress; per-product warnings and retry buttons are under All Products. If this host blocks worker startup, use the configured hosting queue worker. The database must be online and deployment migrations installed.</p>
+          <p class="text-xs text-gray-500">Progress and the last product's warnings appear here. Leaving the page stops new requests; already saved results are kept. A finished scan does not mean every product has verified content. Missing website evidence remains Needs research. The database must be online and deployment migrations installed.</p>
         </section>
 
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1348,6 +1350,8 @@ const productContentStatsLoading = ref(false)
 const productContentStats = ref(null)
 const productContentMessage = ref('')
 const productContentHasError = ref(false)
+const productContentStopRequested = ref(false)
+const productContentProgress = ref({ processed: 0, ready: 0, review: 0 })
 const showQuickBooksSecret = ref(false)
 const showAddAdminModal = ref(false)
 const currentUserId = ref(null)
@@ -1720,35 +1724,54 @@ const refreshProductContentStats = async () => {
 const populateProductContent = async (mode) => {
   if (productContentLoading.value || catalogWorkerLoading.value || catalogStopLoading.value) return
   const label = mode === 'images' ? 'images' : 'descriptions'
-  if (!window.confirm(`Populate missing ${label} for all saved store products? This uses AI/search APIs and may incur charges. Existing content will be kept.`)) return
+  if (!window.confirm(`Populate missing ${label} one product at a time? Keep this page open. This uses AI/search APIs and may incur charges. Manual content is kept; older generic AI descriptions are repaired.`)) return
 
   productContentLoading.value = true
   productContentMessage.value = ''
   productContentHasError.value = false
-  let queued = false
+  productContentStopRequested.value = false
+  productContentProgress.value = { processed: 0, ready: 0, review: 0 }
+  let afterId = 0
+  let lastResearchIssue = ''
+  productContentMessage.value = `Starting ${label} research. Waiting for the first product result...`
   try {
-    const response = await api.post('/admin/products/enrich-content', { mode })
-    if (!response.data.success) {
-      throw new Error(response.data.message || 'Product content could not be queued.')
+    while (!productContentStopRequested.value) {
+      const response = await api.post('/admin/products/process-content', { mode, after_id: afterId }, { timeout: 180000 })
+      if (!response.data.success || !response.data.data) {
+        throw new Error(response.data.message || 'Product content could not be processed.')
+      }
+      const result = response.data.data
+      if (!Number.isSafeInteger(result.after_id) || result.after_id < afterId || (!result.done && result.after_id === afterId)) {
+        throw new Error('Product scan did not advance. Refresh counts before retrying.')
+      }
+      afterId = result.after_id
+      if (result.processed) {
+        productContentProgress.value.processed++
+        if (result.result === 'complete') productContentProgress.value.ready++
+        else productContentProgress.value.review++
+      }
+      productContentMessage.value = `${result.product_name || 'Catalog scan'}: ${result.message}${result.warnings?.length ? `\n${result.warnings.join('\n')}` : ''}`
+      if (result.result === 'needs_review') lastResearchIssue = productContentMessage.value
+      if (result.done) {
+        productContentMessage.value = `Scan finished. ${productContentProgress.value.ready} products ready; ${productContentProgress.value.review} need research. Only verified content was saved.${lastResearchIssue ? `\nLast unresolved product: ${lastResearchIssue}` : ''}`
+        showToast('Product research scan finished. Review unresolved products.', 'success')
+        break
+      }
+      // Stay below the authenticated endpoint's per-minute request limit.
+      await new Promise(resolve => setTimeout(resolve, 1100))
     }
-    queued = true
-    productContentMessage.value = `Missing ${label} enrichment requested. Starting the background worker...`
-    const worker = await api.post('/admin/settings/catalog/start-worker')
-    if (!worker.data.success) {
-      throw new Error(worker.data.message || 'The background worker could not be started.')
+    if (productContentStopRequested.value) {
+      productContentMessage.value = 'Stopped after the current product. Saved results are kept. Run again to retry remaining missing content.'
     }
-    productContentMessage.value = `Missing ${label} enrichment is queued. ${worker.data.message || 'Background worker startup requested.'} Results are saved to the database as products finish. Refresh content counts to check progress.`
-    showToast('Product content queued and worker startup requested.', 'success')
   } catch (error) {
     const reason = error.response?.data?.message || error.message || 'Unable to start product content population.'
     productContentHasError.value = true
     const timedOut = error.code === 'ECONNABORTED' || /timeout/i.test(reason)
-    productContentMessage.value = queued
-      ? `Missing ${label} enrichment is queued, but worker startup ${timedOut ? 'was not confirmed before the request timed out' : 'failed'}: ${reason} ${timedOut ? 'The worker may already be running. Refresh Content Counts before retrying; do not queue the catalog again.' : 'Use Start Products Worker below to retry, or have the hosting queue worker process products-sync.'} No completed population is confirmed.`
-      : reason
+    productContentMessage.value = `${reason} ${timedOut ? 'The current request timed out; its save status is unknown.' : 'Processing stopped.'} Earlier saved results are kept. Refresh counts before retrying.`
     showToast(productContentMessage.value, 'error')
   } finally {
     productContentLoading.value = false
+    await refreshProductContentStats()
   }
 }
 
@@ -2218,6 +2241,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  productContentStopRequested.value = true
   stopCatalogStatusPolling()
   stopSyncPolling()
 })

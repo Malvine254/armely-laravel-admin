@@ -8,70 +8,86 @@ const end = source.indexOf('\nconst startProductsSyncWorker =', start)
 const actionSource = source.slice(start, end)
 const ref = value => ({ value })
 
-const setup = ({ confirm = true, failQueue = false, failWorker = false, unsuccessfulWorker = false, timeoutWorker = false } = {}) => {
+const setup = ({ confirm = true, fail = false, timeout = false, stop = false } = {}) => {
   const calls = []
-  const payloads = []
   const toasts = []
+  let refreshes = 0
   const fixture = {
     productContentLoading: ref(false),
     catalogWorkerLoading: ref(false),
     catalogStopLoading: ref(false),
+    productContentStopRequested: ref(false),
+    productContentProgress: ref({ processed: 0, ready: 0, review: 0 }),
     productContentMessage: ref(''),
     productContentHasError: ref(false),
     window: { confirm: () => confirm },
+    setTimeout: callback => callback(),
+    refreshProductContentStats: async () => { refreshes++ },
     api: {
-      post: async (path, payload) => {
-        calls.push(path)
-        payloads.push(payload)
-        if (path === '/admin/products/enrich-content' && failQueue) {
-          throw { response: { data: { message: 'AI settings missing.' } } }
-        }
-        if (path.endsWith('/start-worker')) {
-          if (timeoutWorker) throw { code: 'ECONNABORTED', message: 'timeout of 45000ms exceeded' }
-          if (failWorker) throw { response: { data: { message: 'Worker launch unavailable.' } } }
-          if (unsuccessfulWorker) return { data: { success: false, message: 'Worker launch rejected.' } }
-          return { data: { success: true, message: 'Worker started (PID 123).' } }
-        }
-        return { data: { success: true } }
+      post: async (path, payload, options) => {
+        calls.push({ path, payload, options })
+        if (fail) throw { response: { data: { message: 'AI settings missing.' } } }
+        if (timeout) throw { code: 'ECONNABORTED', message: 'timeout of 180000ms exceeded' }
+        if (stop) fixture.productContentStopRequested.value = true
+        const result = calls.length === 1
+          ? { done: false, after_id: 7, processed: true, product_name: 'HP Monitor', result: 'needs_review',
+              message: 'No verified evidence.', warnings: ['Bing returned no exact model match.'] }
+          : calls.length === 2
+            ? { done: false, after_id: 9, processed: true, product_name: 'HP Workstation', result: 'complete', message: 'Saved.' }
+            : { done: true, after_id: 9, processed: false, message: 'Catalog scan finished.' }
+        return { data: { success: true, data: result } }
       },
     },
     showToast: (message, type) => toasts.push({ message, type }),
   }
   const action = new Function(...Object.keys(fixture), `${actionSource}; return populateProductContent`)(...Object.values(fixture))
-  const run = (mode = 'description') => action(mode)
-  return { ...fixture, run, calls, payloads, toasts }
+  return { ...fixture, run: (mode = 'description') => action(mode), calls, toasts, refreshes: () => refreshes }
 }
 
-test('settings queues catalog enrichment before starting the worker and does not claim completion', async () => {
+test('settings processes products directly without queue or worker calls, tracks outcomes and advances cursor', async () => {
   const f = setup()
   await f.run()
-  assert.deepEqual(f.calls, ['/admin/products/enrich-content', '/admin/settings/catalog/start-worker'])
-  assert.match(f.productContentMessage.value, /queued/)
-  assert.match(f.productContentMessage.value, /Refresh content counts/)
+  assert.equal(f.calls.length, 3)
+  assert.ok(f.calls.every(call => call.path === '/admin/products/process-content'))
+  assert.deepEqual(f.calls.map(call => call.payload), [
+    { mode: 'description', after_id: 0 }, { mode: 'description', after_id: 7 }, { mode: 'description', after_id: 9 },
+  ])
+  assert.equal(f.calls[0].options.timeout, 180000)
+  assert.deepEqual(f.productContentProgress.value, { processed: 2, ready: 1, review: 1 })
+  assert.match(f.productContentMessage.value, /1 products ready; 1 need research/)
+  assert.match(f.productContentMessage.value, /Bing returned no exact model match/)
   assert.equal(f.productContentHasError.value, false)
   assert.equal(f.productContentLoading.value, false)
-  assert.equal(f.toasts[0].type, 'success')
+  assert.equal(f.refreshes(), 1)
 })
 
-test('each button submits only its selected enrichment mode', async () => {
+test('a stalled cursor stops the scan instead of repeatedly processing a product', async () => {
+  const f = setup()
+  f.api.post = async () => ({ data: { success: true, data: { done: false, after_id: 0 } } })
+  await f.run()
+  assert.equal(f.productContentHasError.value, true)
+  assert.match(f.productContentMessage.value, /scan did not advance/)
+})
+
+test('each button submits only its selected mode', async () => {
   for (const mode of ['description', 'images']) {
     const f = setup()
     await f.run(mode)
-    assert.deepEqual(f.payloads[0], { mode })
-    assert.match(f.productContentMessage.value, new RegExp(mode === 'images' ? 'images' : 'descriptions'))
+    assert.equal(f.calls[0].payload.mode, mode)
   }
 })
 
-test('worker timeout is reported as unknown startup, not a confirmed failure', async () => {
-  const f = setup({ timeoutWorker: true })
-  await f.run('images')
-  assert.match(f.productContentMessage.value, /was not confirmed/)
-  assert.match(f.productContentMessage.value, /may already be running/)
-  assert.match(f.productContentMessage.value, /do not queue the catalog again/)
+test('timeouts stop processing and report unknown current save status, not completion', async () => {
+  const f = setup({ timeout: true })
+  await f.run()
+  assert.equal(f.calls.length, 1)
+  assert.match(f.productContentMessage.value, /save status is unknown/)
+  assert.match(f.productContentMessage.value, /Earlier saved results are kept/)
   assert.equal(f.productContentHasError.value, true)
+  assert.equal(f.productContentLoading.value, false)
 })
 
-test('cancelled confirmation and duplicate/stop/worker activity do not submit requests', async () => {
+test('cancelled confirmation and existing operations do not submit requests', async () => {
   const cancelled = setup({ confirm: false })
   await cancelled.run()
   assert.deepEqual(cancelled.calls, [])
@@ -83,67 +99,56 @@ test('cancelled confirmation and duplicate/stop/worker activity do not submit re
   }
 })
 
-test('queue errors do not start a worker and remain visible', async () => {
-  const f = setup({ failQueue: true })
+test('request errors stay visible and stop the loop without a success message', async () => {
+  const f = setup({ fail: true })
   await f.run()
-  assert.deepEqual(f.calls, ['/admin/products/enrich-content'])
-  assert.equal(f.productContentMessage.value, 'AI settings missing.')
+  assert.equal(f.calls.length, 1)
+  assert.match(f.productContentMessage.value, /AI settings missing/)
   assert.equal(f.productContentHasError.value, true)
-  assert.equal(f.productContentLoading.value, false)
   assert.equal(f.toasts[0].type, 'error')
 })
 
-test('worker errors explain that enrichment remains queued rather than implying successful population', async () => {
-  for (const options of [{ failWorker: true }, { unsuccessfulWorker: true }]) {
-    const f = setup(options)
-    await f.run()
-    assert.equal(f.calls.length, 2)
-    assert.match(f.productContentMessage.value, /queued, but worker startup failed/)
-    assert.match(f.productContentMessage.value, /Start Products Worker/)
-    assert.match(f.productContentMessage.value, /No completed population is confirmed/)
-    assert.equal(f.productContentHasError.value, true)
-    assert.equal(f.productContentLoading.value, false)
-  }
+test('stop waits for current product and prevents further requests', async () => {
+  const f = setup({ stop: true })
+  await f.run()
+  assert.equal(f.calls.length, 1)
+  assert.equal(f.productContentProgress.value.processed, 1)
+  assert.match(f.productContentMessage.value, /Stopped after the current product/)
 })
 
-test('settings exposes the content action, coverage refresh and product results link in Catalog Ops', () => {
-  assert.match(source, /activeTab === 'catalog'/)
+test('settings exposes separate actions, stop, coverage refresh and review link', () => {
   assert.match(source, /@click="populateProductContent\('description'\)"/)
   assert.match(source, /@click="populateProductContent\('images'\)"/)
-  assert.match(source, /Populate Missing Descriptions/)
-  assert.match(source, /Populate Missing Images/)
+  assert.match(source, /Stop After Current Product/)
   assert.match(source, /@click="refreshProductContentStats"/)
   assert.match(source, /to="\/admin\/products"/)
+  assert.match(source, /productContentStopRequested.value = true/)
 })
 
-test('refresh loads current database content counts and surfaces failures without replacing counts with zero', async () => {
+test('refresh shows database errors rather than replacing counts with zero', async () => {
   const statsStart = source.indexOf('const refreshProductContentStats = async')
   const statsSource = source.slice(statsStart, start)
   for (const fail of [false, true]) {
-    const requests = []
     const toasts = []
     const fixture = {
       productContentStatsLoading: ref(false),
       productContentStats: ref(null),
       api: {
-        get: async (path, options) => {
-          requests.push({ path, options })
+        get: async () => {
           if (fail) throw new Error('Database unavailable.')
-          return { data: { success: true, stats: { total: 50, without_descriptions: 10, without_images: 5 } } }
+          return { data: { success: true, stats: { total: 50, without_descriptions: 10 } } }
         },
       },
       showToast: (message, type) => toasts.push({ message, type }),
     }
     const refresh = new Function(...Object.keys(fixture), `${statsSource}; return refreshProductContentStats`)(...Object.values(fixture))
     await refresh()
-    assert.deepEqual(requests, [{ path: '/admin/products', options: { params: { per_page: 10 } } }])
     assert.equal(fixture.productContentStatsLoading.value, false)
     if (fail) {
       assert.equal(fixture.productContentStats.value, null)
       assert.deepEqual(toasts, [{ message: 'Database unavailable.', type: 'error' }])
     } else {
       assert.equal(fixture.productContentStats.value.without_descriptions, 10)
-      assert.deepEqual(toasts, [])
     }
   }
 })

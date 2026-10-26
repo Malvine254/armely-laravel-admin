@@ -465,4 +465,114 @@ class ProductContentEnrichmentTest extends TestCase
         $this->assertFalse($product->needsDescription());
         $this->assertSame('openai-verified-online', $product->specifications['description_source']);
     }
+
+    public function test_direct_processing_saves_one_product_per_request_without_queueing(): void
+    {
+        Queue::fake();
+        $this->configureAi();
+        $this->admin();
+        $first = $this->product(['description_enrichment_attempted_at' => now()]);
+        $second = $this->product();
+        $supplier = Mockery::mock(TDSynnexService::class);
+        $supplier->shouldReceive('verifiedOnlineProductDetails')->twice()->andReturn([
+            'description' => 'Verified HP workstation with 32 GB memory.', 'warnings' => [],
+        ]);
+        $ai = Mockery::mock(AzureOpenAiChatService::class);
+        $ai->shouldReceive('isConfigured')->andReturnTrue();
+        $ai->shouldReceive('generateProductDescription')->twice()->andReturnNull();
+        $this->app->instance(TDSynnexService::class, $supplier);
+        $this->app->instance(AzureOpenAiChatService::class, $ai);
+        foreach ([$first, $second] as $index => $product) {
+            $this->postJson('/api/v1/admin/products/process-content', [
+                'mode' => 'description', 'after_id' => $index === 0 ? 0 : $first->id,
+            ])->assertOk()->assertJsonPath('data.processed', true)
+                ->assertJsonPath('data.product_id', $product->id)->assertJsonPath('data.result', 'complete');
+            $this->assertSame('Verified HP workstation with 32 GB memory.', $product->fresh()->description);
+        }
+        $this->postJson('/api/v1/admin/products/process-content', [
+            'mode' => 'description', 'after_id' => $second->id,
+        ])->assertOk()->assertJsonPath('data.done', true);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_direct_processing_repairs_only_tagged_bad_ai_text_and_keeps_a_backup_when_research_fails(): void
+    {
+        $bad = 'The HP ZBook is a product by HP. No other details were supplied.';
+        $product = $this->product(['description' => $bad,
+            'specifications' => ['description_source' => 'ai-generated-from-catalog-facts']]);
+        $manual = $this->product(['description' => 'Manual product description.']);
+        $service = $this->providers([]);
+        $result = $service->processNext('description', 0);
+        $this->assertSame('needs_review', $result['result']);
+        $this->assertNull($product->fresh()->description);
+        $this->assertSame($bad, $product->fresh()->specifications['description_repair_backup']);
+        $rows = Product::preserveEnrichedContent([[
+            'tdsynnex_product_id' => $product->tdsynnex_product_id,
+            'description' => '', 'specifications' => json_encode(['source' => 'new-feed']),
+        ]]);
+        $this->assertSame($bad, json_decode($rows[0]['specifications'], true)['description_repair_backup']);
+        $this->assertSame('Manual product description.', $manual->fresh()->description);
+        $this->assertTrue($service->processNext('description', $product->id)['done']);
+    }
+
+    public function test_direct_image_processing_skips_usable_images_and_keeps_descriptions(): void
+    {
+        $existing = $this->product(['images' => [['imageUrl' => 'https://example.com/existing.jpg']]]);
+        $missing = $this->product(['description' => 'Manual description.']);
+        $service = $this->providers(['image_url' => 'https://example.com/verified.jpg']);
+        $result = $service->processNext('images', 0);
+        $this->assertSame($missing->id, $result['product_id']);
+        $this->assertSame('complete', $result['result']);
+        $this->assertSame('Manual description.', $missing->fresh()->description);
+        $this->assertSame('https://example.com/verified.jpg', $missing->fresh()->images[0]['imageUrl']);
+        $this->assertNull($existing->fresh()->images_enrichment_attempted_at);
+        $this->assertTrue($service->processNext('images', $missing->id)['done']);
+    }
+
+    public function test_direct_processing_does_not_research_a_product_locked_by_another_request(): void
+    {
+        $product = $this->product();
+        $service = new ProductContentEnrichmentService(
+            Mockery::mock(TDSynnexService::class), Mockery::mock(AzureOpenAiChatService::class)
+        );
+        $lock = Cache::lock('store:content-product:'.$product->id, 180);
+        $this->assertTrue($lock->get());
+        try {
+            $result = $service->processNext('description', 0);
+            $this->assertFalse($result['processed']);
+            $this->assertSame($product->id, $result['after_id']);
+            $this->assertStringContainsString('another request', $result['message']);
+            $this->assertNull($product->fresh()->content_enrichment_attempted_at);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    public function test_direct_processing_is_admin_only_and_reports_missing_migrations(): void
+    {
+        $this->configureAi();
+        $this->postJson('/api/v1/admin/products/process-content', ['mode' => 'description', 'after_id' => 0])
+            ->assertUnauthorized();
+        $this->actingAs(new User(['role' => 'customer']), 'sanctum');
+        $this->postJson('/api/v1/admin/products/process-content', ['mode' => 'description', 'after_id' => 0])
+            ->assertForbidden();
+        $this->admin();
+        $this->postJson('/api/v1/admin/products/process-content', ['mode' => 'wrong', 'after_id' => -1])
+            ->assertUnprocessable();
+        Schema::table('products', fn (Blueprint $table) => $table->dropColumn('description_enrichment_attempted_at'));
+        $this->postJson('/api/v1/admin/products/process-content', ['mode' => 'description', 'after_id' => 0])
+            ->assertStatus(503)->assertJsonPath('success', false);
+    }
+
+    public function test_direct_processing_reports_product_failures_instead_of_success(): void
+    {
+        $this->configureAi();
+        $this->admin();
+        $this->product();
+        $supplier = Mockery::mock(TDSynnexService::class);
+        $supplier->shouldReceive('verifiedOnlineProductDetails')->once()->andThrow(new \RuntimeException('Provider failed.'));
+        $this->app->instance(TDSynnexService::class, $supplier);
+        $this->postJson('/api/v1/admin/products/process-content', ['mode' => 'description', 'after_id' => 0])
+            ->assertStatus(503)->assertJsonPath('success', false);
+    }
 }

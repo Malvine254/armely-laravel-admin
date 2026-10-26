@@ -54,6 +54,46 @@ class ProductContentEnrichmentService
             || ($mode !== 'description' && ! $product->hasUsableImage());
     }
 
+    public function processNext(string $mode, int $afterId): array
+    {
+        $this->validateMode($mode);
+        $query = Product::query()->where('id', '>', $afterId)->orderBy('id');
+        if ($mode === 'description') {
+            $query->missingDescription();
+        }
+        // Bound each HTTP scan even when most catalog products already have images.
+        $batch = $query->limit(100)->get();
+        foreach ($batch as $product) {
+            $afterId = (int) $product->id;
+            if (! $this->needsContent($product, $mode)) {
+                continue;
+            }
+            $lock = Cache::lock('store:content-product:'.$product->id, 180);
+            if (! $lock->get()) {
+                return ['done' => false, 'after_id' => $afterId, 'processed' => false,
+                    'message' => 'Product '.$product->id.' is already being processed by another request.'];
+            }
+            try {
+                $this->enrich($product, $mode);
+                $product->refresh();
+                $ready = ! $this->needsContent($product, $mode);
+
+                return [
+                    'done' => false, 'after_id' => $afterId, 'processed' => true,
+                    'product_id' => $product->id, 'product_name' => $product->product_name,
+                    'result' => $ready ? 'complete' : 'needs_review',
+                    'warnings' => (array) data_get($product->specifications, 'content_enrichment_warnings', []),
+                    'message' => $ready ? 'Product content saved.' : 'No verified content found; product needs research.',
+                ];
+            } finally {
+                $lock->release();
+            }
+        }
+
+        return ['done' => $batch->count() < 100, 'after_id' => $afterId, 'processed' => false,
+            'message' => $batch->count() < 100 ? 'Catalog scan finished.' : 'Scanning for products with missing content.'];
+    }
+
     public function enrich(Product $product, string $mode = 'both'): void
     {
         $this->validateMode($mode);
@@ -98,6 +138,12 @@ class ProductContentEnrichmentService
             }
             // Recheck under the lock: an administrator may have supplied content during the lookup.
             $spec = (array) $current->specifications;
+            if ($mode !== 'images' && ($spec['description_source'] ?? '') === 'ai-generated-from-catalog-facts'
+                && $description === '') {
+                $spec['description_repair_backup'] ??= (string) $current->description;
+                $current->description = null;
+                $spec['description_source'] = 'needs-research';
+            }
             if ($mode !== 'images' && $current->needsDescription() && $description !== '') {
                 $current->description = $description;
                 $spec['description_source'] = $descriptionSource;
@@ -114,6 +160,7 @@ class ProductContentEnrichmentService
             if ($mode !== 'description' && ! $current->hasUsableImage()) {
                 $warnings[] = 'No confidently matched product image was found. Check the search provider configuration or supply a verified image manually.';
             }
+            $current->specifications = $spec;
             $spec['content_enrichment_status'] = ! $current->needsDescription() && $current->hasUsableImage()
                 ? 'complete' : 'needs_review';
             $spec['content_enrichment_warnings'] = array_values(array_unique($warnings));

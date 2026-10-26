@@ -147,7 +147,8 @@ class Product extends Model
             $spec = is_array($row['specifications'] ?? null)
                 ? $row['specifications'] : json_decode($row['specifications'] ?? '{}', true, flags: JSON_THROW_ON_ERROR);
             foreach ($saved as $key => $value) {
-                if ($key === 'description_source' || str_starts_with($key, 'online_') || str_starts_with($key, 'content_enrichment_')) {
+                if ($key === 'description_source' || str_starts_with($key, 'description_repair_')
+                    || str_starts_with($key, 'online_') || str_starts_with($key, 'content_enrichment_')) {
                     $spec[$key] = $value;
                 }
             }

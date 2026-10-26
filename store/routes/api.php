@@ -192,6 +192,7 @@ Route::prefix('v1')->group(function () {
         // Dashboard stats
         Route::get('/admin/dashboard/stats', [AdminController::class, 'getDashboardStats']);
         Route::get('/admin/products', [AdminImportedProductController::class, 'all']);
+        Route::post('/admin/products/process-content', [AdminImportedProductController::class, 'processContent'])->middleware('throttle:60,1');
         Route::post('/admin/products/enrich-content', [AdminImportedProductController::class, 'enrichContent'])->middleware('throttle:2,1');
         Route::post('/admin/products/{product}/enrich-content', [AdminImportedProductController::class, 'enrichContent'])->whereNumber('product')->middleware('throttle:20,1');
         Route::get('/admin/imported-products', [AdminImportedProductController::class, 'index']);

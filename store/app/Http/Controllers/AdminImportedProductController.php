@@ -7,11 +7,13 @@ use App\Jobs\EnrichProductContentJob;
 use App\Jobs\QueueMissingProductContentJob;
 use App\Models\Product;
 use App\Services\AzureOpenAiChatService;
+use App\Services\ProductContentEnrichmentService;
 use App\Services\TDSynnexService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class AdminImportedProductController extends Controller
 {
@@ -145,6 +147,37 @@ class AdminImportedProductController extends Controller
             'mode' => $mode,
             'message' => 'Background enrichment requested. The products-sync worker fills missing content only; refresh to see progress.',
         ], 202);
+    }
+
+    public function processContent(Request $request, AzureOpenAiChatService $ai, ProductContentEnrichmentService $service): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+        $validated = $request->validate([
+            'mode' => ['required', 'in:description,images'],
+            'after_id' => ['required', 'integer', 'min:0'],
+        ]);
+        if (! $ai->isConfigured()) {
+            return response()->json(['success' => false, 'message' => 'Configure the store AZURE_OPENAI_* settings before processing content.'], 422);
+        }
+        foreach (['content_enrichment_attempted_at', 'description_enrichment_attempted_at', 'images_enrichment_attempted_at'] as $column) {
+            if (! Schema::hasColumn('products', $column)) {
+                return response()->json(['success' => false,
+                    'message' => 'Store content migrations are missing. Deploy php artisan migrate --force from the store directory before running.'], 503);
+            }
+        }
+        // One product per request; do not depend on exec(), PHP CLI or a queue worker.
+        if (function_exists('set_time_limit')) {
+            set_time_limit(150);
+        }
+        try {
+            $result = $service->processNext($validated['mode'], (int) $validated['after_id']);
+        } catch (\Illuminate\Http\Client\ConnectionException|\Illuminate\Http\Client\RequestException|\RuntimeException|QueryException $error) {
+            Log::error('Admin product content processing failed.', ['mode' => $validated['mode'], 'exception' => $error]);
+            return response()->json(['success' => false,
+                'message' => 'Product processing failed. Previous results are saved. Check the store logs and retry; no completion is confirmed.'], 503);
+        }
+
+        return response()->json(['success' => true, 'data' => $result]);
     }
 
     public function index(Request $request): JsonResponse
