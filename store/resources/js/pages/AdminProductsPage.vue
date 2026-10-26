@@ -16,7 +16,10 @@
             <p class="mt-1 max-w-3xl text-sm text-slate-600">Fill missing descriptions from known product facts and find AI-verified matching images across the entire catalog. Existing content is kept. Uncertain images stay missing for review.</p>
             <p class="mt-1 text-xs text-slate-500">Runs in the background using the products-sync queue and configured AI/search providers. API usage charges may apply. Unresolved products are retried after 24 hours.</p>
           </div>
-          <button :disabled="enriching" @click="enrichContent()" class="rounded-lg bg-[#2F5597] px-5 py-2.5 font-semibold text-white disabled:opacity-50">{{ enriching ? 'Submitting...' : 'Fill missing content - all products' }}</button>
+          <div class="flex flex-wrap gap-2">
+            <button :disabled="enriching" @click="enrichContent(null, 'description')" class="rounded-lg bg-[#2F5597] px-5 py-2.5 font-semibold text-white disabled:opacity-50">Fill Missing Descriptions</button>
+            <button :disabled="enriching" @click="enrichContent(null, 'images')" class="rounded-lg bg-[#2F5597] px-5 py-2.5 font-semibold text-white disabled:opacity-50">Fill Missing Images</button>
+          </div>
         </div>
         <p v-if="enrichmentMessage" role="status" class="mt-3 text-sm text-slate-700">{{ enrichmentMessage }}</p>
       </div>
@@ -53,7 +56,8 @@
                   <p v-if="product.description_source" class="text-xs text-slate-500">{{ product.description_source }}</p>
                   <p v-if="product.content_status" class="mt-1 text-xs text-slate-500">Last result: {{ product.content_status }}</p>
                   <p v-for="warning in product.content_warnings" :key="warning" class="mt-1 text-xs text-amber-800">{{ warning }}</p>
-                  <button v-if="!product.has_description || !product.has_image" :disabled="enriching" @click="enrichContent(product.id)" class="mt-2 font-bold text-[#2F5597] disabled:opacity-40">Fill / retry missing content</button>
+                  <button v-if="!product.has_description" :disabled="enriching" @click="enrichContent(product.id, 'description')" class="mt-2 mr-3 font-bold text-[#2F5597] disabled:opacity-40">Fill / retry description</button>
+                  <button v-if="!product.has_image" :disabled="enriching" @click="enrichContent(product.id, 'images')" class="mt-2 font-bold text-[#2F5597] disabled:opacity-40">Find / retry image</button>
                 </td>
                 <td class="px-4 text-sm text-slate-500">{{ formatDate(product.updated_at) }}</td>
               </tr>
@@ -110,12 +114,12 @@ const load = async (page = 1) => {
   }
 }
 
-const enrichContent = async (productId = null) => {
+const enrichContent = async (productId = null, mode = 'both') => {
   enriching.value = true
   enrichmentMessage.value = ''
   try {
     const path = productId ? `/admin/products/${productId}/enrich-content` : '/admin/products/enrich-content'
-    const response = await api.post(path)
+    const response = await api.post(path, { mode })
     enrichmentMessage.value = response.data.message
     toast.addToast(response.data.message, 'success')
   } catch (error) {

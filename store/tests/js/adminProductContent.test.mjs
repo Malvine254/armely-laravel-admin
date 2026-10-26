@@ -8,8 +8,9 @@ const end = source.indexOf('\nconst startProductsSyncWorker =', start)
 const actionSource = source.slice(start, end)
 const ref = value => ({ value })
 
-const setup = ({ confirm = true, failQueue = false, failWorker = false, unsuccessfulWorker = false } = {}) => {
+const setup = ({ confirm = true, failQueue = false, failWorker = false, unsuccessfulWorker = false, timeoutWorker = false } = {}) => {
   const calls = []
+  const payloads = []
   const toasts = []
   const fixture = {
     productContentLoading: ref(false),
@@ -19,12 +20,14 @@ const setup = ({ confirm = true, failQueue = false, failWorker = false, unsucces
     productContentHasError: ref(false),
     window: { confirm: () => confirm },
     api: {
-      post: async path => {
+      post: async (path, payload) => {
         calls.push(path)
+        payloads.push(payload)
         if (path === '/admin/products/enrich-content' && failQueue) {
           throw { response: { data: { message: 'AI settings missing.' } } }
         }
         if (path.endsWith('/start-worker')) {
+          if (timeoutWorker) throw { code: 'ECONNABORTED', message: 'timeout of 45000ms exceeded' }
           if (failWorker) throw { response: { data: { message: 'Worker launch unavailable.' } } }
           if (unsuccessfulWorker) return { data: { success: false, message: 'Worker launch rejected.' } }
           return { data: { success: true, message: 'Worker started (PID 123).' } }
@@ -34,8 +37,9 @@ const setup = ({ confirm = true, failQueue = false, failWorker = false, unsucces
     },
     showToast: (message, type) => toasts.push({ message, type }),
   }
-  const run = new Function(...Object.keys(fixture), `${actionSource}; return populateProductContent`)(...Object.values(fixture))
-  return { ...fixture, run, calls, toasts }
+  const action = new Function(...Object.keys(fixture), `${actionSource}; return populateProductContent`)(...Object.values(fixture))
+  const run = (mode = 'description') => action(mode)
+  return { ...fixture, run, calls, payloads, toasts }
 }
 
 test('settings queues catalog enrichment before starting the worker and does not claim completion', async () => {
@@ -47,6 +51,24 @@ test('settings queues catalog enrichment before starting the worker and does not
   assert.equal(f.productContentHasError.value, false)
   assert.equal(f.productContentLoading.value, false)
   assert.equal(f.toasts[0].type, 'success')
+})
+
+test('each button submits only its selected enrichment mode', async () => {
+  for (const mode of ['description', 'images']) {
+    const f = setup()
+    await f.run(mode)
+    assert.deepEqual(f.payloads[0], { mode })
+    assert.match(f.productContentMessage.value, new RegExp(mode === 'images' ? 'images' : 'descriptions'))
+  }
+})
+
+test('worker timeout is reported as unknown startup, not a confirmed failure', async () => {
+  const f = setup({ timeoutWorker: true })
+  await f.run('images')
+  assert.match(f.productContentMessage.value, /was not confirmed/)
+  assert.match(f.productContentMessage.value, /may already be running/)
+  assert.match(f.productContentMessage.value, /do not queue the catalog again/)
+  assert.equal(f.productContentHasError.value, true)
 })
 
 test('cancelled confirmation and duplicate/stop/worker activity do not submit requests', async () => {
@@ -86,8 +108,10 @@ test('worker errors explain that enrichment remains queued rather than implying 
 
 test('settings exposes the content action, coverage refresh and product results link in Catalog Ops', () => {
   assert.match(source, /activeTab === 'catalog'/)
-  assert.match(source, /@click="populateProductContent"/)
-  assert.match(source, /Populate Missing Descriptions & Images/)
+  assert.match(source, /@click="populateProductContent\('description'\)"/)
+  assert.match(source, /@click="populateProductContent\('images'\)"/)
+  assert.match(source, /Populate Missing Descriptions/)
+  assert.match(source, /Populate Missing Images/)
   assert.match(source, /@click="refreshProductContentStats"/)
   assert.match(source, /to="\/admin\/products"/)
 })

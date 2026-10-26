@@ -126,6 +126,8 @@ class AdminImportedProductController extends Controller
     public function enrichContent(Request $request, AzureOpenAiChatService $ai, ?Product $product = null): JsonResponse
     {
         $this->authorizeAdmin($request);
+        $validated = $request->validate(['mode' => ['sometimes', 'required', 'in:both,description,images']]);
+        $mode = $validated['mode'] ?? 'both';
         if (!$ai->isConfigured()) {
             return response()->json([
                 'success' => false,
@@ -133,13 +135,14 @@ class AdminImportedProductController extends Controller
             ], 422);
         }
         if ($product) {
-            EnrichProductContentJob::dispatch($product->id);
+            EnrichProductContentJob::dispatch($product->id, $mode);
         } else {
-            QueueMissingProductContentJob::dispatch();
+            QueueMissingProductContentJob::dispatch(0, $mode);
         }
 
         return response()->json([
             'success' => true,
+            'mode' => $mode,
             'message' => 'Background enrichment requested. The products-sync worker fills missing content only; refresh to see progress.',
         ], 202);
     }

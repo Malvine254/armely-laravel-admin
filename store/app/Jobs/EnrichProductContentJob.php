@@ -24,22 +24,25 @@ class EnrichProductContentJob implements ShouldBeUnique, ShouldQueue
 
     public array $backoff = [60, 300];
 
-    public function __construct(public int $productId)
+    public string $mode = 'both';
+
+    public function __construct(public int $productId, string $mode = 'both')
     {
+        $this->mode = $mode;
         $this->onConnection('database');
         $this->onQueue('products-sync');
     }
 
     public function uniqueId(): string
     {
-        return (string) $this->productId;
+        return $this->productId.':'.$this->mode;
     }
 
     public function handle(ProductContentEnrichmentService $service): void
     {
         $product = Product::find($this->productId);
         if ($product) {
-            $service->enrich($product);
+            $service->enrich($product, $this->mode);
         }
     }
 
@@ -52,6 +55,12 @@ class EnrichProductContentJob implements ShouldBeUnique, ShouldQueue
             $spec['content_enrichment_warnings'] = ['Product enrichment failed. Check the queue logs and retry.'];
             $product->specifications = $spec;
             $product->content_enrichment_attempted_at = now();
+            if ($this->mode !== 'images') {
+                $product->description_enrichment_attempted_at = now();
+            }
+            if ($this->mode !== 'description') {
+                $product->images_enrichment_attempted_at = now();
+            }
             $product->save();
         }
         Log::error('Product content enrichment failed.', [

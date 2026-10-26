@@ -4397,10 +4397,14 @@ class AdminController extends Controller
 
         try {
             $logPath = storage_path('logs/products-sync-worker.log');
+            $php = PHP_SAPI === 'cli' ? PHP_BINARY : PHP_BINDIR.'/php';
+            if (!is_executable($php)) {
+                throw new \RuntimeException('A PHP CLI executable is required to start the queue worker. Configure a hosting-managed products-sync worker.');
+            }
             $command = sprintf(
-                'cd %s && nohup %s %s queue:work database --queue=products-metadata,products-sync --sleep=1 --timeout=3600 --tries=1 --stop-when-empty --no-interaction >> %s 2>&1 < /dev/null & echo $!',
+                '(cd %s && exec nohup %s %s queue:work database --queue=products-metadata,products-sync --sleep=1 --timeout=3600 --tries=3 --stop-when-empty --no-interaction) >> %s 2>&1 < /dev/null & echo $!',
                 escapeshellarg(base_path()),
-                escapeshellarg(PHP_BINARY),
+                escapeshellarg($php),
                 escapeshellarg(base_path('artisan')),
                 escapeshellarg($logPath)
             );
@@ -4413,6 +4417,13 @@ class AdminController extends Controller
 
             if ($exitCode !== 0 || $pid <= 0) {
                 throw new \RuntimeException('The detached worker process could not be created.');
+            }
+            usleep(200000);
+            $probe = [];
+            $probeExitCode = 1;
+            exec('kill -0 '.(int) $pid.' 2>/dev/null', $probe, $probeExitCode);
+            if ($probeExitCode !== 0) {
+                throw new \RuntimeException('The worker exited immediately. Check storage/logs/products-sync-worker.log before retrying.');
             }
 
             Log::info('Products sync worker started from Catalog Ops', [

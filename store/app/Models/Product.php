@@ -41,6 +41,8 @@ class Product extends Model
         'storefront_pinned_at',
         'image_enrichment_attempted_at',
         'content_enrichment_attempted_at',
+        'description_enrichment_attempted_at',
+        'images_enrichment_attempted_at',
         'search_imported_at',
         'search_import_query',
         'search_import_review_status',
@@ -82,6 +84,8 @@ class Product extends Model
         'storefront_pinned_at' => 'datetime',
         'image_enrichment_attempted_at' => 'datetime',
         'content_enrichment_attempted_at' => 'datetime',
+        'description_enrichment_attempted_at' => 'datetime',
+        'images_enrichment_attempted_at' => 'datetime',
         'search_imported_at' => 'datetime',
         'search_import_reviewed_at' => 'datetime',
     ];

@@ -21,16 +21,24 @@ class QueueMissingProductContentJob implements ShouldBeUnique, ShouldQueue
 
     public int $uniqueFor = 3600;
 
-    public function __construct(public int $limit = 0)
+    public string $mode = 'both';
+
+    public function __construct(public int $limit = 0, string $mode = 'both')
     {
+        $this->mode = $mode;
         $this->onConnection('database');
         $this->onQueue('products-sync');
     }
 
+    public function uniqueId(): string
+    {
+        return $this->mode;
+    }
+
     public function handle(ProductContentEnrichmentService $service): void
     {
-        $queued = $service->queueMissing($this->limit);
-        Log::info('Missing product content queued.', ['queued' => $queued]);
+        $queued = $service->queueMissing($this->limit, $this->mode);
+        Log::info('Missing product content queued.', ['queued' => $queued, 'mode' => $this->mode]);
     }
 
     public function failed(?\Throwable $error): void

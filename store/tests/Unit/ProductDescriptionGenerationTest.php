@@ -23,9 +23,9 @@ class ProductDescriptionGenerationTest extends TestCase
     public function test_generates_plain_text_using_supplied_facts_and_json_output(): void
     {
         $description = 'HP ZBook 8 workstation, manufacturer part ABC123, with 32 GB memory.';
-        Http::fake(['description.example.com/*' => Http::response([
+        Http::fakeSequence('description.example.com/*')->push([
             'choices' => [['message' => ['content' => json_encode(['description' => $description])]]],
-        ])]);
+        ])->push(['choices' => [['message' => ['content' => '{"supported":true}']]]]);
         $facts = ['product_name' => 'HP ZBook 8', 'manufacturer' => 'HP', 'part_number' => 'ABC123',
             'verified_specifications' => [['name' => 'Memory', 'value' => '32 GB']]];
         $this->assertSame($description, app(AzureOpenAiChatService::class)->generateProductDescription($facts));
@@ -59,5 +59,21 @@ class ProductDescriptionGenerationTest extends TestCase
         Http::fake();
         $this->assertNull(app(AzureOpenAiChatService::class)->generateProductDescription([]));
         Http::assertNothingSent();
+    }
+
+    public function test_generated_claims_rejected_by_fact_check_are_not_published(): void
+    {
+        $responses = Http::fakeSequence('description.example.com/*');
+        foreach (['{"supported":false}', '{"supported":"true"}', 'invalid', '{}'] as $verdict) {
+            $responses->push(['choices' => [['message' => ['content' => json_encode([
+                'description' => 'HP ZBook workstation includes an unsupported five-year warranty.',
+            ])]]]]);
+            $responses->push(['choices' => [['message' => ['content' => $verdict]]]]);
+        }
+        for ($i = 0; $i < 4; $i++) {
+            $this->assertNull(app(AzureOpenAiChatService::class)->generateProductDescription([
+                'product_name' => 'HP ZBook 8', 'verified_website_description' => 'HP ZBook 8 workstation.',
+            ]));
+        }
     }
 }

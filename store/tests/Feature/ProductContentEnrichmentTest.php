@@ -8,6 +8,7 @@ use App\Jobs\EnrichProductContentJob;
 use App\Jobs\QueueMissingProductContentJob;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\AzureGraphMailService;
 use App\Services\AzureOpenAiChatService;
 use App\Services\ProductContentEnrichmentService;
 use App\Services\TDSynnexService;
@@ -26,6 +27,8 @@ class ProductContentEnrichmentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Any attempt to send a sync email during content lookup fails the test.
+        $this->app->instance(AzureGraphMailService::class, Mockery::mock(AzureGraphMailService::class));
         $this->withoutMiddleware(EnsureUserIsActive::class);
         Http::preventStrayRequests();
         Schema::create('app_settings', function (Blueprint $table): void {
@@ -50,6 +53,8 @@ class ProductContentEnrichmentTest extends TestCase
             $table->integer('quantity')->default(5);
             $table->boolean('is_available')->default(true);
             $table->timestamp('content_enrichment_attempted_at')->nullable();
+            $table->timestamp('description_enrichment_attempted_at')->nullable();
+            $table->timestamp('images_enrichment_attempted_at')->nullable();
             $table->timestamps();
         });
     }
@@ -76,7 +81,7 @@ class ProductContentEnrichmentTest extends TestCase
         if ($generated !== null) {
             $ai->shouldReceive('generateProductDescription')->once()->andReturn($generated);
         } else {
-            $ai->shouldNotReceive('generateProductDescription');
+            $ai->shouldReceive('generateProductDescription')->zeroOrMoreTimes()->andReturnNull();
         }
 
         return new ProductContentEnrichmentService($supplier, $ai);
@@ -159,7 +164,7 @@ class ProductContentEnrichmentTest extends TestCase
             return ['description' => 'Online description to ignore.', 'image_url' => 'https://images.example.com/online.jpg'];
         });
         $ai = Mockery::mock(AzureOpenAiChatService::class);
-        $ai->shouldNotReceive('generateProductDescription');
+        $ai->shouldReceive('generateProductDescription')->once()->andReturnNull();
         (new ProductContentEnrichmentService($supplier, $ai))->enrich($product);
         $this->assertSame('Manual description entered during lookup.', $product->fresh()->description);
         $this->assertSame('https://images.example.com/manual.jpg', $product->fresh()->images[0]['imageUrl']);
@@ -294,6 +299,7 @@ class ProductContentEnrichmentTest extends TestCase
                     'image_index' => 0, 'image_confidence' => $confidence,
                 ])]]],
             ]);
+            $responses->push(['choices' => [['message' => ['content' => '{}']]]]);
         }
         foreach ([0.949, 0.95] as $confidence) {
             $product = $this->product();
@@ -347,7 +353,7 @@ class ProductContentEnrichmentTest extends TestCase
             return ['description' => 'Old model description.', 'image_url' => 'https://images.example.com/old.jpg'];
         });
         $ai = Mockery::mock(AzureOpenAiChatService::class);
-        $ai->shouldNotReceive('generateProductDescription');
+        $ai->shouldReceive('generateProductDescription')->once()->andReturnNull();
         try {
             (new ProductContentEnrichmentService($supplier, $ai))->enrich($product);
             $this->fail('Changed product identity should trigger a retry.');
@@ -367,5 +373,72 @@ class ProductContentEnrichmentTest extends TestCase
         $migration->up();
         $this->assertTrue(Schema::hasColumn('products', 'content_enrichment_attempted_at'));
         $this->assertNull($this->product()->content_enrichment_attempted_at);
+    }
+
+    public function test_description_only_does_not_assign_images_and_image_only_does_not_generate_or_replace_descriptions(): void
+    {
+        $product = $this->product();
+        $this->providers([
+            'description' => 'Verified workstation description.',
+            'image_url' => 'https://images.example.com/zbook.jpg',
+        ])->enrich($product, 'description');
+        $product->refresh();
+        $this->assertSame('Verified workstation description.', $product->description);
+        $this->assertSame([], $product->images);
+        $this->assertNotNull($product->description_enrichment_attempted_at);
+        $this->assertNull($product->images_enrichment_attempted_at);
+        $this->assertSame('complete', $product->specifications['content_enrichment_result']);
+
+        $imageOnly = $this->product();
+        $this->providers([
+            'description' => 'Must not be attached.',
+            'image_url' => 'https://images.example.com/zbook.jpg',
+        ])->enrich($imageOnly, 'images');
+        $imageOnly->refresh();
+        $this->assertNull($imageOnly->description);
+        $this->assertSame('https://images.example.com/zbook.jpg', $imageOnly->images[0]['imageUrl']);
+        $this->assertNotNull($imageOnly->images_enrichment_attempted_at);
+        $this->assertNull($imageOnly->description_enrichment_attempted_at);
+    }
+
+    public function test_image_queue_cooldown_is_independent_of_description_attempts(): void
+    {
+        Queue::fake();
+        $product = $this->product(['description_enrichment_attempted_at' => now(),
+            'content_enrichment_attempted_at' => now()]);
+        $service = app(ProductContentEnrichmentService::class);
+        $this->assertSame(0, $service->queueMissing(0, 'description'));
+        $this->assertSame(1, $service->queueMissing(0, 'images'));
+        Queue::assertPushed(EnrichProductContentJob::class, fn ($job) => $job->productId === $product->id && $job->mode === 'images');
+        $this->assertNotSame((new EnrichProductContentJob($product->id, 'images'))->uniqueId(),
+            (new EnrichProductContentJob($product->id, 'description'))->uniqueId());
+        $this->assertNotSame((new QueueMissingProductContentJob(0, 'images'))->uniqueId(),
+            (new QueueMissingProductContentJob(0, 'description'))->uniqueId());
+    }
+
+    public function test_admin_enrichment_validates_and_propagates_selected_mode(): void
+    {
+        Queue::fake();
+        $this->configureAi();
+        $this->admin();
+        $product = $this->product();
+        $this->postJson('/api/v1/admin/products/enrich-content', ['mode' => 'images'])
+            ->assertStatus(202)->assertJsonPath('mode', 'images');
+        $this->postJson("/api/v1/admin/products/{$product->id}/enrich-content", ['mode' => 'description'])
+            ->assertStatus(202)->assertJsonPath('mode', 'description');
+        Queue::assertPushed(QueueMissingProductContentJob::class, fn ($job) => $job->mode === 'images');
+        Queue::assertPushed(EnrichProductContentJob::class, fn ($job) => $job->mode === 'description');
+        $this->postJson("/api/v1/admin/products/{$product->id}/enrich-content", ['mode' => 'invalid'])
+            ->assertUnprocessable();
+    }
+
+    public function test_separate_attempt_migration_is_reversible(): void
+    {
+        $migration = require database_path('migrations/2026_10_26_140000_add_separate_content_attempts_to_products.php');
+        $migration->down();
+        $this->assertFalse(Schema::hasColumn('products', 'images_enrichment_attempted_at'));
+        $migration->up();
+        $this->assertTrue(Schema::hasColumn('products', 'images_enrichment_attempted_at'));
+        $this->assertTrue(Schema::hasColumn('products', 'description_enrichment_attempted_at'));
     }
 }

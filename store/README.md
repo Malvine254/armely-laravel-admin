@@ -9,16 +9,19 @@
 
 ## Catalog-wide AI descriptions and missing images
 
-Store admin **All Products** has a **Fill missing content - all products**
-button, per-product retries, a missing-description filter, coverage counts,
+Store admin **All Products** has separate **Fill Missing Descriptions** and
+**Fill Missing Images** buttons, per-product retries, a missing-description filter, coverage counts,
 description previews, and last-result warnings. This applies to every saved store
 product, not just outside-catalog imports or currently visible storefront items.
 Existing descriptions and usable images are not replaced by this process.
 Blank descriptions and descriptions identical to the title need enrichment.
 
 You can also run this directly from **Settings > Catalog Ops > AI Product
-Descriptions & Images**. Click **Populate Missing Descriptions & Images** and
-confirm. It queues enrichment for all eligible saved products, then calls the
+Descriptions & Images**. Click **Populate Missing Descriptions** or
+**Populate Missing Images** and confirm. Each action changes only the selected
+content type, with independent 24-hour retry cooldowns and unique jobs. The
+All Products page also offers separate bulk and per-product actions.
+It queues enrichment for all eligible saved products, then calls the
 existing **Start Products Worker** action so a supported host can process and save
 the results without terminal commands. **Refresh Content Counts** shows remaining
 missing descriptions/images; **Review Product Results** opens per-product warnings
@@ -27,14 +30,31 @@ failure and never claims the database population has finished merely because it
 was queued. If worker startup is blocked (including on Windows), the existing
 hosting-managed `products-sync` worker is required. The database must be online
 and the deployment migration installed before running.
+Deploy the separate-attempt timestamps with `php artisan migrate --force`.
+The worker launcher uses the PHP CLI executable (not PHP-FPM) and redirects the
+entire background process group so the HTTP request does not wait for queue work.
+Immediate process exits are reported explicitly. A browser timeout means startup
+is unknown, not that the worker definitely failed: refresh counts and inspect
+`storage/logs/products-sync-worker.log` before starting another worker. Previously
+queued combined enrichment jobs still process both types; the new buttons do not
+cancel existing work.
+Description/image enrichment sends no email notifications. Existing product,
+price and availability synchronization emails remain unchanged.
 
 The existing Icecat/SerpAPI lookup retrieves evidence using the saved supplier
 identity. The existing vision-capable Azure OpenAI deployment verifies descriptions
 and candidate images; only a matching image with reported confidence >= 0.95 is
-assigned. When no verified description is available, AI writes a factual paragraph
-from the saved title, manufacturer, part number and verified specifications only.
+assigned. AI writes an original description using the verified website description,
+source references, exact saved title, manufacturer, part number and verified
+specifications. General knowledge may explain confirmed features in neutral terms
+but must not establish additional product-specific facts. A second AI fact-check
+must approve every product-specific claim before generated text is saved. If
+generation or fact-checking fails, an already verified website excerpt is retained;
+without one, the description stays missing for review. No evidence means at most
+a short identity-only paragraph, not an invented specification sheet.
 It must not infer missing specifications, compatibility, warranty, or claims.
-Generated text is marked `ai-generated-from-catalog-facts` for review. AI output
+Generated text is marked `ai-generated-from-verified-web-evidence` or
+`ai-generated-from-catalog-facts` for review. AI output
 can still be imperfect: review generated descriptions and image matches.
 Enrichment metadata and tagged AI content survive subsequent catalog imports/syncs.
 No model-generated image URLs or synthetic product images are used.
