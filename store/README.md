@@ -63,11 +63,18 @@ specifications. General knowledge may explain confirmed features in neutral term
 but must not establish additional product-specific facts. A second AI fact-check
 must approve every product-specific claim before generated text is saved. If
 generation or fact-checking fails, an already verified website excerpt is retained;
-without one, the description stays missing for review. Without verified website
-text or specifications, generation is skipped: identity-only paragraphs are not
-published as researched descriptions.
-It must not infer missing specifications, compatibility, warranty, or claims.
-Generated text is marked `ai-generated-from-verified-web-evidence` for review.
+without one, and without website specifications, AI may generate a conservative
+fallback from the saved title, manufacturer and part number. General knowledge
+can explain the ordinary purpose of a product category clearly identified by
+the title, but cannot establish model-specific facts from memory. Ambiguous titles
+must remain missing if a useful description cannot be supported. Both generation
+paths require a second claim check; failed output is never saved.
+Neither path may invent missing specifications, compatibility, warranty or claims.
+Website-grounded text is marked `ai-generated-from-verified-web-evidence`.
+Title-based text is marked `ai-generated-from-title`, counts as populated, and
+displays **AI title-based - review** with an explicit warning that it is not
+website-verified. Manual runs and queued jobs use the same fallback policy;
+image matching still requires the existing verified evidence/confidence checks.
 Older `ai-generated-from-catalog-facts` descriptions are marked **Needs research**,
 included in missing-description counts, and eligible for replacement, even during
 the normal retry cooldown. Manual and verified descriptions stay untouched. AI output

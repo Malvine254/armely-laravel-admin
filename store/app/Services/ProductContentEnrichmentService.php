@@ -107,7 +107,7 @@ class ProductContentEnrichmentService
         $warnings = (array) ($details['warnings'] ?? []);
         $verifiedSpecs = (array) (($details['specifications'] ?? []) ?: data_get($product->specifications, 'online_specifications', []));
         $hasEvidence = $description !== '' || $verifiedSpecs !== [];
-        if ($mode !== 'images' && $product->needsDescription() && $hasEvidence) {
+        if ($mode !== 'images' && $product->needsDescription()) {
             $verifiedDescription = $description;
             $generated = $this->ai->generateProductDescription([
                 'product_name' => (string) $product->product_name,
@@ -116,17 +116,17 @@ class ProductContentEnrichmentService
                 'verified_website_description' => $verifiedDescription,
                 'website_sources' => (array) ($details['sources'] ?? []),
                 'verified_specifications' => $verifiedSpecs,
+                'allow_title_fallback' => true,
             ]);
             $description = $generated ?? $verifiedDescription;
             $descriptionSource = $generated === null ? 'openai-verified-online'
-                : 'ai-generated-from-verified-web-evidence';
-            if ($description === '') {
-                $warnings[] = 'AI could not generate a factual product description. Check the AI configuration and retry.';
+                : ($hasEvidence ? 'ai-generated-from-verified-web-evidence' : 'ai-generated-from-title');
+            if ($generated !== null && ! $hasEvidence) {
+                $warnings[] = 'Title-based AI description using general category knowledge; not verified against a website. Review before relying on product-specific details.';
             }
-        }
-        if ($mode !== 'images' && $product->needsDescription() && ! $hasEvidence) {
-            $description = '';
-            $warnings[] = 'No verified website description or specifications were found. Description needs research; identity-only AI text is not considered complete.';
+            if ($description === '') {
+                $warnings[] = 'AI could not approve a description from website evidence or the product title. Review the title and AI configuration, then retry.';
+            }
         }
 
         DB::transaction(function () use ($product, $details, $description, $descriptionSource, $warnings, $mode): void {

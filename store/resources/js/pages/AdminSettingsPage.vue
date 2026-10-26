@@ -681,7 +681,7 @@
         <section aria-labelledby="ai-product-content-title" class="rounded-lg border border-[#2F5597]/20 bg-[#2F5597]/5 p-5 space-y-4">
           <div>
             <h4 id="ai-product-content-title" class="font-semibold text-gray-900">AI Product Descriptions &amp; Images</h4>
-            <p class="mt-1 text-sm text-gray-600">Search Bing directly for descriptions and matching images for all saved store products. No search API key is required. AI verifies evidence and image identity; descriptions without website evidence stay pending review. Existing verified descriptions and usable images are preserved.</p>
+            <p class="mt-1 text-sm text-gray-600">Search Bing directly for descriptions and matching images for all saved store products. No search API key is required. AI uses verified website evidence first, then a conservative title-based description with general category knowledge when evidence is unavailable. Title-based descriptions are labeled for review; exact specifications are never invented. Images still require AI verification. Existing descriptions and usable images are preserved, except older generic AI text marked for repair.</p>
             <p class="mt-2 text-xs text-gray-500">Processes one product at a time and saves each result directly to the database. Keep this page open; no queue worker is required for these buttons. AI/search usage charges may apply. Manual runs retry missing content immediately and repair older generic AI descriptions only.</p>
           </div>
           <div v-if="productContentStats" class="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -702,7 +702,7 @@
             <router-link to="/admin/products" class="rounded-lg px-5 py-2.5 text-sm font-semibold text-[#2F5597] underline">Review Product Results</router-link>
             <button v-if="productContentLoading" type="button" @click="productContentStopRequested = true" :disabled="productContentStopRequested" class="rounded-lg border border-rose-300 px-5 py-2.5 text-sm font-semibold text-rose-700">{{ productContentStopRequested ? 'Stopping after current product...' : 'Stop After Current Product' }}</button>
           </div>
-          <p class="text-xs text-gray-500">Progress and the last product's warnings appear here. Leaving the page stops new requests; already saved results are kept. A finished scan does not mean every product has verified content. Missing website evidence remains Needs research. The database must be online and deployment migrations installed.</p>
+          <p class="text-xs text-gray-500">Progress and the last product's warnings appear here. Leaving the page stops new requests; already saved results are kept. A finished scan does not mean every product has website-verified content. If neither website evidence nor the title supports a useful description, it remains Needs research. The database must be online and deployment migrations installed.</p>
         </section>
 
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1753,7 +1753,7 @@ const populateProductContent = async (mode) => {
       productContentMessage.value = `${result.product_name || 'Catalog scan'}: ${result.message}${result.warnings?.length ? `\n${result.warnings.join('\n')}` : ''}`
       if (result.result === 'needs_review') lastResearchIssue = productContentMessage.value
       if (result.done) {
-        productContentMessage.value = `Scan finished. ${productContentProgress.value.ready} products ready; ${productContentProgress.value.review} need research. Only verified content was saved.${lastResearchIssue ? `\nLast unresolved product: ${lastResearchIssue}` : ''}`
+        productContentMessage.value = `Scan finished. ${productContentProgress.value.ready} products ready; ${productContentProgress.value.review} need research. Descriptions may include labeled title-based AI content; review product sources and warnings.${lastResearchIssue ? `\nLast unresolved product: ${lastResearchIssue}` : ''}`
         showToast('Product research scan finished. Review unresolved products.', 'success')
         break
       }

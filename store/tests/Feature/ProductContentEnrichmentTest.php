@@ -145,6 +145,38 @@ class ProductContentEnrichmentTest extends TestCase
         $this->assertSame('https://images.example.com/zbook.jpg', $product->fresh()->images[0]['imageUrl']);
     }
 
+    public function test_missing_website_evidence_uses_a_labeled_title_fallback_and_preserves_it_on_import(): void
+    {
+        $product = $this->product();
+        $description = 'The HP ZBook workstation is a computer for running desktop applications.';
+        $supplier = Mockery::mock(TDSynnexService::class);
+        $supplier->shouldReceive('verifiedOnlineProductDetails')->once()->andReturn([
+            'warnings' => ['No website match found.'],
+        ]);
+        $ai = Mockery::mock(AzureOpenAiChatService::class);
+        $ai->shouldReceive('generateProductDescription')->once()->with(Mockery::on(
+            fn (array $facts): bool => $facts['allow_title_fallback'] === true
+                && $facts['product_name'] === $product->product_name
+                && $facts['verified_website_description'] === ''
+                && $facts['verified_specifications'] === []
+        ))->andReturn($description);
+        $result = (new ProductContentEnrichmentService($supplier, $ai))->processNext('description', 0);
+        $product->refresh();
+        $this->assertSame('complete', $result['result']);
+        $this->assertSame($description, $product->description);
+        $this->assertSame('ai-generated-from-title', $product->specifications['description_source']);
+        $this->assertFalse($product->needsDescription());
+        $this->assertSame(0, Product::missingDescription()->count());
+        $this->assertStringContainsString('not verified against a website', implode(' ', $result['warnings']));
+        $this->assertSame([], $product->images);
+        $rows = Product::preserveEnrichedContent([[
+            'tdsynnex_product_id' => $product->tdsynnex_product_id,
+            'description' => '', 'specifications' => '{}',
+        ]]);
+        $this->assertSame($description, $rows[0]['description']);
+        $this->assertSame('ai-generated-from-title', json_decode($rows[0]['specifications'], true)['description_source']);
+    }
+
     public function test_existing_image_is_preserved_when_generating_a_description(): void
     {
         $images = [['imageUrl' => 'https://images.example.com/manual.jpg', 'source' => 'manual']];
@@ -178,11 +210,11 @@ class ProductContentEnrichmentTest extends TestCase
         $supplier = Mockery::mock(TDSynnexService::class);
         $supplier->shouldReceive('verifiedOnlineProductDetails')->once()->andReturn([]);
         $ai = Mockery::mock(AzureOpenAiChatService::class);
-        $ai->shouldNotReceive('generateProductDescription');
+        $ai->shouldReceive('generateProductDescription')->once()->andReturnNull();
         (new ProductContentEnrichmentService($supplier, $ai))->enrich($product);
         $this->assertNull($product->fresh()->description);
         $this->assertSame('needs_review', $product->fresh()->specifications['content_enrichment_status']);
-        $this->assertStringContainsString('No verified website', $product->fresh()->specifications['content_enrichment_warnings'][0]);
+        $this->assertStringContainsString('could not approve a description', $product->fresh()->specifications['content_enrichment_warnings'][0]);
     }
 
     public function test_complete_products_do_not_call_any_provider(): void

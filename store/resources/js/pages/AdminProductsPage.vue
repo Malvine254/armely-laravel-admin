@@ -13,7 +13,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="font-bold text-[#102a52]">AI product content</h2>
-            <p class="mt-1 max-w-3xl text-sm text-slate-600">Search Bing for product website evidence and AI-verified matching images across the entire catalog. Descriptions require verified website facts. Existing verified content is kept; generic AI fallbacks need research.</p>
+            <p class="mt-1 max-w-3xl text-sm text-slate-600">Search Bing for product website evidence and AI-verified matching images across the entire catalog. Descriptions use website evidence first, then conservative title-based AI content with general category knowledge. Title-based content is labeled for review, not website-verified. Existing content is kept except older generic AI text marked for repair.</p>
             <p class="mt-1 text-xs text-slate-500">Runs in the background using the products-sync queue and configured AI/search providers. API usage charges may apply. Unresolved products are retried after 24 hours.</p>
           </div>
           <div class="flex flex-wrap gap-2">
@@ -51,7 +51,7 @@
                 <td class="px-4"><p>{{ formatNumber(product.quantity) }}</p><p :class="product.available ? 'text-emerald-600' : 'text-rose-600'" class="text-xs font-semibold">{{ product.available ? 'Available' : 'Unavailable' }}</p></td>
                 <td class="px-4"><span :class="product.has_image ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'" class="rounded-full px-2 py-1 text-xs font-bold">{{ product.has_image ? 'Ready' : 'Missing' }}</span></td>
                 <td class="max-w-md px-4 py-3 text-sm">
-                  <p :class="product.has_description ? 'text-emerald-700' : 'text-amber-800'" class="font-semibold">{{ product.has_description ? 'Ready' : product.description_source === 'ai-generated-from-catalog-facts' ? 'Needs research' : 'Missing' }}</p>
+                  <p :class="product.has_description && product.description_source !== 'ai-generated-from-title' ? 'text-emerald-700' : 'text-amber-800'" class="font-semibold">{{ product.description_source === 'ai-generated-from-title' ? 'AI title-based - review' : product.has_description ? 'Ready' : product.description_source === 'ai-generated-from-catalog-facts' ? 'Needs research' : 'Missing' }}</p>
                   <p v-if="product.description" class="line-clamp-2 text-slate-600">{{ product.description }}</p>
                   <p v-if="product.description_source" class="text-xs text-slate-500">{{ product.description_source }}</p>
                   <p v-if="product.content_status" class="mt-1 text-xs text-slate-500">Last result: {{ !product.has_description && product.content_status === 'complete' ? 'needs_review' : product.content_status }}</p>

@@ -27,11 +27,12 @@ class ProductDescriptionGenerationTest extends TestCase
             'choices' => [['message' => ['content' => json_encode(['description' => $description])]]],
         ])->push(['choices' => [['message' => ['content' => '{"supported":true}']]]]);
         $facts = ['product_name' => 'HP ZBook 8', 'manufacturer' => 'HP', 'part_number' => 'ABC123',
-            'verified_specifications' => [['name' => 'Memory', 'value' => '32 GB']]];
+            'verified_specifications' => [['name' => 'Memory', 'value' => '32 GB']], 'allow_title_fallback' => true];
         $this->assertSame($description, app(AzureOpenAiChatService::class)->generateProductDescription($facts));
         Http::assertSent(fn ($request) => $request['response_format']['type'] === 'json_object'
             && json_decode($request['messages'][1]['content'], true) === $facts
-            && str_contains($request['messages'][0]['content'], 'Do not infer specifications'));
+            && str_contains($request['messages'][0]['content'], 'Do not infer specifications')
+            && str_contains($request['messages'][0]['content'], 'Website evidence is available'));
     }
 
     public function test_invalid_empty_html_overlong_and_title_only_results_are_rejected(): void
@@ -68,6 +69,37 @@ class ProductDescriptionGenerationTest extends TestCase
         Http::fake();
         $this->assertNull(app(AzureOpenAiChatService::class)->generateProductDescription([
             'product_name' => 'HP E-Series E24u G5', 'manufacturer' => 'HP', 'part_number' => '9VH73AA',
+        ]));
+        Http::assertNothingSent();
+    }
+
+    public function test_explicit_title_fallback_generates_and_checks_only_title_attributes_and_category_knowledge(): void
+    {
+        $description = 'The HP ZBook workstation is a computer for working with desktop applications. Select the configuration and accessories that suit your requirements.';
+        Http::fakeSequence('description.example.com/*')
+            ->push(['choices' => [['message' => ['content' => json_encode(['description' => $description])]]]])
+            ->push(['choices' => [['message' => ['content' => '{"supported":true}']]]]);
+        $this->assertSame($description, app(AzureOpenAiChatService::class)->generateProductDescription([
+            'product_name' => 'HP ZBook workstation', 'manufacturer' => 'HP', 'allow_title_fallback' => true,
+        ]));
+        Http::assertSent(fn ($request) => str_contains($request['messages'][0]['content'], 'No website evidence is available')
+            && str_contains($request['messages'][0]['content'], 'Do not recall model-specific facts from memory'));
+        Http::assertSent(fn ($request) => str_contains($request['messages'][0]['content'], 'For this title-based fallback'));
+        Http::assertSentCount(2);
+    }
+
+    public function test_title_fallback_still_rejects_unsupported_claims_and_missing_titles(): void
+    {
+        Http::fakeSequence('description.example.com/*')
+            ->push(['choices' => [['message' => ['content' => '{"description":"HP ZBook workstation includes 128 GB of memory and a five-year warranty."}']]]])
+            ->push(['choices' => [['message' => ['content' => '{"supported":false}']]]]);
+        $this->assertNull(app(AzureOpenAiChatService::class)->generateProductDescription([
+            'product_name' => 'HP ZBook workstation', 'allow_title_fallback' => true,
+        ]));
+        Http::assertSentCount(2);
+        Http::fake();
+        $this->assertNull(app(AzureOpenAiChatService::class)->generateProductDescription([
+            'product_name' => ' ', 'allow_title_fallback' => true,
         ]));
         Http::assertNothingSent();
     }
