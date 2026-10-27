@@ -78,6 +78,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import AdminLayout from '../components/AdminLayout.vue'
 import api from '../services/api'
 import { useToastStore } from '../stores/toastStore'
@@ -86,7 +87,7 @@ const toast = useToastStore()
 const loading = ref(false)
 const enriching = ref(false)
 const enrichmentMessage = ref('')
-const search = ref('')
+const search = ref(String(useRoute().query.search || ''))
 const imageFilter = ref('all')
 const missingDescription = ref(false)
 const products = ref([])

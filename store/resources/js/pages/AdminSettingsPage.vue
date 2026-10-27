@@ -678,35 +678,120 @@
       </div>
 
       <div class="p-6 space-y-6">
-        <section aria-labelledby="ai-product-content-title" class="rounded-lg border border-[#2F5597]/20 bg-[#2F5597]/5 p-5 space-y-4">
-          <div>
-            <h4 id="ai-product-content-title" class="font-semibold text-gray-900">AI Product Descriptions &amp; Images</h4>
-            <p class="mt-1 text-sm text-gray-600">Search Bing directly for descriptions and matching images for all saved store products. No search API key is required. AI uses verified website evidence first, then a conservative title-based description with general category knowledge when evidence is unavailable. Title-based descriptions are labeled for review; exact specifications are never invented. Images still require AI verification. Existing descriptions and usable images are preserved, except older generic AI text marked for repair.</p>
-            <p class="mt-2 text-xs text-gray-500">Processes one product at a time and saves each result directly to the database. Keep this page open; no queue worker is required for these buttons. AI/search usage charges may apply. Manual runs retry missing content immediately and repair older generic AI descriptions only.</p>
-          </div>
-          <div v-if="productContentStats" class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div class="rounded-lg bg-white p-3"><p class="text-xs text-gray-500">Saved products</p><p class="font-semibold text-gray-900">{{ formatNumber(productContentStats.total) }}</p></div>
-            <div class="rounded-lg bg-white p-3"><p class="text-xs text-gray-500">Missing descriptions</p><p class="font-semibold text-amber-700">{{ formatNumber(productContentStats.without_descriptions) }}</p></div>
-            <div class="rounded-lg bg-white p-3"><p class="text-xs text-gray-500">Missing images</p><p class="font-semibold text-amber-700">{{ formatNumber(productContentStats.without_images) }}</p></div>
-          </div>
-          <p v-if="productContentMessage" role="status" class="text-sm whitespace-pre-line" :class="productContentHasError ? 'text-rose-700' : 'text-[#2F5597]'">{{ productContentMessage }}</p>
-          <p v-if="productContentProgress.processed" class="text-sm text-gray-700">Processed: {{ productContentProgress.processed }} | Ready: {{ productContentProgress.ready }} | Needs research: {{ productContentProgress.review }}</p>
-          <div class="flex flex-wrap gap-3">
-            <button type="button" @click="populateProductContent('description')" :disabled="productContentLoading || catalogWorkerLoading || catalogStopLoading" class="rounded-lg bg-[#2F5597] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1e3a6b] disabled:opacity-50">
-              <i class="fas fa-align-left mr-2"></i>Populate Missing Descriptions
+        <section aria-labelledby="ai-product-content-title" class="rounded-lg border border-gray-200 bg-white p-5 space-y-5">
+          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h4 id="ai-product-content-title" class="font-semibold text-gray-900">AI Product Content</h4>
+              <p class="mt-1 text-sm text-gray-500">Rewrite missing or thin descriptions and find missing images. Runs on the server &mdash; you can refresh or leave this page.</p>
+            </div>
+            <button type="button" @click="refreshContentRun()" :disabled="contentRunRefreshing" class="self-start rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+              <i class="fas fa-rotate mr-1" :class="{ 'fa-spin': contentRunRefreshing }"></i>Refresh
             </button>
-            <button type="button" @click="populateProductContent('repair_descriptions')" :disabled="productContentLoading || catalogWorkerLoading || catalogStopLoading" class="rounded-lg border border-[#2F5597] bg-white px-5 py-2.5 text-sm font-semibold text-[#2F5597] hover:bg-blue-50 disabled:opacity-50">
-              <i class="fas fa-check-double mr-2"></i>Review &amp; Repair AI Descriptions
-            </button>
-            <button type="button" @click="populateProductContent('images')" :disabled="productContentLoading || catalogWorkerLoading || catalogStopLoading" class="rounded-lg bg-[#2F5597] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1e3a6b] disabled:opacity-50">
-              <i class="fas fa-image mr-2"></i>Populate Missing Images
-            </button>
-            <button type="button" @click="refreshProductContentStats" :disabled="productContentStatsLoading" class="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 disabled:opacity-50">{{ productContentStatsLoading ? 'Refreshing...' : 'Refresh Content Counts' }}</button>
-            <router-link to="/admin/products" class="rounded-lg px-5 py-2.5 text-sm font-semibold text-[#2F5597] underline">Review Product Results</router-link>
-            <button v-if="productContentLoading" type="button" @click="productContentStopRequested = true" :disabled="productContentStopRequested" class="rounded-lg border border-rose-300 px-5 py-2.5 text-sm font-semibold text-rose-700">{{ productContentStopRequested ? 'Stopping after current product...' : 'Stop After Current Product' }}</button>
           </div>
-          <p class="text-xs text-gray-600">Review &amp; Repair checks all AI-generated descriptions, including populated ones, and rewrites them with relevant labeled facts (RAM, Storage, CPU, etc., only when supported). Components get their own attributes, not invented computer specs. Original and previous text are backed up before replacement. Manual and supplier descriptions are excluded. Failed repairs keep the old text flagged for review.</p>
-          <p class="text-xs text-gray-500">Progress and the last product's warnings appear here. Leaving the page stops new requests; already saved results are kept. A finished scan does not mean every product has website-verified content. If neither website evidence nor the title supports a useful description, it remains Needs research. The database must be online and deployment migrations installed.</p>
+
+          <div v-if="productContentStats" class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div class="rounded-lg border border-gray-100 bg-gray-50 p-3"><p class="text-xs text-gray-500">Products</p><p class="text-lg font-semibold text-gray-900">{{ formatNumber(productContentStats.total) }}</p></div>
+            <div class="rounded-lg border border-gray-100 bg-gray-50 p-3"><p class="text-xs text-gray-500">No description</p><p class="text-lg font-semibold text-rose-700">{{ formatNumber(productContentStats.without_descriptions) }}</p></div>
+            <div class="rounded-lg border border-gray-100 bg-gray-50 p-3"><p class="text-xs text-gray-500">Short (&lt; {{ productContentStats.short_threshold }} chars)</p><p class="text-lg font-semibold text-amber-700">{{ formatNumber(productContentStats.short_descriptions) }}</p></div>
+            <div class="rounded-lg border border-gray-100 bg-gray-50 p-3"><p class="text-xs text-gray-500">No image</p><p class="text-lg font-semibold text-amber-700">{{ formatNumber(productContentStats.without_images) }}</p></div>
+          </div>
+
+          <div v-if="!contentRunActive" class="flex flex-wrap items-center gap-3">
+            <button type="button" @click="startContentRun('description')" :disabled="contentRunStarting" class="rounded-lg bg-[#2F5597] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1e3a6b] disabled:opacity-50">
+              <i class="fas fa-align-left mr-2"></i>Improve Descriptions
+            </button>
+            <label class="flex items-center gap-2 text-xs text-gray-600">
+              incl. shorter than
+              <input v-model.number="contentShortThreshold" @change="refreshContentRun()" type="number" min="0" max="1000" step="10" class="w-20 rounded border border-gray-300 px-2 py-1 text-xs" />
+              chars
+            </label>
+            <button type="button" @click="startContentRun('images')" :disabled="contentRunStarting" class="rounded-lg bg-[#2F5597] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1e3a6b] disabled:opacity-50">
+              <i class="fas fa-image mr-2"></i>Find Missing Images
+            </button>
+            <button type="button" @click="startContentRun('repair_descriptions')" :disabled="contentRunStarting" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+              <i class="fas fa-check-double mr-2"></i>Re-check AI Text
+            </button>
+          </div>
+
+          <div v-if="contentRun" class="rounded-lg border p-4 space-y-3" :class="contentRunActive ? 'border-[#2F5597]/30 bg-[#2F5597]/5' : 'border-gray-200 bg-gray-50'">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2 text-sm">
+                <span class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="contentRunStatusClass">{{ contentRunStatusLabel }}</span>
+                <span class="font-semibold text-gray-900">{{ contentRunModeLabel(contentRun) }}</span>
+                <span class="text-xs text-gray-500">started {{ formatDateTime(contentRun.started_at) }}</span>
+              </div>
+              <button v-if="contentRunActive" type="button" @click="stopContentRun" :disabled="contentRunStopping" class="rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 disabled:opacity-50">
+                <i class="fas fa-stop mr-1"></i>{{ contentRunStopping ? 'Stopping...' : 'Stop' }}
+              </button>
+            </div>
+            <div class="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+              <div class="h-full bg-[#2F5597] transition-all" :style="{ width: contentRunPercent + '%' }"></div>
+            </div>
+            <div class="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-600">
+              <span>{{ formatNumber(contentRun.processed) }} / ~{{ formatNumber(contentRun.total_candidates) }} processed</span>
+              <span class="text-emerald-700">{{ formatNumber(contentRun.ready) }} improved</span>
+              <span class="text-amber-700">{{ formatNumber(contentRun.needs_review) }} need review</span>
+              <span v-if="contentRun.failed" class="text-rose-700">{{ formatNumber(contentRun.failed) }} failed</span>
+              <span v-if="contentRunActive && contentRun.current_product_name" class="truncate">Now: {{ contentRun.current_product_name }}</span>
+            </div>
+            <p v-if="contentRunActive" class="text-xs text-gray-500">
+              {{ contentWorkersRunning ? `Processing ${CONTENT_WORKERS} products at a time from this page.` : 'Waiting for the next worker...' }}
+              Closing the page is safe: the server scheduler continues the run, and this page resumes when reopened.
+            </p>
+            <p v-if="contentRunError" class="text-xs text-rose-700">{{ contentRunError }}</p>
+          </div>
+
+          <div v-if="contentRun" class="space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <p class="text-sm font-semibold text-gray-900">Results</p>
+              <div class="flex gap-1 text-xs">
+                <button v-for="filter in contentResultFilters" :key="filter.value" type="button" @click="setContentResultFilter(filter.value)"
+                  class="rounded-full px-3 py-1 font-semibold" :class="contentResultFilter === filter.value ? 'bg-[#2F5597] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">{{ filter.label }}</button>
+              </div>
+            </div>
+            <p v-if="!contentRunItems.length" class="rounded-lg border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">No results yet.</p>
+            <article v-for="item in contentRunItems" :key="item.id" class="rounded-lg border border-gray-200 p-4">
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <router-link :to="{ path: '/admin/products', query: { search: item.product_name } }" class="text-sm font-semibold text-[#2F5597] hover:underline">{{ item.product_name }}</router-link>
+                <div class="flex items-center gap-2 text-xs">
+                  <span class="text-gray-400">{{ (item.duration_ms / 1000).toFixed(1) }}s</span>
+                  <span class="rounded-full px-2 py-0.5 font-semibold" :class="contentResultClass(item.result)">{{ contentResultLabel(item) }}</span>
+                </div>
+              </div>
+              <div class="mt-3 flex flex-col gap-3 md:flex-row">
+                <img v-if="item.image_url" :src="item.image_url" alt="" loading="lazy" class="h-24 w-24 flex-shrink-0 rounded border border-gray-200 bg-white object-contain" />
+                <div v-if="item.new_description !== null" class="grid flex-1 grid-cols-1 gap-3 md:grid-cols-2">
+                  <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Before</p>
+                    <p class="mt-1 text-xs text-gray-500 whitespace-pre-line">{{ plainText(item.old_description) || '(none)' }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-wide" :class="item.description_changed ? 'text-emerald-600' : 'text-gray-400'">{{ item.description_changed ? 'New description' : 'Unchanged' }}</p>
+                    <p class="mt-1 text-sm text-gray-800 whitespace-pre-line">{{ item.description_changed ? plainText(item.new_description) : '—' }}</p>
+                  </div>
+                </div>
+                <p v-else-if="!item.image_url" class="text-xs text-gray-500">No verified image found.</p>
+              </div>
+              <details v-if="item.warnings.length" class="mt-2 text-xs text-gray-500">
+                <summary class="cursor-pointer select-none">{{ item.warnings.length }} note{{ item.warnings.length === 1 ? '' : 's' }}</summary>
+                <ul class="mt-1 list-disc space-y-0.5 pl-5"><li v-for="(warning, index) in item.warnings" :key="index">{{ warning }}</li></ul>
+              </details>
+            </article>
+            <button v-if="contentItemsHasMore" type="button" @click="loadContentItems(true)" :disabled="contentItemsLoading" class="w-full rounded-lg border border-gray-300 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+              {{ contentItemsLoading ? 'Loading...' : 'Load more' }}
+            </button>
+          </div>
+
+          <details class="text-xs text-gray-500">
+            <summary class="cursor-pointer select-none font-semibold text-gray-600">How it works</summary>
+            <ul class="mt-2 list-disc space-y-1 pl-5">
+              <li><strong>Improve Descriptions</strong> targets products with no description and those shorter than the character limit. A short description is only replaced by a longer, AI-checked one; the original is backed up.</li>
+              <li>Bing website evidence is used first; otherwise a conservative title-based description is written and labeled for review. Exact specifications are never invented.</li>
+              <li><strong>Find Missing Images</strong> only saves images that AI verifies match the exact model. Existing images are kept.</li>
+              <li><strong>Re-check AI Text</strong> rewrites earlier AI descriptions with category-specific labeled facts; manual and supplier text is excluded and previous text is backed up.</li>
+              <li>Progress is saved after every product. AI/search usage charges may apply. Background processing with the page closed needs the Laravel scheduler (cron <code>schedule:run</code>).</li>
+            </ul>
+          </details>
         </section>
 
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1349,13 +1434,40 @@ let syncPollTimer = null
 const catalogActionLoading = ref(false)
 const catalogStopLoading = ref(false)
 const catalogWorkerLoading = ref(false)
-const productContentLoading = ref(false)
-const productContentStatsLoading = ref(false)
+const CONTENT_WORKERS = 3
 const productContentStats = ref(null)
-const productContentMessage = ref('')
-const productContentHasError = ref(false)
-const productContentStopRequested = ref(false)
-const productContentProgress = ref({ processed: 0, ready: 0, review: 0 })
+const contentShortThreshold = ref(150)
+const contentRun = ref(null)
+const contentRunItems = ref([])
+const contentRunRefreshing = ref(false)
+const contentRunStarting = ref(false)
+const contentRunStopping = ref(false)
+const contentRunError = ref('')
+const contentWorkersRunning = ref(0)
+const contentResultFilter = ref('')
+const contentItemsPage = ref(1)
+const contentItemsHasMore = ref(false)
+const contentItemsLoading = ref(false)
+let contentPageActive = true
+const contentResultFilters = [
+  { value: '', label: 'All' },
+  { value: 'complete', label: 'Improved' },
+  { value: 'needs_review', label: 'Needs review' },
+  { value: 'failed', label: 'Failed' },
+]
+const contentRunActive = computed(() => contentRun.value?.status === 'running')
+const contentRunPercent = computed(() => {
+  const run = contentRun.value
+  if (!run) return 0
+  if (run.status === 'completed') return 100
+  return run.total_candidates ? Math.min(100, Math.round((run.processed / run.total_candidates) * 100)) : 0
+})
+const contentRunStatusLabel = computed(() => ({ running: 'Running', completed: 'Finished', stopped: 'Stopped' })[contentRun.value?.status] || contentRun.value?.status)
+const contentRunStatusClass = computed(() => ({
+  running: 'bg-blue-100 text-[#2F5597]',
+  completed: 'bg-emerald-100 text-emerald-700',
+  stopped: 'bg-gray-200 text-gray-700',
+})[contentRun.value?.status] || 'bg-gray-200 text-gray-700')
 const showQuickBooksSecret = ref(false)
 const showAddAdminModal = ref(false)
 const currentUserId = ref(null)
@@ -1710,81 +1822,160 @@ const stopAllBackgroundJobs = async () => {
   }
 }
 
-const refreshProductContentStats = async () => {
-  productContentStatsLoading.value = true
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
+const contentRunModeLabel = (run) => ({
+  description: run.min_description_length ? `Improve descriptions (missing or under ${run.min_description_length} chars)` : 'Fill missing descriptions',
+  images: 'Find missing images',
+  repair_descriptions: 'Re-check AI descriptions',
+})[run.mode] || run.mode
+
+const contentResultClass = (result) => ({
+  complete: 'bg-emerald-100 text-emerald-700',
+  needs_review: 'bg-amber-100 text-amber-700',
+  failed: 'bg-rose-100 text-rose-700',
+})[result] || 'bg-gray-100 text-gray-600'
+
+const contentResultLabel = (item) => {
+  if (item.result === 'complete') return item.description_changed || item.image_url ? 'Improved' : 'OK'
+  return item.result === 'needs_review' ? 'Needs review' : 'Failed'
+}
+
+// Render stored HTML descriptions as readable plain text (never as HTML).
+const plainText = (html) => {
+  if (!html) return ''
+  const prepared = String(html).replace(/<\/(p|li|div|h\d)>|<br\s*\/?>/gi, '\n').replace(/<li[^>]*>/gi, '- ')
+  const doc = new DOMParser().parseFromString(prepared, 'text/html')
+  return (doc.body.textContent || '').replace(/\n{3,}/g, '\n\n').trim()
+}
+
+const loadContentItems = async (more = false) => {
+  if (!contentRun.value) {
+    contentRunItems.value = []
+    contentItemsHasMore.value = false
+    return
+  }
+  contentItemsLoading.value = true
   try {
-    const response = await api.get('/admin/products', { params: { per_page: 10 } })
-    if (!response.data.success || !response.data.stats) {
-      throw new Error(response.data.message || 'Product content counts are unavailable.')
-    }
-    productContentStats.value = response.data.stats
+    const page = more ? contentItemsPage.value + 1 : 1
+    const { data } = await api.get(`/admin/products/content-runs/${contentRun.value.id}/items`, {
+      params: { page, per_page: 25, result: contentResultFilter.value || undefined },
+    })
+    const rows = data.data.data || []
+    contentRunItems.value = more
+      ? [...contentRunItems.value, ...rows.filter(row => !contentRunItems.value.some(item => item.id === row.id))]
+      : rows
+    contentItemsPage.value = data.data.current_page
+    contentItemsHasMore.value = data.data.current_page < data.data.last_page
   } catch (error) {
-    showToast(error.response?.data?.message || error.message || 'Failed to refresh product content counts.', 'error')
+    contentRunError.value = error.response?.data?.message || 'Could not load run results.'
   } finally {
-    productContentStatsLoading.value = false
+    contentItemsLoading.value = false
   }
 }
 
-const populateProductContent = async (mode) => {
-  if (productContentLoading.value || catalogWorkerLoading.value || catalogStopLoading.value) return
-  const repair = mode === 'repair_descriptions'
-  const label = mode === 'images' ? 'images' : 'descriptions'
-  const confirmation = repair
-    ? 'Review and rewrite all AI-generated descriptions with category-appropriate labeled specifications? Original and previous text are backed up. Manual and supplier descriptions are excluded. Failed repairs keep the previous text flagged for review.'
-    : `Populate missing ${label} one product at a time? Manual content is kept; older generic AI descriptions are repaired.`
-  if (!window.confirm(`${confirmation} Keep this page open. This uses AI/search APIs and may incur charges.`)) return
+const setContentResultFilter = (value) => {
+  contentResultFilter.value = value
+  loadContentItems(false)
+}
 
-  productContentLoading.value = true
-  productContentMessage.value = ''
-  productContentHasError.value = false
-  productContentStopRequested.value = false
-  productContentProgress.value = { processed: 0, ready: 0, review: 0 }
-  let afterId = 0
-  let lastResearchIssue = ''
-  productContentMessage.value = repair ? 'Starting review of saved AI descriptions. Waiting for the first product result...' : `Starting ${label} research. Waiting for the first product result...`
+const refreshContentRun = async () => {
+  contentRunRefreshing.value = true
   try {
-    while (!productContentStopRequested.value) {
-      const response = await api.post('/admin/products/process-content', { mode, after_id: afterId }, { timeout: 180000 })
-      if (!response.data.success || !response.data.data) {
-        throw new Error(response.data.message || 'Product content could not be processed.')
-      }
-      const result = response.data.data
-      if (!Number.isSafeInteger(result.after_id) || result.after_id < afterId || (!result.done && result.after_id === afterId)) {
-        throw new Error('Product scan did not advance. Refresh counts before retrying.')
-      }
-      afterId = result.after_id
-      if (result.processed) {
-        productContentProgress.value.processed++
-        if (result.result === 'complete') productContentProgress.value.ready++
-        else productContentProgress.value.review++
-      }
-      productContentMessage.value = `${result.product_name || 'Catalog scan'}: ${result.message}${result.warnings?.length ? `\n${result.warnings.join('\n')}` : ''}`
-      if (result.result === 'needs_review') lastResearchIssue = productContentMessage.value
-      if (result.done) {
-        productContentMessage.value = `Scan finished. ${productContentProgress.value.ready} products ready; ${productContentProgress.value.review} need research. Descriptions may include labeled title-based AI content; review product sources and warnings.${lastResearchIssue ? `\nLast unresolved product: ${lastResearchIssue}` : ''}`
-        showToast('Product research scan finished. Review unresolved products.', 'success')
-        break
-      }
-      // Stay below the authenticated endpoint's per-minute request limit.
-      await new Promise(resolve => setTimeout(resolve, 1100))
-    }
-    if (productContentStopRequested.value) {
-      productContentMessage.value = 'Stopped after the current product. Saved results are kept. Run again to retry remaining missing content.'
-    }
+    const { data } = await api.get('/admin/products/content-runs/current', {
+      params: { min_length: Math.max(0, Number(contentShortThreshold.value) || 0) },
+    })
+    productContentStats.value = data.data.stats
+    contentRun.value = data.data.run
+    contentRunError.value = ''
+    await loadContentItems(false)
+    if (contentRunActive.value) ensureContentWorkers()
   } catch (error) {
-    const reason = error.response?.data?.message || error.message || 'Unable to start product content population.'
-    productContentHasError.value = true
-    const timedOut = error.code === 'ECONNABORTED' || /timeout/i.test(reason)
-    productContentMessage.value = `${reason} ${timedOut ? 'The current request timed out; its save status is unknown.' : 'Processing stopped.'} Earlier saved results are kept. Refresh counts before retrying.`
-    showToast(productContentMessage.value, 'error')
+    contentRunError.value = error.response?.data?.message || 'Could not load product content status.'
   } finally {
-    productContentLoading.value = false
-    await refreshProductContentStats()
+    contentRunRefreshing.value = false
+  }
+}
+
+const runContentWorker = async () => {
+  contentWorkersRunning.value++
+  try {
+    while (contentPageActive && contentRunActive.value) {
+      try {
+        const { data } = await api.post('/admin/products/content-runs/work', {}, { timeout: 180000 })
+        if (data.data.run) contentRun.value = data.data.run
+        const item = data.data.item
+        if (item && (!contentResultFilter.value || contentResultFilter.value === item.result)
+          && !contentRunItems.value.some(existing => existing.id === item.id)) {
+          contentRunItems.value = [item, ...contentRunItems.value]
+        }
+        if (!item) await sleep(3000)
+        contentRunError.value = ''
+      } catch (error) {
+        const status = error.response?.status
+        contentRunError.value = error.response?.data?.message || error.message || 'A request failed; retrying shortly.'
+        if ([401, 403, 422, 503].includes(status)) break
+        await sleep(status === 429 ? 15000 : 5000)
+      }
+    }
+  } finally {
+    contentWorkersRunning.value--
+  }
+  if (contentWorkersRunning.value === 0 && contentPageActive) {
+    const finished = contentRun.value?.status === 'completed'
+    await refreshContentRun()
+    if (finished) showToast('Product content run finished. Review the results below.', 'success')
+  }
+}
+
+const ensureContentWorkers = async () => {
+  for (let i = contentWorkersRunning.value; i < CONTENT_WORKERS && contentRunActive.value; i++) {
+    runContentWorker()
+    await sleep(400)
+  }
+}
+
+const startContentRun = async (mode) => {
+  const threshold = Math.max(0, Number(contentShortThreshold.value) || 0)
+  const question = {
+    description: `Improve descriptions for products with no description${threshold ? ` or fewer than ${threshold} characters` : ''}?`,
+    images: 'Find verified images for products without one?',
+    repair_descriptions: 'Re-check and rewrite earlier AI-generated descriptions?',
+  }[mode]
+  if (!window.confirm(`${question} Replaced text is backed up. AI/search usage charges may apply.`)) return
+  contentRunStarting.value = true
+  try {
+    const { data } = await api.post('/admin/products/content-runs', { mode, min_length: threshold })
+    contentRun.value = data.data.run
+    contentRunItems.value = []
+    contentResultFilter.value = ''
+    contentItemsHasMore.value = false
+    contentRunError.value = ''
+    showToast('Run started. Progress is saved on the server; you can leave this page.', 'success')
+    ensureContentWorkers()
+  } catch (error) {
+    showToast(error.response?.data?.message || 'Could not start the run.', 'error')
+    if (error.response?.status === 409) refreshContentRun()
+  } finally {
+    contentRunStarting.value = false
+  }
+}
+
+const stopContentRun = async () => {
+  if (!contentRun.value) return
+  contentRunStopping.value = true
+  try {
+    const { data } = await api.post(`/admin/products/content-runs/${contentRun.value.id}/stop`)
+    contentRun.value = data.data.run
+    showToast('Run stopped. Products already in progress will still be saved.', 'success')
+  } catch (error) {
+    showToast(error.response?.data?.message || 'Could not stop the run.', 'error')
+  } finally {
+    contentRunStopping.value = false
   }
 }
 
 const startProductsSyncWorker = async () => {
-  if (productContentLoading.value) return
   catalogWorkerLoading.value = true
   try {
     const response = await api.post('/admin/settings/catalog/start-worker')
@@ -2206,7 +2397,7 @@ const bulkDeleteLogs = async (scope) => {
 const switchTab = (id) => {
   activeTab.value = id
   if (id === 'catalog') {
-    refreshProductContentStats()
+    refreshContentRun()
   }
   if (id === 'activity_logs') {
     if (adminLogs.value.length === 0) fetchAdminLogs()
@@ -2232,6 +2423,8 @@ const logTypeBadge = (type) => {
 
 onMounted(() => {
   fetchCurrentUser()
+  // Resume an in-progress AI content run after a page refresh.
+  refreshContentRun()
   fetchSettings()
   fetchAdminUsers()
   refreshCatalogOperations().then(() => {
@@ -2249,7 +2442,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  productContentStopRequested.value = true
+  contentPageActive = false
   stopCatalogStatusPolling()
   stopSyncPolling()
 })

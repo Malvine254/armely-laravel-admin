@@ -54,10 +54,50 @@ class ProductContentEnrichmentService
         }
     }
 
-    private function needsContent(Product $product, string $mode): bool
+    private function needsContent(Product $product, string $mode, int $minLength = 0): bool
     {
-        return ($mode !== 'images' && $product->needsDescription())
+        return ($mode !== 'images' && ($product->needsDescription() || $product->hasShortDescription($minLength)))
             || ($mode !== 'description' && ! $product->hasUsableImage());
+    }
+
+    /** Products a run of this mode should visit, in id order. */
+    public function candidateQuery(string $mode, int $minLength = 0): Builder
+    {
+        $query = Product::query()->orderBy('id');
+        if ($mode === 'repair_descriptions') {
+            return $query->whereIn('specifications->description_source', self::AI_DESCRIPTION_SOURCES);
+        }
+        $this->validateMode($mode);
+
+        return $mode === 'description' ? $query->missingOrShortDescription($minLength) : $query;
+    }
+
+    /**
+     * Next product after $afterId that still needs work. Returns the last scanned id when a
+     * bounded scan found nothing, so callers can continue without holding locks for long.
+     *
+     * @return array{product: ?Product, after_id: int, exhausted: bool}
+     */
+    public function nextCandidate(string $mode, int $afterId, int $minLength = 0, int $scanLimit = 200): array
+    {
+        $repair = $mode === 'repair_descriptions';
+        $batch = $this->candidateQuery($mode, $minLength)->where('id', '>', $afterId)->limit($scanLimit)->get();
+        foreach ($batch as $product) {
+            $afterId = (int) $product->id;
+            if ($repair || $this->needsContent($product, $mode, $minLength)) {
+                return ['product' => $product, 'after_id' => $afterId, 'exhausted' => false];
+            }
+        }
+
+        return ['product' => null, 'after_id' => $afterId, 'exhausted' => $batch->count() < $scanLimit];
+    }
+
+    /** Whether the product is in a finished state for this mode after processing. */
+    public function isReady(Product $product, string $mode, int $minLength = 0): bool
+    {
+        return $mode === 'repair_descriptions'
+            ? in_array(data_get($product->specifications, 'description_repair_status'), ['updated', 'unchanged'], true)
+            : ! $this->needsContent($product, $mode, $minLength);
     }
 
     public function processNext(string $mode, int $afterId): array
@@ -110,24 +150,25 @@ class ProductContentEnrichmentService
             'message' => $batch->count() < 100 ? 'Catalog scan finished.' : 'Scanning for products with missing content.'];
     }
 
-    public function enrich(Product $product, string $mode = 'both', bool $repair = false): void
+    public function enrich(Product $product, string $mode = 'both', bool $repair = false, int $minLength = 0): void
     {
         $this->validateMode($mode);
         if ($repair && ($mode !== 'description'
             || ! in_array(data_get($product->specifications, 'description_source'), self::AI_DESCRIPTION_SOURCES, true))) {
             throw new \InvalidArgumentException('Only AI-generated descriptions can be repaired.');
         }
-        if (! $repair && ! $this->needsContent($product, $mode)) {
+        if (! $repair && ! $this->needsContent($product, $mode, $minLength)) {
             return;
         }
 
-        $details = $this->supplier->verifiedOnlineProductDetails($product);
+        // Description-only runs skip the image search and image verification for speed.
+        $details = $this->supplier->verifiedOnlineProductDetails($product, $mode !== 'description');
         $description = trim((string) ($details['description'] ?? ''));
         $descriptionSource = 'openai-verified-online';
         $warnings = (array) ($details['warnings'] ?? []);
         $verifiedSpecs = (array) (($details['specifications'] ?? []) ?: data_get($product->specifications, 'online_specifications', []));
         $hasEvidence = $description !== '' || $verifiedSpecs !== [];
-        if ($mode !== 'images' && ($repair || $product->needsDescription())) {
+        if ($mode !== 'images' && ($repair || $product->needsDescription() || $product->hasShortDescription($minLength))) {
             $verifiedDescription = $description;
             $generated = $this->ai->generateProductDescription([
                 'product_name' => (string) $product->product_name,
@@ -150,7 +191,7 @@ class ProductContentEnrichmentService
             }
         }
 
-        DB::transaction(function () use ($product, $details, $description, $descriptionSource, $warnings, $mode, $repair): void {
+        DB::transaction(function () use ($product, $details, $description, $descriptionSource, $warnings, $mode, $repair, $minLength): void {
             $current = Product::query()->lockForUpdate()->findOrFail($product->id);
             foreach (['product_name', 'manufacturer', 'mfg_part_no'] as $field) {
                 if ($current->$field !== $product->$field) {
@@ -189,6 +230,16 @@ class ProductContentEnrichmentService
             if (! $repair && $mode !== 'images' && $current->needsDescription() && $description !== '') {
                 $current->description = $description;
                 $spec['description_source'] = $descriptionSource;
+            } elseif (! $repair && $mode !== 'images' && $description !== '' && $current->hasShortDescription($minLength)
+                && $current->description === $product->description
+                && Product::plainTextLength($description) > Product::plainTextLength($current->description)) {
+                // Only an unchanged short description is upgraded, and the original is kept for rollback.
+                $spec['description_short_backup'] ??= (string) $current->description;
+                $spec['description_short_backup_source'] ??= (string) ($spec['description_source'] ?? 'supplier');
+                $current->description = $description;
+                $spec['description_source'] = $descriptionSource;
+            } elseif (! $repair && $mode !== 'images' && $current->hasShortDescription($minLength)) {
+                $warnings[] = 'No longer approved description was found; the existing short description was kept.';
             }
             if ($mode !== 'description' && ! $current->hasUsableImage() && ! empty($details['image_url'])) {
                 $current->images = [['imageUrl' => $details['image_url'], 'source' => 'openai-verified-online']];
@@ -208,7 +259,7 @@ class ProductContentEnrichmentService
                 ? 'complete' : 'needs_review';
             $spec['content_enrichment_warnings'] = array_values(array_unique($warnings));
             $spec['content_enrichment_mode'] = $mode;
-            $spec['content_enrichment_result'] = $repairFailed || $this->needsContent($current, $mode) ? 'needs_review' : 'complete';
+            $spec['content_enrichment_result'] = $repairFailed || $this->needsContent($current, $mode, $minLength) ? 'needs_review' : 'complete';
             $current->specifications = $spec;
             $current->content_enrichment_attempted_at = now();
             if ($mode !== 'images') {

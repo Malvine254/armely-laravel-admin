@@ -142,6 +142,15 @@ return Application::configure(basePath: dirname(__DIR__))
             ->name('enrich-missing-product-content')
             ->when(fn (): bool => app(\App\Services\AzureOpenAiChatService::class)->isConfigured())
             ->withoutOverlapping();
+
+        // Advances admin-started AI content runs while the admin page is closed.
+        // Kept last so its time budget never delays the other per-minute tasks.
+        $schedule->command('products:content-run-work --seconds=45')
+            ->everyMinute()
+            ->name('product-content-run-work')
+            ->when(fn (): bool => rescue(fn (): bool => \Illuminate\Support\Facades\Schema::hasTable('product_content_runs')
+                && \App\Models\ProductContentRun::query()->where('status', \App\Models\ProductContentRun::ACTIVE)->exists(), false, false))
+            ->withoutOverlapping(5);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (Throwable $e, $request) {

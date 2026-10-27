@@ -1038,7 +1038,7 @@ class TDSynnexService
         return $product;
     }
 
-    public function verifiedOnlineProductDetails(Product $product): array
+    public function verifiedOnlineProductDetails(Product $product, bool $includeImages = true): array
     {
         $identity = [
             'productId' => (string) $product->tdsynnex_product_id,
@@ -1047,9 +1047,9 @@ class TDSynnexService
             'mfgPartNo' => (string) $product->mfg_part_no,
             'upc' => (string) data_get($product->specifications, 'upc', ''),
         ];
-        $key = 'tdsynnex:verified-content:v4-bing:' . md5(json_encode($identity));
-        return Cache::remember($key, now()->addMinutes(10), function () use ($identity) {
-            $details = $this->discoverOnlineProductDetails($identity);
+        $key = 'tdsynnex:verified-content:v4-bing:' . ($includeImages ? '' : 'text-only:') . md5(json_encode($identity));
+        return Cache::remember($key, now()->addMinutes(10), function () use ($identity, $includeImages) {
+            $details = $this->discoverOnlineProductDetails($identity, $includeImages);
             $verification = !empty($details['online_details_found'])
                 ? app(AzureOpenAiChatService::class)->verifyProductEvidence($identity, $details)
                 : null;
@@ -1067,7 +1067,7 @@ class TDSynnexService
                 ));
                 $index = $verification['image_index'];
                 $details['image_url'] = $index === null ? '' : $details['image_candidates'][$index]['image_url'];
-                if ($details['image_url'] === '') {
+                if ($details['image_url'] === '' && $includeImages) {
                     $details['warnings'][] = 'No sufficiently verified image of this product model was found.';
                 }
             }
@@ -2921,7 +2921,7 @@ class TDSynnexService
         }
     }
 
-    public function discoverOnlineProductDetails(array $product): array
+    public function discoverOnlineProductDetails(array $product, bool $includeImages = true): array
     {
         $sku = (string) ($product['productId'] ?? '');
         $meta = [
@@ -2930,9 +2930,9 @@ class TDSynnexService
             'upc' => (string) ($product['upc'] ?? ''),
         ];
         $title = trim((string) ($product['productName'] ?? ''));
-        $key = 'tdsynnex:discovery:v6-bing:' . md5(json_encode([$sku, $meta, $title]));
+        $key = 'tdsynnex:discovery:v6-bing:' . ($includeImages ? '' : 'text-only:') . md5(json_encode([$sku, $meta, $title]));
 
-        return Cache::remember($key, 600, function () use ($sku, $meta, $title) {
+        return Cache::remember($key, 600, function () use ($sku, $meta, $title, $includeImages) {
             $icecat = $this->fetchIcecatProductData($sku, $meta, $title);
             $description = trim(strip_tags((string) ($icecat['description'] ?? '')));
             $image = (string) ($icecat['image_url'] ?? '');
@@ -2950,7 +2950,7 @@ class TDSynnexService
             $searchEnabled = (bool) config('tdsynnex.bing.enabled', true);
             if ($searchEnabled && $title !== '') {
                 $query = trim($title.' '.$meta['manufacturer'].' '.$meta['mpn']);
-                foreach (['web', 'images'] as $engine) {
+                foreach ($includeImages ? ['web', 'images'] : ['web'] as $engine) {
                     try {
                         $rows = app(BingProductSearchService::class)->search(
                             $query.($engine === 'web' ? ' specifications' : ''), $engine === 'images'
@@ -3015,7 +3015,7 @@ class TDSynnexService
             }
 
             $image = $this->discoveryPublicUrl($image);
-            if ($description === '' || $image === '' || $specifications === []) {
+            if ($description === '' || ($includeImages && $image === '') || $specifications === []) {
                 $warnings[] = 'Some online details are unavailable. Missing descriptions, specifications, or images have not been generated.';
             }
             if ($searchEnabled && $sources === []) {

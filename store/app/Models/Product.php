@@ -106,6 +106,29 @@ class Product extends Model
             ->orWhere('specifications->description_source', 'ai-generated-from-catalog-facts'));
     }
 
+    public static function plainTextLength(?string $text): int
+    {
+        return mb_strlen(trim((string) preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags((string) $text)))));
+    }
+
+    /** A present description that is too thin to be useful to shoppers. */
+    public function hasShortDescription(int $minLength): bool
+    {
+        return $minLength > 0 && ! $this->needsDescription()
+            && self::plainTextLength($this->description) < $minLength;
+    }
+
+    /** Missing descriptions plus (when $minLength > 0) descriptions shorter than $minLength characters. */
+    public function scopeMissingOrShortDescription(Builder $query, int $minLength): Builder
+    {
+        if ($minLength <= 0) {
+            return $query->missingDescription();
+        }
+
+        return $query->where(fn (Builder $q) => $q->missingDescription()
+            ->orWhereRaw('LENGTH(TRIM(description)) < ?', [$minLength]));
+    }
+
     public function hasUsableImage(): bool
     {
         foreach ((array) $this->images as $image) {

@@ -17,25 +17,31 @@ Existing descriptions and usable images are not replaced by this process.
 Blank descriptions and descriptions identical to the title need enrichment.
 
 You can also run this directly from **Settings > Catalog Ops > AI Product
-Descriptions & Images**. Click **Populate Missing Descriptions** or
-**Populate Missing Images** and confirm. Each action changes only the selected
-content type, with independent 24-hour retry cooldowns and unique jobs. The
-All Products page also offers separate bulk and per-product actions.
-The Settings buttons process one product per authenticated HTTP request using
-`POST /api/v1/admin/products/process-content` (`mode`, `after_id`), saving each
-result before advancing. They do **not** queue work or start a detached process.
-Keep Settings open: it shows processed, ready and needs-research counts, the last
-product's warnings, and **Stop After Current Product**. Closing the page stops
-new requests; earlier saves remain. Manual runs bypass retry cooldowns, and a
-monotonic product-ID cursor prevents repeatedly processing an unresolved product
-in the same scan. **Refresh Content Counts** shows remaining missing content;
-**Review Product Results** opens per-product warnings. A finished scan can still
-have unresolved products; it does not mean every description was populated.
-Each request has a 180-second browser timeout and a 150-second PHP time limit;
-hosting proxy limits can be shorter and must accommodate the single-product
-lookup. Timeouts stop the browser loop and report unknown current save status.
-The database must be online and deployment migrations installed; missing columns
-produce an actionable error instead of a queued-success response.
+Content**. Choose **Improve Descriptions** (missing descriptions plus, by
+default, descriptions shorter than 150 characters; the limit is editable),
+**Find Missing Images**, or **Re-check AI Text**, and confirm.
+
+Runs are stored on the server (`product_content_runs` and
+`product_content_run_items`), so progress survives page refreshes and the page
+resumes automatically when reopened. While the page is open it processes three
+products in parallel (`POST /api/v1/admin/products/content-runs/work`); with the
+page closed, the scheduler command `products:content-run-work` (every minute,
+requires the standard `schedule:run` cron) continues the run. Each product is
+claimed under a row lock, so parallel workers never process it twice. The
+Results list shows every processed product with its before/after description,
+any newly found image, notes and timing, filterable by Improved / Needs review /
+Failed. A short description is replaced only by a longer, AI-checked one; the
+original is kept in `specifications.description_short_backup`. Description-only
+runs skip the Bing image search and image verification for speed.
+
+Endpoints: `GET content-runs/current?min_length=`, `POST content-runs`
+(`mode`, `min_length`), `POST content-runs/work`, `POST content-runs/{id}/stop`,
+`GET content-runs/{id}/items?result=` (all under `/api/v1/admin/products/`).
+The legacy single-product endpoint
+`POST /api/v1/admin/products/process-content` (`mode`, `after_id`) remains
+available. Each request has a 150-second PHP time limit.
+The database must be online and deployment migrations installed; missing tables
+produce an actionable error.
 
 Older descriptions tagged `ai-generated-from-catalog-facts` are replaced with
 verified descriptions when evidence exists. When research fails, that tagged
@@ -56,11 +62,11 @@ price and availability synchronization emails remain unchanged.
 
 ### Reviewing and repairing saved AI descriptions
 
-In **Settings > Catalog Ops**, use **Review & Repair AI Descriptions** to scan
-all AI-generated descriptions, including already-populated products, one per HTTP
-request (`mode: repair_descriptions`). This is separate from filling missing
-content and bypasses the normal retry cooldown. Keep the page open and use the
-existing progress/stop controls. Only `ai-generated-from-title`,
+In **Settings > Catalog Ops**, use **Re-check AI Text** to scan
+all AI-generated descriptions, including already-populated products
+(`mode: repair_descriptions`). This is separate from filling missing
+content and bypasses the normal retry cooldown. It runs as a server-side run
+like the other actions. Only `ai-generated-from-title`,
 `ai-generated-from-verified-web-evidence` and legacy
 `ai-generated-from-catalog-facts` sources are eligible. Untagged manual/supplier
 descriptions and `openai-verified-online` excerpts are excluded.

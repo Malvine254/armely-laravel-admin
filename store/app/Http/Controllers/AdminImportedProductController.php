@@ -6,8 +6,11 @@ use App\Jobs\EnrichPriceAvailabilityProductImageJob;
 use App\Jobs\EnrichProductContentJob;
 use App\Jobs\QueueMissingProductContentJob;
 use App\Models\Product;
+use App\Models\ProductContentRun;
+use App\Models\ProductContentRunItem;
 use App\Services\AzureOpenAiChatService;
 use App\Services\ProductContentEnrichmentService;
+use App\Services\ProductContentRunService;
 use App\Services\TDSynnexService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -179,6 +182,115 @@ class AdminImportedProductController extends Controller
         }
 
         return response()->json(['success' => true, 'data' => $result]);
+    }
+
+    private function contentRunsUnavailable(): ?JsonResponse
+    {
+        if (! Schema::hasTable('product_content_runs') || ! Schema::hasColumn('products', 'description_enrichment_attempted_at')) {
+            return response()->json(['success' => false,
+                'message' => 'Store content migrations are missing. Run php artisan migrate --force from the store directory.'], 503);
+        }
+
+        return null;
+    }
+
+    private function contentStats(int $minLength): array
+    {
+        $missing = Product::query()->missingDescription()->count();
+
+        return [
+            'total' => Product::count(),
+            'without_descriptions' => $missing,
+            'short_descriptions' => $minLength > 0
+                ? max(0, Product::query()->missingOrShortDescription($minLength)->count() - $missing) : 0,
+            'short_threshold' => $minLength,
+            'without_images' => tap(Product::query(), fn ($query) => $this->applyImageFilter($query, 'no_image'))->count(),
+        ];
+    }
+
+    private function contentRunPayload(?ProductContentRun $run, int $itemLimit = 30): array
+    {
+        return [
+            'run' => $run?->toSummary(),
+            'items' => $run ? $run->items()->latest('id')->limit($itemLimit)->get()
+                ->map(fn (ProductContentRunItem $item) => $item->toSummary())->all() : [],
+        ];
+    }
+
+    public function contentRunCurrent(Request $request, ProductContentRunService $runs): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+        if ($unavailable = $this->contentRunsUnavailable()) {
+            return $unavailable;
+        }
+        $minLength = max(0, min(1000, (int) $request->query('min_length', 150)));
+
+        return response()->json(['success' => true, 'data' => $this->contentRunPayload($runs->latest())
+            + ['stats' => $this->contentStats($minLength)]]);
+    }
+
+    public function contentRunStart(Request $request, AzureOpenAiChatService $ai, ProductContentRunService $runs): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+        $validated = $request->validate([
+            'mode' => ['required', 'in:'.implode(',', ProductContentRunService::MODES)],
+            'min_length' => ['sometimes', 'integer', 'min:0', 'max:1000'],
+        ]);
+        if ($unavailable = $this->contentRunsUnavailable()) {
+            return $unavailable;
+        }
+        if (! $ai->isConfigured()) {
+            return response()->json(['success' => false, 'message' => 'Configure the store AZURE_OPENAI_* settings before processing content.'], 422);
+        }
+        try {
+            $run = $runs->start($validated['mode'], (int) ($validated['min_length'] ?? 150), $request->user()?->id);
+        } catch (\RuntimeException $error) {
+            return response()->json(['success' => false, 'message' => $error->getMessage()], 409);
+        }
+
+        return response()->json(['success' => true, 'data' => $this->contentRunPayload($run)], 201);
+    }
+
+    /** Processes one product of the active run; the admin page calls this from several parallel workers. */
+    public function contentRunWork(Request $request, ProductContentRunService $runs): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+        if ($unavailable = $this->contentRunsUnavailable()) {
+            return $unavailable;
+        }
+        if (function_exists('set_time_limit')) {
+            set_time_limit(150);
+        }
+        $item = $runs->processOne();
+        $run = $runs->latest();
+
+        return response()->json(['success' => true, 'data' => [
+            'run' => $run?->toSummary(),
+            'item' => $item?->toSummary(),
+        ]]);
+    }
+
+    public function contentRunStop(Request $request, ProductContentRun $run, ProductContentRunService $runs): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+
+        return response()->json(['success' => true, 'data' => ['run' => $runs->stop($run)->toSummary()]]);
+    }
+
+    public function contentRunItems(Request $request, ProductContentRun $run): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+        $validated = $request->validate([
+            'result' => ['sometimes', 'nullable', 'in:complete,needs_review,failed'],
+            'per_page' => ['sometimes', 'integer', 'min:10', 'max:100'],
+        ]);
+        $items = $run->items()
+            ->when($validated['result'] ?? null, fn ($q, $result) => $q->where('result', $result))
+            ->latest('id')
+            ->paginate((int) ($validated['per_page'] ?? 25));
+        $items->getCollection()->transform(fn (ProductContentRunItem $item) => $item->toSummary());
+
+        return response()->json(['success' => true, 'data' => $items]);
     }
 
     public function index(Request $request): JsonResponse

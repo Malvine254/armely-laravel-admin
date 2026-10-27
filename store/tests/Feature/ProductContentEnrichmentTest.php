@@ -739,4 +739,104 @@ class ProductContentEnrichmentTest extends TestCase
         $this->assertSame($description, $product->fresh()->description);
         $this->assertSame('Old unclear description.', $product->fresh()->specifications['description_repair_backup']);
     }
+
+    private function runTables(): void
+    {
+        (require database_path('migrations/2026_10_27_120000_create_product_content_runs_tables.php'))->up();
+    }
+
+    private function runProviders(string $verified, ?string $generated, int $times): void
+    {
+        $supplier = Mockery::mock(TDSynnexService::class);
+        $supplier->shouldReceive('verifiedOnlineProductDetails')->times($times)
+            ->withArgs(fn ($product, $includeImages = true) => $includeImages === false)
+            ->andReturn(['description' => $verified, 'warnings' => [], 'specifications' => [], 'sources' => []]);
+        $ai = Mockery::mock(AzureOpenAiChatService::class);
+        $ai->shouldReceive('isConfigured')->andReturnTrue();
+        $ai->shouldReceive('generateProductDescription')->times($times)->andReturn($generated);
+        $this->app->instance(TDSynnexService::class, $supplier);
+        $this->app->instance(AzureOpenAiChatService::class, $ai);
+    }
+
+    public function test_description_run_targets_missing_and_short_descriptions_and_backs_up_short_text(): void
+    {
+        $this->runTables();
+        $this->configureAi();
+        $this->admin();
+        $missing = $this->product();
+        $short = $this->product(['description' => 'HP laptop.']);
+        $long = $this->product(['description' => str_repeat('Detailed supplier description. ', 10)]);
+        $better = 'HP ZBook 8 mobile workstation for professional design and engineering workloads.';
+        $this->runProviders('', $better, 2);
+
+        $this->getJson('/api/v1/admin/products/content-runs/current?min_length=50')->assertOk()
+            ->assertJsonPath('data.stats.without_descriptions', 1)
+            ->assertJsonPath('data.stats.short_descriptions', 1)
+            ->assertJsonPath('data.run', null);
+        $this->postJson('/api/v1/admin/products/content-runs', ['mode' => 'description', 'min_length' => 50])
+            ->assertCreated()->assertJsonPath('data.run.status', 'running')->assertJsonPath('data.run.total_candidates', 2);
+        $this->postJson('/api/v1/admin/products/content-runs', ['mode' => 'images'])->assertStatus(409);
+
+        $this->postJson('/api/v1/admin/products/content-runs/work')->assertOk()
+            ->assertJsonPath('data.item.product_id', $missing->id)->assertJsonPath('data.item.result', 'complete');
+        $this->postJson('/api/v1/admin/products/content-runs/work')->assertOk()
+            ->assertJsonPath('data.item.product_id', $short->id)
+            ->assertJsonPath('data.item.old_description', 'HP laptop.')
+            ->assertJsonPath('data.item.new_description', $better)
+            ->assertJsonPath('data.item.description_changed', true);
+        $this->postJson('/api/v1/admin/products/content-runs/work')->assertOk()
+            ->assertJsonPath('data.item', null)->assertJsonPath('data.run.status', 'completed')
+            ->assertJsonPath('data.run.processed', 2)->assertJsonPath('data.run.ready', 2);
+
+        $this->assertSame('HP laptop.', $short->fresh()->specifications['description_short_backup']);
+        $this->assertStringStartsWith('Detailed supplier', $long->fresh()->description);
+        $runId = $this->getJson('/api/v1/admin/products/content-runs/current')->json('data.run.id');
+        $this->getJson("/api/v1/admin/products/content-runs/{$runId}/items?result=complete")->assertOk()
+            ->assertJsonPath('data.total', 2);
+    }
+
+    public function test_short_description_is_kept_when_no_longer_text_is_approved(): void
+    {
+        $this->runTables();
+        $this->configureAi();
+        $short = $this->product(['description' => 'HP laptop.']);
+        $this->runProviders('', null, 1);
+        $runs = app(\App\Services\ProductContentRunService::class);
+        $runs->start('description', 50, 1);
+        $item = $runs->processOne();
+        $this->assertSame('needs_review', $item->result);
+        $this->assertSame('HP laptop.', $short->fresh()->description);
+        $this->assertFalse($item->toSummary()['description_changed']);
+    }
+
+    public function test_stopped_run_is_not_advanced_and_scheduler_command_resumes_active_runs(): void
+    {
+        $this->runTables();
+        $this->configureAi();
+        $this->admin();
+        $this->product();
+        $this->product();
+        $this->runProviders('', 'HP ZBook 8 mobile workstation for professional design work.', 2);
+        $runs = app(\App\Services\ProductContentRunService::class);
+
+        $run = $runs->start('description', 0, 1);
+        $this->postJson("/api/v1/admin/products/content-runs/{$run->id}/stop")->assertOk()->assertJsonPath('data.run.status', 'stopped');
+        $this->assertNull($runs->processOne());
+
+        $runs->start('description', 0, 1);
+        $this->artisan('products:content-run-work', ['--seconds' => 5])->assertSuccessful();
+        $this->assertSame('completed', $runs->latest()->status);
+        $this->assertSame(2, $runs->latest()->processed);
+    }
+
+    public function test_content_runs_are_admin_only(): void
+    {
+        $this->runTables();
+        $user = new User(['name' => 'Customer', 'role' => 'customer', 'status' => 'active']);
+        $user->id = 2;
+        $this->actingAs($user, 'sanctum');
+        $this->getJson('/api/v1/admin/products/content-runs/current')->assertForbidden();
+        $this->postJson('/api/v1/admin/products/content-runs', ['mode' => 'description'])->assertForbidden();
+        $this->postJson('/api/v1/admin/products/content-runs/work')->assertForbidden();
+    }
 }
