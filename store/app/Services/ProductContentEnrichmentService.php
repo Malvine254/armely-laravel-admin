@@ -69,7 +69,12 @@ class ProductContentEnrichmentService
         }
         $this->validateMode($mode);
 
-        return $mode === 'description' ? $query->missingOrShortDescription($minLength) : $query;
+        return match ($mode) {
+            'description' => $query->missingOrShortDescription($minLength),
+            // Only products without an http image; local-file images are still confirmed by needsContent().
+            'images' => $query->where(fn (Builder $q) => $q->whereNull('images')->orWhere('images', 'not like', '%http%')),
+            default => $query,
+        };
     }
 
     /**

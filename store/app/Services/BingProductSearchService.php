@@ -10,13 +10,18 @@ class BingProductSearchService
 {
     public function search(string $query, bool $images = false): array
     {
+        $market = (string) config('tdsynnex.bing.market', 'en-US');
         $response = Http::withHeaders([
             'User-Agent' => (string) config('tdsynnex.bing.user_agent'),
             'Accept' => 'text/html,application/xhtml+xml',
+            'Accept-Language' => $market.',en;q=0.9',
         ])->connectTimeout(max(1, (int) config('tdsynnex.bing.connect_timeout', 3)))
             ->timeout(max(2, (int) config('tdsynnex.bing.timeout', 8)))
-            ->get('https://www.bing.com/'.($images ? 'images/search' : 'search'), [
-                'q' => $query, 'count' => 10,
+            // Without an explicit market Bing answers with region-based, unrelated results.
+            // images/async honours the query; images/search often returns generic brand results to automated clients.
+            ->get('https://www.bing.com/'.($images ? 'images/async' : 'search'), [
+                'q' => $query, 'count' => $images ? 35 : 10, 'first' => 1,
+                'mkt' => $market, 'setlang' => $market, 'cc' => strtoupper((string) substr($market, -2)),
             ])->throw();
 
         $html = $response->body();

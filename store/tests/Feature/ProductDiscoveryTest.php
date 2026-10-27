@@ -546,7 +546,7 @@ class ProductDiscoveryTest extends TestCase
         return static function ($request) use ($results) {
             $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_HTML5);
             $html = '<html><body>';
-            if (str_contains($request->url(), '/images/search')) {
+            if (str_contains($request->url(), '/images/')) {
                 foreach ($results['images_results'] ?? [] as $row) {
                     $metadata = ['t' => $row['title'], 'purl' => $row['link'], 'murl' => $row['original']];
                     $html .= '<a class="iusc" m="'.$escape(json_encode($metadata)).'"></a>';
@@ -667,7 +667,7 @@ class ProductDiscoveryTest extends TestCase
         $this->assertSame('Exact model description', $details['description']);
         $this->assertSame('https://images.example.com/ABC123.jpg', $details['image_url']);
         $this->assertSame('https://example.com/ABC123', $details['sources'][0]['url']);
-        Http::assertSentCount(3);
+        Http::assertSentCount(4);
     }
 
     public function test_regional_part_numbers_accept_model_pages_without_the_region_suffix_but_not_longer_part_numbers(): void
@@ -716,8 +716,8 @@ class ProductDiscoveryTest extends TestCase
         $this->assertSame('https://images.example.com/zbook.jpg', $details['image_url']);
         $specs = collect($details['specifications'])->pluck('value', 'name')->all();
         $this->assertSame(['Processor' => 'Ryzen 7', 'Memory' => '32 GB', 'Storage' => '1 TB SSD'], $specs);
-        Http::assertSent(fn ($request) => str_contains($request->url(), 'bing.com/search?') && $request['q'] === 'HP ZBOOK 8 G1AS W11 PRO HP specifications');
-        Http::assertSent(fn ($request) => str_contains($request->url(), 'bing.com/images/search?') && $request['q'] === 'HP ZBOOK 8 G1AS W11 PRO HP');
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'bing.com/search?') && $request['q'] === 'HP ZBOOK 8 G1AS W11 PRO specifications');
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'bing.com/images/async?') && $request['q'] === 'HP ZBOOK 8 G1AS W11 PRO' && $request['mkt'] === 'en-US');
         Http::assertSentCount(2);
     }
 
@@ -751,7 +751,7 @@ class ProductDiscoveryTest extends TestCase
         $this->assertSame('Icecat description', $details['description']);
         $this->assertSame(['Memory' => '32 GB', 'Storage' => '1 TB SSD'], collect($details['specifications'])->pluck('value', 'name')->all());
         $this->assertSame([], $details['warnings']);
-        Http::assertSentCount(3);
+        Http::assertSentCount(4);
     }
 
     public function test_title_search_cache_changes_when_the_supplier_title_changes(): void
@@ -762,7 +762,7 @@ class ProductDiscoveryTest extends TestCase
         $supplier = app(TDSynnexService::class);
         $supplier->discoverOnlineProductDetails($this->product());
         $supplier->discoverOnlineProductDetails([...$this->product(), 'productName' => 'HP ZBook Updated Title']);
-        Http::assertSentCount(4);
+        Http::assertSentCount(6);
     }
 
     public function test_direct_bing_search_never_calls_serpapi_even_when_old_settings_are_enabled(): void
@@ -780,7 +780,7 @@ class ProductDiscoveryTest extends TestCase
         $this->assertSame('HP workstation. Memory: 32 GB', $details['description']);
         $this->assertSame('https://hp.com/workstation.jpg', $details['image_candidates'][0]['image_url']);
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'serpapi'));
-        Http::assertSentCount(2);
+        Http::assertSentCount(3);
     }
 
     public function test_blocked_bing_search_is_explicit_and_does_not_publish_unverified_content(): void
@@ -793,7 +793,7 @@ class ProductDiscoveryTest extends TestCase
         $this->assertSame([], $details['image_candidates']);
         $this->assertFalse($details['online_details_found']);
         $this->assertStringContainsString('blocked', implode(' ', $details['warnings']));
-        Http::assertSentCount(2);
+        Http::assertSentCount(3);
     }
 
     public function test_exact_sku_missing_from_ap_files_is_queried_but_zero_stock_is_not_displayed(): void

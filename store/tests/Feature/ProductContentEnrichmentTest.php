@@ -326,7 +326,7 @@ class ProductContentEnrichmentTest extends TestCase
     {
         $this->configureAi();
         $responses = Http::fakeSequence('enrichment.example.com/*');
-        foreach ([0.949, 0.95] as $confidence) {
+        foreach ([0.849, 0.85] as $confidence) {
             $responses->push([
                 'choices' => [['message' => ['content' => json_encode([
                     'description_matches' => true, 'specification_indices' => [],
@@ -335,7 +335,7 @@ class ProductContentEnrichmentTest extends TestCase
             ]);
             $responses->push(['choices' => [['message' => ['content' => '{}']]]]);
         }
-        foreach ([0.949, 0.95] as $confidence) {
+        foreach ([0.849, 0.85] as $confidence) {
             $product = $this->product();
             $supplier = Mockery::mock(TDSynnexService::class)->makePartial();
             $supplier->shouldReceive('discoverOnlineProductDetails')->once()->andReturn([
@@ -348,7 +348,7 @@ class ProductContentEnrichmentTest extends TestCase
             ]);
             (new ProductContentEnrichmentService($supplier, app(AzureOpenAiChatService::class)))->enrich($product);
             $this->assertSame('Verified HP ZBook 8 workstation description.', $product->fresh()->description);
-            if ($confidence < 0.95) {
+            if ($confidence < 0.85) {
                 $this->assertSame([], $product->fresh()->images);
                 $this->assertSame('needs_review', $product->fresh()->specifications['content_enrichment_status']);
             } else {
@@ -356,6 +356,15 @@ class ProductContentEnrichmentTest extends TestCase
                 $this->assertSame('complete', $product->fresh()->specifications['content_enrichment_status']);
             }
         }
+    }
+
+    public function test_image_runs_only_scan_products_without_an_image_url(): void
+    {
+        $this->product(['images' => [['imageUrl' => 'https://images.example.com/has.jpg']]]);
+        $missing = $this->product(['images' => []]);
+        $service = app(ProductContentEnrichmentService::class);
+
+        $this->assertSame([$missing->id], $service->candidateQuery('images')->pluck('id')->all());
     }
 
     public function test_excel_sync_persists_enriched_content_without_double_encoding_json(): void

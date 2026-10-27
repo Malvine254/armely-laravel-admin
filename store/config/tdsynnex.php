@@ -183,6 +183,8 @@ return [
         'timeout' => env('BING_IMAGE_TIMEOUT', 8),
         'connect_timeout' => env('BING_IMAGE_CONNECT_TIMEOUT', 3),
         'user_agent' => env('BING_IMAGE_USER_AGENT', 'Mozilla/5.0 (compatible; ArmelyImageBot/1.0; +https://armely.com)'),
+        'market' => env('BING_MARKET', 'en-US'),
+        'image_min_confidence' => (float) env('PRODUCT_IMAGE_MIN_CONFIDENCE', 0.85),
     ],
 
     'image_sync' => [

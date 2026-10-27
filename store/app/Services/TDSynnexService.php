@@ -437,7 +437,7 @@ class TDSynnexService
 
     /**
      * Poll TD Synnex every 2 hours and write results into shadow live_* columns only.
-     * Main columns (base_price, retail_price, is_available, quantity) are NOT touched here —
+     * Main columns (base_price, retail_price, is_available, quantity) are NOT touched here â€”
      * they are updated at midnight by applyNightlyPriceSync().
      */
     /**
@@ -514,7 +514,7 @@ class TDSynnexService
                         }
                     }
                 } else {
-                    // Log the error but continue processing remaining batches — one failed
+                    // Log the error but continue processing remaining batches â€” one failed
                     // batch (timeout, network blip) must not abort the entire sync run.
                     $attemptErrors[] = "Batch {$batchNum}: " . $errorMessage;
                     $failedSkus = array_merge($failedSkus, $skuBatch);
@@ -856,7 +856,7 @@ class TDSynnexService
                     // Price changed by more than 1 cent
                     if ($product->live_price !== null && abs((float) $product->live_price - (float) $product->base_price) >= 0.01) {
                         $updates['base_price'] = $product->live_price;
-                        $log[] = "SKU {$product->tdsynnex_sku_no}: price {$product->base_price} → {$product->live_price}";
+                        $log[] = "SKU {$product->tdsynnex_sku_no}: price {$product->base_price} â†’ {$product->live_price}";
                     }
 
                     if ($product->live_retail_price !== null && abs((float) $product->live_retail_price - (float) $product->retail_price) >= 0.01) {
@@ -872,7 +872,7 @@ class TDSynnexService
                     if ($product->live_is_available !== null && (bool) $product->live_is_available !== (bool) $product->is_available) {
                         $updates['is_available']    = $product->live_is_available;
                         $updates['is_discontinued'] = $product->live_is_discontinued;
-                        $log[] = "SKU {$product->tdsynnex_sku_no}: available {$product->is_available} → {$product->live_is_available}";
+                        $log[] = "SKU {$product->tdsynnex_sku_no}: available {$product->is_available} â†’ {$product->live_is_available}";
                     }
 
                     if (empty($updates)) {
@@ -1047,7 +1047,7 @@ class TDSynnexService
             'mfgPartNo' => (string) $product->mfg_part_no,
             'upc' => (string) data_get($product->specifications, 'upc', ''),
         ];
-        $key = 'tdsynnex:verified-content:v4-bing:' . ($includeImages ? '' : 'text-only:') . md5(json_encode($identity));
+        $key = 'tdsynnex:verified-content:v5-bing:' . ($includeImages ? '' : 'text-only:') . md5(json_encode($identity));
         return Cache::remember($key, now()->addMinutes(10), function () use ($identity, $includeImages) {
             $details = $this->discoverOnlineProductDetails($identity, $includeImages);
             $verification = !empty($details['online_details_found'])
@@ -1677,7 +1677,7 @@ class TDSynnexService
 
     private function fetchPriceAvailabilityCatalogUncached(): array
     {
-        // Prefer database when it has data — avoids parsing large flat files
+        // Prefer database when it has data â€” avoids parsing large flat files
         if ($this->hasPriceAvailabilityDatabaseCache()) {
             $products = Product::query()
                 ->where('vendor_id', 'TD SYNNEX')
@@ -2930,7 +2930,7 @@ class TDSynnexService
             'upc' => (string) ($product['upc'] ?? ''),
         ];
         $title = trim((string) ($product['productName'] ?? ''));
-        $key = 'tdsynnex:discovery:v6-bing:' . ($includeImages ? '' : 'text-only:') . md5(json_encode([$sku, $meta, $title]));
+        $key = 'tdsynnex:discovery:v7-bing:' . ($includeImages ? '' : 'text-only:') . md5(json_encode([$sku, $meta, $title]));
 
         return Cache::remember($key, 600, function () use ($sku, $meta, $title, $includeImages) {
             $icecat = $this->fetchIcecatProductData($sku, $meta, $title);
@@ -2949,12 +2949,24 @@ class TDSynnexService
 
             $searchEnabled = (bool) config('tdsynnex.bing.enabled', true);
             if ($searchEnabled && $title !== '') {
-                $query = trim($title.' '.$meta['manufacturer'].' '.$meta['mpn']);
-                foreach ($includeImages ? ['web', 'images'] : ['web'] as $engine) {
+                // Bracketed configuration text (CPU/RAM/SSD) makes Bing return unrelated results.
+                $baseTitle = $this->discoverySearchTitle($title, $meta['manufacturer']);
+                $mpn = trim($meta['mpn']);
+                $mpnSuffix = $mpn !== '' && stripos($baseTitle, $mpn) === false ? ' '.$mpn : '';
+                $lookups = [['web', $baseTitle.$mpnSuffix.' specifications']];
+                if ($includeImages) {
+                    $lookups[] = ['images', $baseTitle];
+                    if ($mpnSuffix !== '') {
+                        $lookups[] = ['images', trim($meta['manufacturer'].' '.$mpn)];
+                    }
+                }
+                $scoredImages = [];
+                foreach ($lookups as [$engine, $query]) {
+                    if ($engine === 'images' && count($scoredImages) >= 5) {
+                        continue;
+                    }
                     try {
-                        $rows = app(BingProductSearchService::class)->search(
-                            $query.($engine === 'web' ? ' specifications' : ''), $engine === 'images'
-                        );
+                        $rows = app(BingProductSearchService::class)->search($query, $engine === 'images');
                         if ($rows === []) {
                             $warnings[] = 'Bing returned no usable '.$engine.' search results. The search page may be unavailable or its format may have changed.';
                         }
@@ -2963,43 +2975,39 @@ class TDSynnexService
                                 continue;
                             }
                             $text = (string) ($row['title'] ?? '') . ' ' . (string) ($row['link'] ?? '');
-                            if (!$this->discoveryMatchesSupplier($text, $title, $meta['mpn'])) {
-                                continue;
-                            }
                             $sourceUrl = $this->discoveryPublicUrl((string) ($row['link'] ?? ''));
                             if ($sourceUrl === '') {
                                 continue;
                             }
-                            if ($engine === 'web') {
-                                $snippet = trim(strip_tags((string) ($row['snippet'] ?? '')));
-                                $webSpecs = $this->discoveryWebSpecifications($row);
-                                if ($snippet === '' && $webSpecs === []) {
-                                    continue;
-                                }
-                                if ($description === '') {
-                                    $description = $snippet;
-                                }
-                                $knownNames = array_map(static fn (array $spec): string => strtolower($spec['name']), $specifications);
-                                foreach ($webSpecs as $spec) {
-                                    if (!in_array(strtolower($spec['name']), $knownNames, true)) {
-                                        $specifications[] = $spec;
-                                        $knownNames[] = strtolower($spec['name']);
-                                    }
-                                }
-                            } else {
+                            if ($engine === 'images') {
+                                // Image titles rarely repeat CPU/RAM details; match the model family and let AI verify visually.
                                 $candidate = $this->discoveryPublicUrl((string) ($row['original'] ?? ''));
-                                if ($candidate === '') {
-                                    continue;
+                                $score = $candidate === '' ? null : $this->discoveryImageScore($text, $baseTitle, $mpn, $meta['manufacturer']);
+                                if ($score !== null && !isset($scoredImages[$candidate])) {
+                                    $scoredImages[$candidate] = ['score' => $score, 'order' => count($scoredImages),
+                                        'image_url' => $candidate, 'title' => strip_tags((string) ($row['title'] ?? '')), 'source_url' => $sourceUrl];
                                 }
-                                if (count($imageCandidates) === 0) {
-                                    $image = $candidate;
+                                continue;
+                            }
+                            if (!$this->discoveryMatchesSupplier($text, $title, $mpn)) {
+                                continue;
+                            }
+                            $snippet = trim(strip_tags((string) ($row['snippet'] ?? '')));
+                            $webSpecs = $this->discoveryWebSpecifications($row);
+                            if ($snippet === '' && $webSpecs === []) {
+                                continue;
+                            }
+                            if ($description === '') {
+                                $description = $snippet;
+                            }
+                            $knownNames = array_map(static fn (array $spec): string => strtolower($spec['name']), $specifications);
+                            foreach ($webSpecs as $spec) {
+                                if (!in_array(strtolower($spec['name']), $knownNames, true)) {
+                                    $specifications[] = $spec;
+                                    $knownNames[] = strtolower($spec['name']);
                                 }
-                                $imageCandidates[] = ['image_url' => $candidate, 'title' => strip_tags((string) ($row['title'] ?? '')), 'source_url' => $sourceUrl];
                             }
                             $sources[] = ['name' => 'Bing search result', 'url' => $sourceUrl];
-                            if ($engine === 'images' && count($imageCandidates) >= 3) {
-                                break;
-                            }
                         }
                     } catch (\Illuminate\Http\Client\ConnectionException|\Illuminate\Http\Client\RequestException|\UnexpectedValueException $error) {
                         Log::warning('Product discovery web lookup failed.', [
@@ -3009,6 +3017,19 @@ class TDSynnexService
                         ]);
                         $warnings[] = 'Bing '.$engine.' lookup is unavailable or blocked. Please retry later; no search restrictions were bypassed.';
                     }
+                }
+                $scoredImages = array_values($scoredImages);
+                usort($scoredImages, static fn (array $a, array $b): int => [$b['score'], $a['order']] <=> [$a['score'], $b['order']]);
+                foreach (array_slice($scoredImages, 0, 5) as $candidate) {
+                    unset($candidate['score'], $candidate['order']);
+                    if ($imageCandidates === [] && $image === '') {
+                        $image = $candidate['image_url'];
+                    }
+                    $imageCandidates[] = $candidate;
+                    $sources[] = ['name' => 'Bing image result', 'url' => $candidate['source_url']];
+                }
+                if ($includeImages && $scoredImages === []) {
+                    $warnings[] = 'Bing image results did not mention this product model ('.$baseTitle.').';
                 }
             } elseif (!$searchEnabled) {
                 $warnings[] = 'Bing search is disabled. Enable BING_IMAGE_ENABLED for website and image lookup; no search API key is required.';
@@ -3033,6 +3054,56 @@ class TDSynnexService
                 'internet_search_query' => $title,
             ];
         });
+    }
+
+    /** Product title without bracketed configuration details, prefixed with the brand when missing. */
+    private function discoverySearchTitle(string $title, string $manufacturer): string
+    {
+        $base = trim((string) preg_replace(['/\([^)]*\)|\[[^\]]*\]/u', '/\s+/u'], ['', ' '], $title));
+        $base = $base !== '' ? $base : $title;
+        $brand = trim((string) preg_replace('/\b(inc|corp(oration)?|co|ltd|llc|company)\b\.?/i', '', $manufacturer));
+        $brandWord = strtok($brand, ' ,');
+
+        return $brandWord !== false && $brandWord !== '' && stripos($base, $brandWord) === false
+            ? trim($brand.' '.$base) : $base;
+    }
+
+    /**
+     * Relevance of an image search result to the product model, or null when it is unrelated.
+     * Requires the brand/family words and most model tokens; the AI check confirms the photo.
+     */
+    private function discoveryImageScore(string $text, string $baseTitle, string $partNumber, string $manufacturer): ?float
+    {
+        $text = strtolower(urldecode($text));
+        $hasTerm = static fn (string $term): bool => (bool) preg_match(
+            '/(?<![a-z0-9])'.preg_quote($term, '/').'(?![a-z0-9])/i', $text
+        );
+        $partNumber = strtolower(trim($partNumber));
+        [$partBase, $partRegion] = array_pad(explode('#', $partNumber, 2), 2, '');
+        $partHit = false;
+        foreach (array_unique(array_filter([$partNumber, $partBase, $partBase.$partRegion])) as $term) {
+            $partHit = $partHit || (strlen($term) >= 4 && $hasTerm($term));
+        }
+        $tokens = array_values(array_unique(preg_split('/[^a-z0-9]+/i', strtolower($baseTitle), -1, PREG_SPLIT_NO_EMPTY) ?: []));
+        $brandTokens = preg_split('/[^a-z0-9]+/i', strtolower($manufacturer), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $tokens = array_values(array_filter($tokens, static fn (string $t): bool => strlen($t) >= 2 || ctype_digit($t)));
+        if ($tokens === []) {
+            return $partHit ? 1.0 : null;
+        }
+        $familyWords = array_filter($tokens, static fn (string $t): bool => ctype_alpha($t) && strlen($t) >= 3 && !in_array($t, $brandTokens, true));
+        foreach ($familyWords as $word) {
+            if (!$hasTerm($word) && !$partHit) {
+                return null;
+            }
+        }
+        $matched = count(array_filter($tokens, $hasTerm));
+        $ratio = $matched / count($tokens);
+        if (!$partHit && $ratio < 0.6) {
+            return null;
+        }
+        $official = $brandTokens !== [] && str_contains($text, $brandTokens[0].'.com');
+
+        return $ratio + ($partHit ? 1 : 0) + ($official ? 0.25 : 0);
     }
 
     private function discoveryMatchesSupplier(string $text, string $title, string $partNumber): bool
@@ -3151,7 +3222,7 @@ class TDSynnexService
 
         $queryAttempts = [];
 
-        // Strategy 1: GTIN (UPC/EAN) — single best candidate only.
+        // Strategy 1: GTIN (UPC/EAN) â€” single best candidate only.
         if (!empty($gtinCandidates)) {
             $queryAttempts[] = [
                 'params' => array_merge($baseParams, ['GTIN' => $gtinCandidates[0]]),
@@ -3162,7 +3233,7 @@ class TDSynnexService
             ];
         }
 
-        // Strategy 2: Brand + MPN — single attempt with primary brand and first candidate code.
+        // Strategy 2: Brand + MPN â€” single attempt with primary brand and first candidate code.
         if (!empty($candidateCodes) && !empty($brandCandidates)) {
             $queryAttempts[] = [
                 'params' => array_merge($baseParams, [
@@ -3566,13 +3637,13 @@ class TDSynnexService
         $mpn          = $this->sanitizeSearchPhrase((string) ($meta['mpn'] ?? ''));
         $title        = $this->sanitizeSearchPhrase((string) ($meta['title'] ?? ''));
 
-        // Require MPN — title-only or SKU-only queries return wrong products from unrelated brands.
+        // Require MPN â€” title-only or SKU-only queries return wrong products from unrelated brands.
         if ($mpn === '') {
             return '';
         }
 
         $candidates = [
-            trim($manufacturer . ' ' . $mpn),  // "HP JL255A" — most precise
+            trim($manufacturer . ' ' . $mpn),  // "HP JL255A" â€” most precise
             trim($title . ' ' . $mpn),          // "HPE Aruba Switch JL255A"
             trim($mpn),                          // bare MPN as last resort
         ];
@@ -3782,7 +3853,7 @@ class TDSynnexService
             'https://www.connection.com/IPA/Shop/Product/Search?q=' . $q,
             'https://www.adorama.com/l/?searchinfo=' . $q,
             'https://www.antonline.com/search/?query=' . $q,
-            // Consumer retailers – wide catalog coverage
+            // Consumer retailers â€“ wide catalog coverage
             'https://www.amazon.com/s?k=' . $q,
             'https://www.bestbuy.com/site/searchpage.jsp?st=' . $q,
             'https://www.walmart.com/search?q=' . $q,
