@@ -729,7 +729,7 @@
             </div>
             <div class="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-600">
               <span>{{ formatNumber(contentRun.processed) }} / ~{{ formatNumber(contentRun.total_candidates) }} processed</span>
-              <span class="text-emerald-700">{{ formatNumber(contentRun.ready) }} improved</span>
+              <span class="text-emerald-700">{{ formatNumber(contentRun.ready) }} {{ contentRun.mode === 'images' ? 'images added' : 'improved' }}</span>
               <span class="text-amber-700">{{ formatNumber(contentRun.needs_review) }} need review</span>
               <span v-if="contentRun.failed" class="text-rose-700">{{ formatNumber(contentRun.failed) }} failed</span>
               <span v-if="contentRunActive && contentRun.current_product_name" class="truncate">Now: {{ contentRun.current_product_name }}</span>
@@ -759,7 +759,10 @@
                 </div>
               </div>
               <div class="mt-3 flex flex-col gap-3 md:flex-row">
-                <img v-if="item.image_url" :src="item.image_url" alt="" loading="lazy" class="h-24 w-24 flex-shrink-0 rounded border border-gray-200 bg-white object-contain" />
+                <figure v-if="item.image_url" class="flex-shrink-0">
+                  <img :src="item.image_url" alt="" loading="lazy" class="h-24 w-24 rounded border border-gray-200 bg-white object-contain" />
+                  <figcaption class="mt-1 w-24 text-[11px] leading-tight text-emerald-700">New image (product had none)</figcaption>
+                </figure>
                 <div v-if="item.new_description !== null" class="grid flex-1 grid-cols-1 gap-3 md:grid-cols-2">
                   <div>
                     <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Before</p>
@@ -787,7 +790,7 @@
             <ul class="mt-2 list-disc space-y-1 pl-5">
               <li><strong>Improve Descriptions</strong> targets products with no description and those shorter than the character limit. A short description is only replaced by a longer, AI-checked one; the original is backed up.</li>
               <li>Bing website evidence is used first; otherwise a conservative title-based description is written and labeled for review. Exact specifications are never invented.</li>
-              <li><strong>Find Missing Images</strong> only saves images that AI verifies match the exact model. Existing images are kept.</li>
+              <li><strong>Find Missing Images</strong> only processes products that have no image and only saves images that AI verifies match the model. Existing images are never replaced.</li>
               <li><strong>Re-check AI Text</strong> rewrites earlier AI descriptions with category-specific labeled facts; manual and supplier text is excluded and previous text is backed up.</li>
               <li>Progress is saved after every product. AI/search usage charges may apply. Background processing with the page closed needs the Laravel scheduler (cron <code>schedule:run</code>).</li>
             </ul>
@@ -1451,7 +1454,7 @@ const contentItemsLoading = ref(false)
 let contentPageActive = true
 const contentResultFilters = [
   { value: '', label: 'All' },
-  { value: 'complete', label: 'Improved' },
+  { value: 'complete', label: 'Updated' },
   { value: 'needs_review', label: 'Needs review' },
   { value: 'failed', label: 'Failed' },
 ]
@@ -1837,7 +1840,11 @@ const contentResultClass = (result) => ({
 })[result] || 'bg-gray-100 text-gray-600'
 
 const contentResultLabel = (item) => {
-  if (item.result === 'complete') return item.description_changed || item.image_url ? 'Improved' : 'OK'
+  if (item.result === 'complete') {
+    if (item.description_changed && item.image_url) return 'Description + image added'
+    if (item.image_url) return 'Image added'
+    return item.description_changed ? 'Description improved' : 'OK'
+  }
   return item.result === 'needs_review' ? 'Needs review' : 'Failed'
 }
 
