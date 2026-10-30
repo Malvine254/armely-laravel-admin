@@ -17,6 +17,9 @@ return [
 
     'default' => env('CACHE_STORE', 'database'),
 
+    // Store for high-cardinality per-visitor entries (e.g. GeoIP country by IP).
+    'visitor_store' => env('CACHE_VISITOR_STORE', 'database'),
+
     /*
     |--------------------------------------------------------------------------
     | Cache Stores

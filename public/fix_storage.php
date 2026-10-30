@@ -39,6 +39,13 @@ $actions = [
             ['name' => 'optimize', 'params' => []],
         ],
     ],
+    'storage_cleanup' => [
+        'label' => 'Storage Cleanup (Free Files)',
+        'help' => 'Delete old logs, expired sessions and expired cache entries for the main site and store to stay under the hosting file-count quota.',
+        'commands' => [
+            ['name' => 'storage:cleanup', 'params' => []],
+        ],
+    ],
     'storage_link' => [
         'label' => 'Recreate Storage Link',
         'help' => 'Run storage:link for the main website.',

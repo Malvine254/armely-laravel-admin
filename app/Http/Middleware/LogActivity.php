@@ -117,6 +117,15 @@ class LogActivity
         }
     }
 
+    /**
+     * Per-IP country lookups create one entry per visitor, so keep them out of the
+     * file cache to avoid exhausting the hosting account's file (inode) quota.
+     */
+    protected function countryCache(): \Illuminate\Contracts\Cache\Repository
+    {
+        return Cache::store(config('cache.visitor_store', 'database'));
+    }
+
     protected function isDatabaseInCooldown(): bool
     {
         $until = (int) Cache::get('activity_log_db_unavailable_until', 0);
@@ -189,9 +198,8 @@ class LogActivity
 
         // Cache country lookups to reduce external calls
         $cacheKey = 'geoip_country_' . md5($ip);
-        $cached = Cache::get($cacheKey);
+        $cached = $this->countryCache()->get($cacheKey);
         if ($cached !== null) {
-            Log::info('GeoIP cache hit', ['ip' => $ip, 'country' => $cached]);
             return $cached;
         }
 
@@ -202,7 +210,7 @@ class LogActivity
                 if ($loc) {
                     $code = strtoupper($loc->iso_code ?? ($loc->country_code ?? ''));
                     if ($code && preg_match('/^[A-Z]{2}$/', $code)) {
-                        Cache::put($cacheKey, $code, now()->addDays(7));
+                        $this->countryCache()->put($cacheKey, $code, now()->addDays(7));
                         Log::info('GeoIP local lookup success', ['ip' => $ip, 'country' => $code]);
                         return $code;
                     }
@@ -221,7 +229,7 @@ class LogActivity
                     $rec = $reader->lookup($ip, IP2LocationDB::COUNTRY_CODE);
                     $code = is_string($rec) ? strtoupper(trim($rec)) : null;
                     if ($code && preg_match('/^[A-Z]{2}$/', $code)) {
-                        Cache::put($cacheKey, $code, now()->addDays(30));
+                        $this->countryCache()->put($cacheKey, $code, now()->addDays(30));
                         Log::info('GeoIP IP2Location lookup success', ['ip' => $ip, 'country' => $code]);
                         return $code;
                     }
@@ -246,7 +254,7 @@ class LogActivity
             if ($resp->ok()) {
                 $code = strtoupper(trim($resp->body()));
                 if (preg_match('/^[A-Z]{2}$/', $code)) {
-                    Cache::put($cacheKey, $code, now()->addDays(7));
+                    $this->countryCache()->put($cacheKey, $code, now()->addDays(7));
                     Log::info('GeoIP http lookup success', ['ip' => $ip, 'country' => $code]);
                     return $code;
                 }
@@ -264,7 +272,7 @@ class LogActivity
                 $data = $resp->json();
                 if (!empty($data['country_code'])) {
                     $code = strtoupper($data['country_code']);
-                    Cache::put($cacheKey, $code, now()->addDays(7));
+                    $this->countryCache()->put($cacheKey, $code, now()->addDays(7));
                     Log::info('GeoIP http json lookup success', ['ip' => $ip, 'country' => $code]);
                     return $code;
                 }
@@ -275,7 +283,7 @@ class LogActivity
         }
 
         if ($attempted) {
-            Cache::put($cacheKey, 'Unknown', now()->addHours(6));
+            $this->countryCache()->put($cacheKey, 'Unknown', now()->addHours(6));
             Log::info('GeoIP lookup failed - caching Unknown', ['ip' => $ip]);
             return 'Unknown';
         }

@@ -54,7 +54,7 @@ return [
 
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', (string) env('LOG_STACK', 'single')),
+            'channels' => explode(',', (string) env('LOG_STACK', 'daily')),
             'ignore_exceptions' => false,
         ],
 
@@ -69,7 +69,7 @@ return [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
-            'days' => env('LOG_DAILY_DAYS', 14),
+            'days' => env('LOG_DAILY_DAYS', 7),
             'replace_placeholders' => true,
         ],
 
@@ -77,7 +77,7 @@ return [
             'driver' => 'daily',
             'path' => storage_path('logs/mela.log'),
             'level' => env('MELA_LOG_LEVEL', 'info'),
-            'days' => 30,
+            'days' => env('MELA_LOG_DAYS', 14),
             'replace_placeholders' => true,
         ],
 

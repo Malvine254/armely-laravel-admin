@@ -12,3 +12,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('mela:index-scheduled')->everyMinute()->withoutOverlapping(30);
 Schedule::command('mela:prune')->dailyAt('03:45');
+Schedule::command('storage:cleanup')->hourly()->withoutOverlapping(30);

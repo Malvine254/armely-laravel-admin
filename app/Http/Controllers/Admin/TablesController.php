@@ -691,12 +691,6 @@ class TablesController extends Controller
     // Public ping endpoint for quick health / connectivity checks (no heavy DB work)
     public function ping()
     {
-        // Small, unconditional file append to help deployed debugging when logging is broken
-        try {
-            @file_put_contents(storage_path('logs/debug_ping.txt'), "[".now()."] ping\n", FILE_APPEND | LOCK_EX);
-        } catch (\Throwable $__e) {
-        }
-
         return response()->json([
             'ok' => true,
             'time' => now()->toDateTimeString(),
