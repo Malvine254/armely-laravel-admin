@@ -32,6 +32,20 @@ $actions = [
             ['name' => 'event:clear', 'params' => []],
         ],
     ],
+    'product_images_report' => [
+        'label' => 'Product Images File Report',
+        'help' => 'Count files in public/images/products and how many are orphaned image-proxy cache files (no changes made).',
+        'commands' => [
+            ['name' => 'products:prune-images', 'params' => []],
+        ],
+    ],
+    'product_images_prune' => [
+        'label' => 'Prune Orphaned Proxy Images (Free Files)',
+        'help' => 'Delete md5-named image-proxy cache files that no product references. Product-named images are kept.',
+        'commands' => [
+            ['name' => 'products:prune-images', 'params' => ['--delete' => true]],
+        ],
+    ],
     'rebuild_caches' => [
         'label' => 'Rebuild Laravel Caches',
         'help' => 'Warm config, route, view, event caches and optimize.',

@@ -3657,7 +3657,8 @@ class ProductController extends Controller
     }
 
     /**
-     * Server-side image proxy: fetches an external image URL and caches it locally.
+     * Server-side image proxy: fetches an external image URL and streams it back
+     * (previously cached copies are still served from disk).
      * Browsers call this instead of the raw external URL to avoid CORS/CSP blocks.
      *
      * Usage: GET /api/v1/img-proxy?url=<base64-encoded-url>
@@ -3712,23 +3713,13 @@ class ProductController extends Controller
                 str_contains($contentType, 'png') => 'png',
                 str_contains($contentType, 'webp') => 'webp',
                 str_contains($contentType, 'gif') => 'gif',
-                str_contains($contentType, 'jpeg'), str_contains($contentType, 'jpg') => 'jpg',
-                default => strtolower(pathinfo(parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION)),
+                default => 'jpeg',
             };
-            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
-                $ext = 'jpg';
-            }
 
-            $filename = $fileStem . '.' . $ext;
-            $localPath = $destDir . DIRECTORY_SEPARATOR . $filename;
-
-            if (!is_dir($destDir)) {
-                mkdir($destDir, 0775, true);
-            }
-
-            file_put_contents($localPath, $response->body());
-
-            return response()->file($localPath, [
+            // Stream instead of saving: every distinct proxied URL used to become a file,
+            // which exhausted the hosting account's file (inode) quota. Browsers cache via headers.
+            return response($response->body(), 200, [
+                'Content-Type' => 'image/' . $ext,
                 'Cache-Control' => 'public, max-age=2592000, immutable',
                 'X-Content-Type-Options' => 'nosniff',
             ]);
