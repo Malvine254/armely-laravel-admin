@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Services\Mela\Knowledge\MelaKnowledgeIndexRefresh;
 use Closure;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -39,7 +40,8 @@ class ReindexMelaKnowledgeAfterContentChange
         if (
             !$request->isMethodSafe()
             && $response->getStatusCode() < 400
-            && !($request->hasSession() && $request->session()->has('errors'))
+            && !($request->hasSession() && array_intersect(['errors', 'error'], $request->session()->get('_flash.new', [])))
+            && !($response instanceof JsonResponse && ($response->getData(true)['success'] ?? null) === false)
             && $this->isContentRoute($routeName)
         ) {
             $this->indexRefresh->requestRun('admin_content');

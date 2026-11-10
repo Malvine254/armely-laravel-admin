@@ -42,10 +42,11 @@ class MelaKnowledgeIndexRefresh
 
         defer(function () use ($trigger) {
             try {
+                $settings = $this->settings();
                 $fingerprint = $this->siteFingerprint();
                 if ($this->runIndex() === 0) {
-                    $this->settings();
                     DB::table('mela_index_settings')->where('id', 1)->update(['site_fingerprint' => $fingerprint]);
+                    $this->advanceDueSchedule($settings);
                 }
             } catch (\Throwable $e) {
                 Log::error('Mela knowledge reindex failed.', ['trigger' => $trigger, 'error' => $e->getMessage()]);
@@ -60,6 +61,21 @@ class MelaKnowledgeIndexRefresh
         });
 
         return true;
+    }
+
+    public function requestRunIfDue(): bool
+    {
+        if (Cache::has(self::RUNNING_KEY)) {
+            return false;
+        }
+
+        $settings = $this->settings();
+        $due = $settings->next_run_at && Carbon::parse($settings->next_run_at)->isPast();
+        if (!$due && !$this->isPending()) {
+            return false;
+        }
+
+        return $this->requestRun('admin_poll');
     }
 
     public function stop(): string
@@ -151,19 +167,27 @@ class MelaKnowledgeIndexRefresh
             $code = $this->runIndex();
             if ($code === 0) {
                 DB::table('mela_index_settings')->where('id', 1)->update(['site_fingerprint' => $fingerprint]);
-                // A concurrently edited or disabled schedule must remain untouched.
-                if ($due) {
-                    DB::table('mela_index_settings')->where('id', 1)
-                        ->where('next_run_at', $settings->next_run_at)
-                        ->where('interval_minutes', $settings->interval_minutes)
-                        ->update(['next_run_at' => $settings->interval_minutes ? now()->addMinutes($settings->interval_minutes) : null]);
-                }
+                $this->advanceDueSchedule($settings);
             }
+
             return $code;
         } finally {
             Cache::forget(self::RUNNING_KEY);
             Cache::forget(self::STOP_KEY);
         }
+    }
+
+    private function advanceDueSchedule(object $settings): void
+    {
+        if (!$settings->next_run_at || !Carbon::parse($settings->next_run_at)->isPast()) {
+            return;
+        }
+
+        // A concurrently edited or disabled schedule must remain untouched.
+        DB::table('mela_index_settings')->where('id', 1)
+            ->where('next_run_at', $settings->next_run_at)
+            ->where('interval_minutes', $settings->interval_minutes)
+            ->update(['next_run_at' => $settings->interval_minutes ? now()->addMinutes($settings->interval_minutes) : null]);
     }
 
     public function recoverStaleRun(): bool

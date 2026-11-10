@@ -39,7 +39,7 @@
     display: flex;
     flex-direction: column;
     width: 360px;
-    max-width: calc(100vw - 24px);
+    max-width: calc(100vw - 60px);
     max-height: calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom));
     background: #fff;
     border-radius: 14px;
@@ -59,14 +59,8 @@ body:has(.mobile-dropdown-menu.open) .mela-launcher {
 }
 
 .mela-widget[data-state="open"] .mela-panel {
-    width: 400px;
-    height: min(680px, calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom)));
-}
-
-@media (min-width: 1200px) {
-    .mela-widget[data-state="open"] .mela-panel {
-        height: min(clamp(680px, 50vw, 900px), calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom)));
-    }
+    width: clamp(360px, 32vw, 560px);
+    height: calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom));
 }
 
 .mela-widget[data-state="teaser"] .mela-disclaimer,
@@ -165,6 +159,7 @@ body:has(.mobile-dropdown-menu.open) .mela-launcher {
 }
 
 .mela-msg {
+    flex-shrink: 0;
     max-width: 88%;
     padding: 10px 12px;
     font-size: 13.5px;
@@ -373,6 +368,7 @@ body:has(.mobile-dropdown-menu.open) .mela-launcher {
 
 .mela-composer textarea {
     flex: 1;
+    min-width: 0;
     min-height: 22px;
     max-height: 120px;
     padding: 6px 2px;
@@ -588,13 +584,13 @@ html.mela-launcher-visible #scrollUp {
 }
 
 @media (max-width: 1024px) {
-    .mela-widget[data-state="open"] .mela-panel {
-        width: 370px;
-    }
-
     .mela-panel,
     .mela-launcher {
         right: 20px;
+    }
+
+    .mela-panel {
+        max-width: calc(100vw - 40px);
     }
 }
 
@@ -604,9 +600,8 @@ html.mela-launcher-visible #scrollUp {
         right: 12px;
     }
 
-    .mela-panel,
-    .mela-widget[data-state="open"] .mela-panel {
-        width: min(360px, calc(100vw - 24px));
+    .mela-panel {
+        max-width: calc(100vw - 24px);
         max-height: calc(var(--mela-vh, 100vh) - var(--mela-top) - var(--mela-bottom));
     }
 
@@ -634,6 +629,9 @@ html.mela-launcher-visible #scrollUp {
 }
 
 @media (max-width: 520px) {
+    .mela-composer textarea {
+        font-size: 16px;
+    }
     /* Teaser stays a compact card; the open chat fills the width below the site header. */
     .mela-widget[data-state="teaser"] .mela-panel {
         left: 8px;

@@ -52,6 +52,8 @@ class MelaKnowledgeController extends Controller
     {
         if ($this->indexRefresh->recoverStaleRun()) {
             $this->indexRefresh->requestRun('admin_stale_recovery');
+        } else {
+            $this->indexRefresh->requestRunIfDue();
         }
         $progressState = $progress->get();
 

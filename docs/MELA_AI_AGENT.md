@@ -35,6 +35,12 @@ Code lives in `app/Services/Mela/`. Configuration is centralised in `config/mela
 
 No conversational behaviour is keyword-driven. Application code only validates and executes actions.
 
+## Responsive website widget
+
+The open floating chat uses the available height between the visible header and the bottom obstruction, rather than a fixed desktop height. Its width scales with the viewport from 360 to 560 pixels, constrained by side margins; on phones up to 520 pixels wide it fills the width. The greeting teaser remains compact. Header and cookie-banner size changes are observed, and visual-viewport events reposition the panel above a mobile keyboard. The message area scrolls independently without shrinking message bubbles, and the composer remains within the available panel.
+
+The widget assets are `public/css/mela-chat.css` and `public/js/mela-chat.js`; the main-site layout versions both asset URLs using their file modification times. Deploy both assets together. No store assets or vendor changes are needed.
+
 ## Memory
 
 - **Recent window:** the last `MELA_MEMORY_WINDOW` (default 10) unsummarised messages are sent verbatim.
@@ -71,9 +77,9 @@ If embeddings are unavailable, retrieval falls back to lexical search with `low`
 
 The index refreshes daily at 03:15 (`MELA_REINDEX_SCHEDULE=daily|weekly|off`). An admin can trigger a refresh with `POST /admin/mela/knowledge/reindex` and check status with `GET /admin/mela/knowledge`. Both require an admin session.
 
-Successful admin changes to published website content, including `POST`, `PUT`, `PATCH`, and `DELETE`, start a reindex after the response is sent. Manual runs also start immediately; they do not depend on cron. Changes made during a run remain queued for the scheduler's follow-up pass. Admins can stop queued work immediately or request a safe stop of an active run from the knowledge page. A stale run is automatically released and restarted; already indexed pages are skipped. cPanel Git deployments also run `php artisan mela:index` through `.cpanel.yml`.
+Successful admin changes to published website content, including `POST`, `PUT`, `PATCH`, and `DELETE`, start a reindex after the response is sent. Manual runs also start immediately; they do not depend on cron. Old validation errors retained in the session do not suppress a successful update; errors newly flashed by the current request still prevent an index trigger. Changes made during a run remain queued for a follow-up pass. Admins can stop queued work immediately or request a safe stop of an active run from the knowledge page. A stale run is automatically released and restarted; already indexed pages are skipped. cPanel Git deployments also run `php artisan mela:index` through `.cpanel.yml`.
 
-Admins can monitor progress, start an index, or schedule a one-time run at `/admin/mela/knowledge/manage`. One-time schedules are checked every minute, so the production server must run `php artisan schedule:run` every minute.
+Admins can monitor progress, start an index, or configure a recurring interval at `/admin/mela/knowledge/manage`. Authenticated admin status polling also starts pending content changes and overdue refreshes after the response, using the same overlap guard as manual and scheduled runs. A successful overdue refresh advances the interval without overwriting a schedule edited during that run; a failed refresh remains pending. Active progress stays visible even when additional content changes are queued. For unattended operation when the admin page is closed, the production server must still run `php artisan schedule:run` every minute.
 
 ## Tools
 
@@ -81,8 +87,11 @@ Admins can monitor progress, start an index, or schedule a one-time run at `/adm
 |------|---------|
 | `search_armely_knowledge` | Semantic search over approved Armely content, with optional page-type preference. |
 | `find_relevant_services` | Maps a plain-language business challenge to relevant services, solutions and products, with evidence. |
+| `list_blog_articles` | Reads the live main-site blog catalogue, filters by topic/author/date, and orders by verified publication dates rather than semantic similarity. |
 | `save_visitor_details` | Remembers contact details the visitor typed. |
 | `request_human_follow_up` | Human escalation: collects missing details, records the lead, notifies the team, and prevents duplicates. |
+
+Blog chronology uses the configured `blog.tables` candidates and the existing `BlogUrl` helper. It reads `date`, legacy `blog_date`, or `published_at`; it never treats creation/modification timestamps or record IDs as publication evidence. Drafts (when a status column exists), future-dated articles, and invalid dates are excluded. Mixed ISO and supported display dates are parsed before sorting, rather than sorted as strings. Unknown dates or missing article metadata produce an explicit incomplete-chronology warning, not a claim that the first dated result is definitively newest. Schema/data failures are logged and surfaced; semantic search is not a chronology fallback. The model selects this tool from its description and conversational intent; there is no keyword router or hardcoded article/date. This is main-site only and does not change `store/`.
 
 ## Escalation
 

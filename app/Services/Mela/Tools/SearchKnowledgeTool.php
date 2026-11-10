@@ -25,7 +25,8 @@ class SearchKnowledgeTool implements MelaTool
         return 'Searches approved Armely website content (services, solutions, products such as Mela, industries, case studies, customer stories, partners, company information, contact details, blog articles and resources). '
             . 'Use it whenever an answer depends on Armely-specific information. Write the query as a self-contained description of what you need to know, '
             . 'including relevant context from earlier in the conversation. Blog results include the author when the page provides one. Returns matching passages with their page URL and a confidence level; '
-            . 'if confidence is low or none, do not state Armely-specific facts that the passages do not support.';
+            . 'if confidence is low or none, do not state Armely-specific facts that the passages do not support. '
+            . 'Results are ranked by relevance, not publication date. For latest/recent/oldest blog articles or date/author-filtered lists, use list_blog_articles instead.';
     }
 
     public function parameters(): array

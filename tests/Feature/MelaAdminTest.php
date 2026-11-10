@@ -93,7 +93,8 @@ class MelaAdminTest extends TestCase
             ->assertJsonPath('reindex_running', true)
             ->assertJsonPath('reindex_pending', true);
 
-        $this->assertTrue(Cache::has(MelaKnowledgeIndexRefresh::RUNNING_KEY));
+        $this->assertFalse(Cache::has(MelaKnowledgeIndexRefresh::RUNNING_KEY));
+        $this->assertFalse(app(MelaKnowledgeIndexRefresh::class)->isPending());
     }
 
     public function test_admin_reindex_starts_after_the_response_without_waiting_for_scheduler(): void
@@ -117,6 +118,138 @@ class MelaAdminTest extends TestCase
             ->assertJsonPath('progress.status', 'completed')
             ->assertJsonPath('reindex_pending', false)
             ->assertJsonPath('reindex_running', false);
+    }
+
+    public function test_status_poll_starts_due_refresh_without_a_scheduler_and_advances_schedule(): void
+    {
+        $this->admin();
+        $runner = $this->runner();
+        $this->app->instance(MelaKnowledgeIndexRefresh::class, $runner);
+        $runner->scheduleEvery(10);
+        $this->travel(11)->minutes();
+        Artisan::shouldReceive('call')->once()->with('mela:index')->andReturn(0);
+
+        $this->getJson(route('admin.mela.knowledge.status'))
+            ->assertOk()
+            ->assertJsonPath('reindex_running', true);
+
+        $this->assertFalse($runner->isPending());
+        $this->assertFalse(Cache::has(MelaKnowledgeIndexRefresh::RUNNING_KEY));
+        $this->assertSame(now()->addMinutes(10)->toIso8601String(), $runner->scheduledAt());
+        $this->getJson(route('admin.mela.knowledge.status'))->assertOk()->assertJsonPath('reindex_running', false);
+    }
+
+    public function test_status_poll_starts_pending_content_changes_even_with_recurring_refresh_disabled(): void
+    {
+        $this->admin();
+        $runner = $this->runner();
+        $this->app->instance(MelaKnowledgeIndexRefresh::class, $runner);
+        $runner->cancelScheduled();
+        Cache::forever('mela:knowledge:reindex-pending', true);
+        Artisan::shouldReceive('call')->once()->with('mela:index')->andReturn(0);
+
+        $this->getJson(route('admin.mela.knowledge.status'))
+            ->assertOk()
+            ->assertJsonPath('reindex_running', true);
+
+        $this->assertFalse($runner->isPending());
+        $this->assertNull($runner->scheduledAt());
+    }
+
+    public function test_actual_admin_blog_update_starts_indexing_despite_old_validation_errors(): void
+    {
+        $this->admin();
+        $runner = $this->runner();
+        $this->app->instance(MelaKnowledgeIndexRefresh::class, $runner);
+        DB::table('blogs')->insert(['blog_id' => 51, 'title' => 'Before update', 'date' => '2026-11-01']);
+        Artisan::shouldReceive('call')->once()->with('mela:index')->andReturn(0);
+
+        $this->withSession(['errors' => new \Illuminate\Support\ViewErrorBag()])
+            ->putJson(route('admin.tables.blogs.update', ['id' => 51]), ['title' => 'Updated published article'])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('blogs', ['blog_id' => 51, 'title' => 'Updated published article']);
+        $this->assertFalse($runner->isPending());
+        $this->assertFalse(Cache::has(MelaKnowledgeIndexRefresh::RUNNING_KEY));
+    }
+
+    public function test_status_poll_does_not_start_early_or_overlap_an_active_index(): void
+    {
+        $this->admin();
+        $runner = $this->runner();
+        $this->app->instance(MelaKnowledgeIndexRefresh::class, $runner);
+        $runner->scheduleEvery(10);
+        Artisan::shouldReceive('call')->never();
+
+        $this->getJson(route('admin.mela.knowledge.status'))->assertOk()->assertJsonPath('reindex_running', false);
+        Cache::put(MelaKnowledgeIndexRefresh::RUNNING_KEY, true, now()->addMinutes(30));
+        Cache::forever('mela:knowledge:reindex-pending', true);
+        $this->getJson(route('admin.mela.knowledge.status'))->assertOk()->assertJsonPath('reindex_running', true);
+        $this->assertTrue($runner->isPending());
+    }
+
+    public function test_pending_changes_during_an_index_are_started_by_the_next_poll(): void
+    {
+        $this->admin();
+        $runner = $this->runner();
+        $this->app->instance(MelaKnowledgeIndexRefresh::class, $runner);
+        $runner->cancelScheduled();
+        Cache::forever('mela:knowledge:reindex-pending', true);
+        Artisan::shouldReceive('call')->once()->with('mela:index')->andReturnUsing(function () use ($runner): int {
+            $this->assertFalse($runner->requestRun('admin_content'));
+            return 0;
+        });
+
+        $this->getJson(route('admin.mela.knowledge.status'))->assertOk();
+        $this->assertTrue($runner->isPending());
+        Artisan::shouldReceive('call')->once()->with('mela:index')->andReturn(0);
+        $this->getJson(route('admin.mela.knowledge.status'))->assertOk();
+        $this->assertFalse($runner->isPending());
+    }
+
+    public function test_failed_due_index_remains_pending_and_does_not_advance_the_schedule(): void
+    {
+        $this->admin();
+        $runner = $this->runner();
+        $this->app->instance(MelaKnowledgeIndexRefresh::class, $runner);
+        $runner->scheduleEvery(1);
+        $this->travel(2)->minutes();
+        $due = $runner->scheduledAt();
+        Artisan::shouldReceive('call')->once()->with('mela:index')->andReturn(1);
+
+        $this->getJson(route('admin.mela.knowledge.status'))->assertOk();
+        $this->assertTrue($runner->isPending());
+        $this->assertSame($due, $runner->scheduledAt());
+        $this->assertFalse(Cache::has(MelaKnowledgeIndexRefresh::RUNNING_KEY));
+    }
+
+    public function test_poll_index_does_not_overwrite_a_schedule_changed_during_the_run(): void
+    {
+        $this->admin();
+        $runner = $this->runner();
+        $this->app->instance(MelaKnowledgeIndexRefresh::class, $runner);
+        $runner->scheduleEvery(1);
+        $this->travel(2)->minutes();
+        Artisan::shouldReceive('call')->once()->with('mela:index')->andReturnUsing(function () use ($runner): int {
+            $runner->scheduleEvery(60);
+            return 0;
+        });
+
+        $this->getJson(route('admin.mela.knowledge.status'))->assertOk();
+        $this->assertSame(60, $runner->settings()->interval_minutes);
+        $this->assertSame(now()->addHour()->toIso8601String(), $runner->scheduledAt());
+    }
+
+    public function test_polling_requires_an_authenticated_admin_before_starting_due_work(): void
+    {
+        $runner = $this->runner();
+        $runner->scheduleEvery(1);
+        $this->travel(2)->minutes();
+        Artisan::shouldReceive('call')->never();
+
+        $this->getJson(route('admin.mela.knowledge.status'))->assertUnauthorized();
+        $this->assertFalse(Cache::has(MelaKnowledgeIndexRefresh::RUNNING_KEY));
     }
 
     public function test_stop_cancels_queued_index_immediately(): void
@@ -185,6 +318,28 @@ class MelaAdminTest extends TestCase
             $route->name('admin.company-content.banners.store');
             $request->setRouteResolver(fn () => $route);
             $middleware->handle($request, fn () => response('', $status));
+        }
+    }
+
+    public function test_content_validation_redirects_and_unsuccessful_json_do_not_trigger_indexing(): void
+    {
+        $refresh = \Mockery::mock(MelaKnowledgeIndexRefresh::class);
+        $refresh->shouldReceive('requestRun')->never();
+        $middleware = new \App\Http\Middleware\ReindexMelaKnowledgeAfterContentChange($refresh);
+        foreach (['errors', 'error', 'json'] as $failure) {
+            $request = \Illuminate\Http\Request::create('/admin/company-content/banners', 'POST');
+            $request->setLaravelSession(app('session')->driver());
+            $request->session()->flush();
+            $route = new \Illuminate\Routing\Route(['POST'], '/admin/company-content/banners', fn () => null);
+            $route->name('admin.company-content.banners.store');
+            $request->setRouteResolver(fn () => $route);
+            $middleware->handle($request, function () use ($request, $failure) {
+                if ($failure === 'json') {
+                    return response()->json(['success' => false]);
+                }
+                $request->session()->flash($failure, 'The content was not saved.');
+                return redirect('/admin/tables');
+            });
         }
     }
     public function test_sessions_are_private_filtered_and_include_only_shared_identity(): void
