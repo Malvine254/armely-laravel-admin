@@ -1,6 +1,6 @@
 <div class="mega-panel-inner">
     <a class="mega-feature-card" href="{{ route('blog.index') }}">
-        <img src="{{ asset('images/blog/1.png') }}" alt="Business professionals sharing insights">
+        <img src="{{ asset('images/company/company.png') }}" alt="Research and analysis with charts and digital reports">
         <div class="mega-feature-card-content">
             <h3>Knowledge Hub</h3>
             <p>Explore insights, client success stories, and events covering data, AI, and digital transformation.</p>
