@@ -6,7 +6,8 @@
             <p>Explore insights, client success stories, and events covering data, AI, and digital transformation.</p>
         </div>
     </a>
-    <div class="mega-columns mega-columns--knowledge-hub">
+    {{-- Use the shared four-column grid; the fourth column is reserved for future content. --}}
+    <div class="mega-columns">
         <div>
             <h3 class="mega-column-title">Learn</h3>
             <ul class="mega-link-list">
