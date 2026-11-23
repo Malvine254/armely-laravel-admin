@@ -1,6 +1,12 @@
 <div class="mega-panel-inner">
-    {{-- Public resources index hidden. --}}
-    <div class="mega-columns">
+    <a class="mega-feature-card" href="{{ route('blog.index') }}">
+        <img src="{{ asset('images/blog/1.png') }}" alt="Business professionals sharing insights">
+        <div class="mega-feature-card-content">
+            <h3>Knowledge Hub</h3>
+            <p>Explore insights, client success stories, and events covering data, AI, and digital transformation.</p>
+        </div>
+    </a>
+    <div class="mega-columns mega-columns--knowledge-hub">
         <div>
             <h3 class="mega-column-title">Learn</h3>
             <ul class="mega-link-list">

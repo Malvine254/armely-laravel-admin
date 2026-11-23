@@ -726,6 +726,10 @@ main .service-card {
     }
 }
 
+.mega-columns.mega-columns--knowledge-hub {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .mega-column-title {
     margin: 0 0 9px;
     color: #2c2d3f;
