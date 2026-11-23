@@ -261,7 +261,7 @@
                         <i class="fas fa-times" aria-hidden="true"></i>
                     </button>
                 </div>
-                <p class="mela-index-note mt-3">Runs every day at your chosen interval (1 minute to 24 hours). The next refresh is scheduled after a successful run. Website edits also trigger a refresh.</p>
+                <p class="mela-index-note mt-3">Refreshes at your chosen interval (1 minute to 24 hours). This page also starts overdue or pending refreshes while open. Keep the server scheduler running every minute for unattended refreshes when this page is closed. Website edits also trigger a refresh.</p>
             </div>
         </section>
 
@@ -312,16 +312,19 @@ document.addEventListener('DOMContentLoaded', () => {
         fetching: 'Fetching page content',
         indexing: 'Indexing pages',
         cleaning: 'Cleaning up removed pages',
+        stopping: 'Stopping safely',
+        stopped: 'Indexing stopped',
         complete: 'Indexing complete',
         failed: 'Indexing failed',
     };
 
     function renderStatus(data) {
         const progress = data.progress || {};
-        const queued = Boolean(data.reindex_pending || progress.status === 'queued');
-        const running = Boolean(data.reindex_running || progress.status === 'running');
-        const state = queued ? 'queued' : (running ? 'running' : (progress.status || 'idle'));
-        const stateLabels = { idle: 'Not running', queued: 'Queued', running: 'Indexing', completed: 'Completed', failed: 'Failed' };
+        const stopping = progress.status === 'stopping';
+        const running = !stopping && (progress.status === 'running' || (data.reindex_running && progress.status !== 'queued'));
+        const queued = !running && !stopping && (progress.status === 'queued' || (data.reindex_pending && progress.status !== 'failed'));
+        const state = stopping ? 'stopping' : (running ? 'running' : (queued ? 'queued' : (progress.status || 'idle')));
+        const stateLabels = { idle: 'Not running', queued: 'Queued', running: 'Indexing', stopping: 'Stopping', stopped: 'Stopped', completed: 'Completed', failed: 'Failed' };
         const phase = queued ? 'queued' : (progress.phase || 'idle');
         const total = Number(progress.total || 0);
         const processed = Number(progress.processed || 0);
@@ -330,7 +333,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const stateElement = document.getElementById('indexState');
         stateElement.dataset.state = state;
         stateElement.textContent = stateLabels[state] || 'Not running';
-        document.getElementById('indexPhase').textContent = phaseLabels[phase] || phase;
+        document.getElementById('indexPhase').textContent = (phaseLabels[phase] || phase)
+            + (running && data.reindex_pending ? ' · Additional content changes queued' : '');
         document.getElementById('indexPercent').textContent = `${percent}%`;
         document.getElementById('indexProgressFill').style.width = `${percent}%`;
         document.getElementById('indexProgressBar').setAttribute('aria-valuenow', String(percent));
@@ -344,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('statIndexed').textContent = progress.indexed || 0;
         document.getElementById('statUnchanged').textContent = progress.unchanged || 0;
         document.getElementById('statFailed').textContent = progress.failed || 0;
-        startButton.disabled = running || queued;
+        startButton.disabled = running || queued || stopping;
         stopButton.classList.toggle('d-none', !running && !queued && progress.status !== 'stopping');
         stopButton.disabled = progress.status === 'stopping';
 

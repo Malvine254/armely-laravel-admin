@@ -223,10 +223,20 @@
     function fitBelowHeader() {
         fitScheduled = false;
         var gap = window.innerWidth <= 520 ? 0 : (window.innerWidth <= 768 ? 12 : 30);
-        var cookieHeight = cookieBar && window.getComputedStyle(cookieBar).display !== 'none' ? cookieBar.getBoundingClientRect().height : 0;
+        var viewport = window.visualViewport;
+        var visibleTop = viewport ? viewport.offsetTop : 0;
+        var visibleBottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
+        var bottomInset = Math.max(0, window.innerHeight - visibleBottom) + gap;
+        if (cookieBar && window.getComputedStyle(cookieBar).display !== 'none'
+            && window.getComputedStyle(cookieBar).visibility !== 'hidden') {
+            var cookieRect = cookieBar.getBoundingClientRect();
+            if (cookieRect.height > 0 && cookieRect.top < visibleBottom && cookieRect.bottom > visibleTop) {
+                bottomInset = Math.max(bottomInset, window.innerHeight - cookieRect.top + 12);
+            }
+        }
         root.style.setProperty('--mela-vh', window.innerHeight + 'px');
-        root.style.setProperty('--mela-top', (headerBottom() + (window.innerWidth <= 520 ? 0 : 12)) + 'px');
-        root.style.setProperty('--mela-bottom', (cookieHeight > 0 ? cookieHeight + 12 : gap) + 'px');
+        root.style.setProperty('--mela-top', (Math.max(headerBottom(), visibleTop) + (window.innerWidth <= 520 ? 0 : 12)) + 'px');
+        root.style.setProperty('--mela-bottom', bottomInset + 'px');
     }
 
     function scheduleFit() {
@@ -241,6 +251,15 @@
 
     window.addEventListener('resize', scheduleFit);
     window.addEventListener('scroll', scheduleFit, { passive: true });
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', scheduleFit);
+        window.visualViewport.addEventListener('scroll', scheduleFit);
+    }
+    if (window.ResizeObserver) {
+        var layoutObserver = new ResizeObserver(scheduleFit);
+        headerParts.forEach(function (element) { layoutObserver.observe(element); });
+        if (cookieBar) { layoutObserver.observe(cookieBar); }
+    }
     if (cookieBar && window.MutationObserver) {
         new MutationObserver(scheduleFit).observe(cookieBar, { attributes: true, attributeFilter: ['class', 'style'] });
     }

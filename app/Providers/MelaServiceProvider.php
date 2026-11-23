@@ -7,6 +7,7 @@ use App\Services\Mela\Escalation\GraphEscalationNotifier;
 use App\Services\Mela\Telemetry\MelaLogger;
 use App\Services\Mela\Tools\CurrentCareerOpportunitiesTool;
 use App\Services\Mela\Tools\FindRelevantServicesTool;
+use App\Services\Mela\Tools\ListBlogArticlesTool;
 use App\Services\Mela\Tools\RequestHumanFollowUpTool;
 use App\Services\Mela\Tools\SaveVisitorDetailsTool;
 use App\Services\Mela\Tools\SearchKnowledgeTool;
@@ -27,6 +28,7 @@ class MelaServiceProvider extends ServiceProvider
             $app->make(SearchKnowledgeTool::class),
             $app->make(FindRelevantServicesTool::class),
             $app->make(CurrentCareerOpportunitiesTool::class),
+            $app->make(ListBlogArticlesTool::class),
             $app->make(SaveVisitorDetailsTool::class),
             $app->make(RequestHumanFollowUpTool::class),
         ]));

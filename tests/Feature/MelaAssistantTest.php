@@ -16,6 +16,7 @@ use App\Services\Mela\Knowledge\VectorCodec;
 use App\Services\Mela\Memory\ConversationStore;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -133,6 +134,35 @@ class MelaAssistantTest extends TestCase
             $tool = collect($messages)->firstWhere('role', 'tool');
 
             return $tool !== null && str_contains($tool['content'], 'data-analytics');
+        });
+    }
+
+    public function test_agent_can_check_live_blog_dates_and_return_only_the_matching_source(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 10));
+        $newest = DB::table('blogs')->insertGetId(['title' => 'Latest verified article', 'date' => '2026-11-01', 'author' => 'Test Author']);
+        DB::table('blogs')->insert(['title' => 'Old article with higher ID', 'date' => '2025-10-28']);
+        [$id, $token] = $this->startConversation();
+        $url = url('/blog/latest-verified-article-' . $newest);
+        $this->agentReplies = [
+            Http::response($this->toolCall('list_blog_articles', ['limit' => 1])),
+            Http::response($this->completion("The latest article is [Latest verified article]({$url}), published November 1, 2026.")),
+        ];
+
+        $this->postJson("/api/mela/conversations/{$id}/messages", ['message' => 'the most recent article'], ['X-Mela-Token' => $token])
+            ->assertOk()
+            ->assertJsonPath('message.role', 'assistant');
+
+        $reply = MelaMessage::query()->where('conversation_id', $id)->where('role', 'assistant')->latest('id')->first();
+        $this->assertSame('list_blog_articles', $reply->meta['tools'][0]['name']);
+        $this->assertSame([['title' => 'Latest verified article', 'url' => $url]], $reply->meta['sources']);
+        Http::assertSent(function (Request $request) use ($url) {
+            $tool = collect((array) ($request['messages'] ?? []))->firstWhere('role', 'tool');
+            $result = json_decode($tool['content'] ?? '{}', true);
+
+            return ($result['articles'][0]['url'] ?? null) === $url
+                && ($result['articles'][0]['publication_date'] ?? null) === '2026-11-01'
+                && ($result['chronology_complete'] ?? false);
         });
     }
 

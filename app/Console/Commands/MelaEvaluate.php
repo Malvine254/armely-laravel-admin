@@ -112,6 +112,22 @@ class MelaEvaluate extends Command
                     'follow-up resolved "it" to Mela' => (bool) preg_match('/meeting|teams|mela/i', end($r)['reply'] ?? ''),
                 ],
             ],
+            'blog-chronology' => [
+                'turns' => [
+                    'What have you published most recently on the blog?',
+                    'Show me the three newest articles with their publication dates.',
+                    'And which article was published first?',
+                ],
+                'checks' => fn ($r, $c) => [
+                    'replies returned' => $ok($r),
+                    'each chronological question used the live blog tool' => collect($r)->every(function ($reply) {
+                        $message = MelaMessage::query()->find($reply['message_id'] ?? null);
+
+                        return collect((array) data_get($message, 'meta.tools', []))
+                            ->contains(fn ($tool) => $tool['name'] === 'list_blog_articles' && $tool['ok']);
+                    }),
+                ],
+            ],
             'unknown-information' => [
                 'turns' => ["What is Armely's exact hourly rate for a senior data engineer, and what discount do you give nonprofits?"],
                 'checks' => fn ($r, $c) => [
