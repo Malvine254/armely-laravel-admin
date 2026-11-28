@@ -33,7 +33,11 @@ class KickOffDueLifecycleEmails
     {
         $response = $next($request);
 
-        if (!config('lifecycle.http_fallback_enabled', true) || app()->runningUnitTests()) {
+        // Only run when the server can finish the visitor's response first
+        // (PHP-FPM / LiteSpeed); otherwise the page would wait for the job.
+        $canFinishResponseEarly = function_exists('fastcgi_finish_request') || function_exists('litespeed_finish_request');
+
+        if (!config('lifecycle.http_fallback_enabled', true) || app()->runningUnitTests() || !$canFinishResponseEarly) {
             return $response;
         }
 

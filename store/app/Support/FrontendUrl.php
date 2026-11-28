@@ -4,6 +4,19 @@ namespace App\Support;
 
 class FrontendUrl
 {
+    /**
+     * Public root of the store's own Laravel routes (API, image proxy,
+     * unsubscribe). In production APP_URL is the main site (armely.com) while
+     * the store lives at armely.com/store, which ASSET_URL carries — so links
+     * built from APP_URL alone hit the main site and 404.
+     */
+    public static function storeApiRoot(): string
+    {
+        $assetUrl = rtrim((string) config('app.asset_url', ''), '/');
+
+        return $assetUrl !== '' ? $assetUrl : rtrim((string) config('app.url', ''), '/');
+    }
+
     public static function base(): string
     {
         $configuredUrl = rtrim((string) config('app.frontend_url', ''), '/');

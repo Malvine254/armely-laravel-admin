@@ -167,7 +167,7 @@ class UserEmailPreferenceService
     {
         $token = $this->issueToken($user, $scope);
 
-        return rtrim(config('app.url', ''), '/') . '/api/v1/behavior/unsubscribe/' . urlencode($token);
+        return \App\Support\FrontendUrl::storeApiRoot() . '/api/v1/behavior/unsubscribe/' . urlencode($token);
     }
 
     /** Scope of a valid, unexpired token without changing anything. */

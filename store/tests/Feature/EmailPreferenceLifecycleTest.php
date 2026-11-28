@@ -448,7 +448,11 @@ class EmailPreferenceLifecycleTest extends TestCase
         ]);
 
         $service = app(UserEmailPreferenceService::class);
+        // Production: APP_URL is the main site, the store lives under /store.
+        config(['app.url' => 'https://armely.com', 'app.asset_url' => 'https://armely.com/store']);
         $url = $service->unsubscribeUrl($user, 'price_alerts');
+        $this->assertStringStartsWith('https://armely.com/store/api/v1/behavior/unsubscribe/', $url);
+        config(['app.url' => 'http://localhost', 'app.asset_url' => '']);
         $token = basename($url);
 
         // Opening the link (what mail security scanners do) changes nothing.

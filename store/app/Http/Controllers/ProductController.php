@@ -2044,7 +2044,7 @@ class ProductController extends Controller
             // External URLs are routed through the server-side proxy so the browser never
             // makes cross-origin image requests (avoids CORS/CSP failures and timeouts).
             if (str_starts_with($url, 'http')) {
-                $proxyBase =rtrim((string) config('app.url'), '/') . '/api/v1/img-proxy?url=';
+                $proxyBase = \App\Support\FrontendUrl::storeApiRoot() . '/api/v1/img-proxy?url=';
                 $absoluteUrl = $proxyBase . base64_encode($url);
             } else {
                 // Convert relative local paths (/images/...) to absolute URLs using APP_URL.
@@ -2403,6 +2403,11 @@ class ProductController extends Controller
         if ($targetName !== '') {
             $words = preg_split('/\s+/', $targetName);
             foreach ($words as $w) {
+                // Strip FULLTEXT boolean operators (+ - < > ( ) ~ * " @ etc.).
+                // A name word like "SFP+" became "SFP+*", a MySQL syntax error
+                // that made /related return 500 for those products.
+                $w = trim((string) preg_replace('/[^\p{L}\p{N}_]+/u', ' ', $w));
+                $w = (string) strtok($w, ' ');
                 if (mb_strlen($w) >= 4) {
                     $searchWord = $w;
                     break;
