@@ -76,9 +76,25 @@ class ProductController extends Controller
         return CatalogTaxonomy::storefrontProductLimit();
     }
 
+    private ?bool $showsProductsWithoutImages = null;
+
     private function storefrontShowsProductsWithoutImages(): bool
     {
-        return (bool) config('storefront.show_products_without_images', true);
+        // An admin choice saved from the maintenance page wins over .env, so
+        // the setting can be changed without terminal or file access.
+        if ($this->showsProductsWithoutImages !== null) {
+            return $this->showsProductsWithoutImages;
+        }
+
+        try {
+            $saved = \App\Models\AppSetting::getValue('catalog.show_products_without_images', null);
+        } catch (\Throwable) {
+            $saved = null;
+        }
+
+        return $this->showsProductsWithoutImages = $saved === null || $saved === ''
+            ? (bool) config('storefront.show_products_without_images', false)
+            : filter_var($saved, FILTER_VALIDATE_BOOLEAN);
     }
 
     private function apiProductHasUsableImage(array $product): bool

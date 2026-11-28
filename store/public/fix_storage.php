@@ -174,6 +174,16 @@ $actions = [
             ['name' => 'products:prune-images', 'params' => ['--delete' => true]],
         ],
     ],
+    'hide_imageless_products' => [
+        'label' => 'Hide Products Without Photos (recommended)',
+        'help' => 'Storefront shows only products with a usable photo: listings, counts, menu and search. Removes the Has/No Images filter. Clears the cache so it applies immediately.',
+        'commands' => [],
+    ],
+    'show_imageless_products' => [
+        'label' => 'Show Products Without Photos',
+        'help' => 'Also list products that have no photo (shown with a placeholder) and bring back the Has/No Images filter. Clears the cache.',
+        'commands' => [],
+    ],
     'lifecycle_doctor' => [
         'label' => 'Marketing Email Health Check',
         'help' => 'Read-only: is mail configured, are reminder and price-drop runs happening, how many were sent or failed, and how many customers are opted out.',
@@ -602,6 +612,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'output' => $e->getMessage(),
             ];
         }
+    } elseif ($selectedAction === 'hide_imageless_products' || $selectedAction === 'show_imageless_products') {
+        $show = $selectedAction === 'show_imageless_products';
+        try {
+            \App\Models\AppSetting::setValue('catalog.show_products_without_images', $show ? '1' : '0');
+            $results[] = [
+                'command' => 'catalog.show_products_without_images = ' . ($show ? 'on' : 'off'),
+                'status' => 'OK',
+                'output' => $show
+                    ? 'Products without photos are now listed. This setting overrides STOREFRONT_SHOW_PRODUCTS_WITHOUT_IMAGES in .env.'
+                    : 'Products without photos are now hidden everywhere on the storefront. This setting overrides STOREFRONT_SHOW_PRODUCTS_WITHOUT_IMAGES in .env.',
+            ];
+        } catch (\Throwable $e) {
+            $results[] = ['command' => 'catalog.show_products_without_images', 'status' => 'ERROR', 'output' => $e->getMessage()];
+        }
+        $results[] = runArtisanCommand('cache:clear');
     } elseif ($selectedAction === 'lifecycle_test') {
         $to = strtolower(trim((string) ($_POST['test_email_to'] ?? '')));
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
