@@ -11,19 +11,94 @@ $app->make(Kernel::class)->bootstrap();
 
 // ---------------------------------------------------------------------------
 // Access guard: this page runs migrations, git pulls and cache rebuilds, so it
-// must never be reachable anonymously. It stays locked unless
-// MAINTENANCE_TOOL_TOKEN (32+ chars) is set in .env, and every request must
-// carry that token.
+// must never be reachable anonymously. Sign in with a store admin account
+// (admin or super_admin) — no terminal or .env change needed. A long
+// MAINTENANCE_TOOL_TOKEN in .env (?token=...) also works as a fallback.
 // ---------------------------------------------------------------------------
-$maintenanceToken = (string) (config('app.maintenance_token') ?: getenv('MAINTENANCE_TOOL_TOKEN') ?: '');
-$suppliedToken = (string) ($_POST['maintenance_token'] ?? $_GET['token'] ?? '');
 header('X-Robots-Tag: noindex, nofollow');
 header('Cache-Control: no-store');
-if (strlen($maintenanceToken) < 32 || $suppliedToken === '' || !hash_equals($maintenanceToken, $suppliedToken)) {
-    http_response_code(404);
-    echo 'Not Found';
+header('X-Frame-Options: DENY');
+
+session_name('armely_maint_store');
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+    'httponly' => true,
+    'samesite' => 'Strict',
+]);
+session_start();
+
+$maintenanceToken = (string) (config('app.maintenance_token') ?: getenv('MAINTENANCE_TOOL_TOKEN') ?: '');
+$suppliedToken = (string) ($_POST['maintenance_token'] ?? $_GET['token'] ?? '');
+$tokenValid = strlen($maintenanceToken) >= 32 && $suppliedToken !== '' && hash_equals($maintenanceToken, $suppliedToken);
+$clientIp = (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+$loginError = '';
+
+if (isset($_GET['logout'])) {
+    $_SESSION = [];
+    session_destroy();
+    header('Location: ' . strtok((string) ($_SERVER['REQUEST_URI'] ?? ''), '?'));
     exit;
 }
+
+if (($_POST['maint_login'] ?? '') === '1') {
+    $attemptKey = 'maint_login_attempts:' . sha1($clientIp);
+    $attempts = (int) \Illuminate\Support\Facades\Cache::get($attemptKey, 0);
+    if ($attempts >= 5) {
+        $loginError = 'Too many failed sign-in attempts. Try again in 15 minutes.';
+    } else {
+        $email = strtolower(trim((string) ($_POST['email'] ?? '')));
+        $admin = $email !== '' ? \App\Models\User::query()->whereRaw('LOWER(email) = ?', [$email])->first() : null;
+        $ok = $admin
+            && in_array((string) $admin->role, ['admin', 'super_admin'], true)
+            && strtolower((string) ($admin->status ?? 'active')) === 'active'
+            && \Illuminate\Support\Facades\Hash::check((string) ($_POST['password'] ?? ''), (string) $admin->password);
+        if ($ok) {
+            \Illuminate\Support\Facades\Cache::forget($attemptKey);
+            session_regenerate_id(true);
+            $_SESSION['maint_admin_id'] = (int) $admin->id;
+            $_SESSION['maint_csrf'] = bin2hex(random_bytes(32));
+            $_SESSION['maint_expires'] = time() + 3600;
+            \Illuminate\Support\Facades\Log::warning('Maintenance page sign-in', ['admin_id' => $admin->id, 'ip' => $clientIp]);
+            header('Location: ' . strtok((string) ($_SERVER['REQUEST_URI'] ?? ''), '?'));
+            exit;
+        }
+        \Illuminate\Support\Facades\Cache::put($attemptKey, $attempts + 1, now()->addMinutes(15));
+        $loginError = 'Invalid credentials or not an admin account.';
+    }
+}
+
+$sessionValid = !empty($_SESSION['maint_admin_id']) && (int) ($_SESSION['maint_expires'] ?? 0) > time();
+if ($sessionValid) {
+    $_SESSION['maint_expires'] = time() + 3600;
+}
+
+if (!$tokenValid && !$sessionValid) {
+    http_response_code(401);
+    $safeError = htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8');
+    echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Maintenance sign-in</title>'
+        . '<style>body{font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}'
+        . 'form{background:#fff;padding:28px;border-radius:12px;border:1px solid #dbe5f3;width:320px}h1{font-size:19px;margin:0 0 16px;color:#1e3a6e}'
+        . 'input{width:100%;box-sizing:border-box;padding:10px;margin:0 0 12px;border:1px solid #cbd5e1;border-radius:8px}button{width:100%;padding:11px;background:#2F5597;color:#fff;border:0;border-radius:8px;font-weight:600;cursor:pointer}'
+        . '.err{color:#b91c1c;font-size:13px;margin:0 0 12px}</style></head><body>'
+        . '<form method="post"><h1>Store maintenance sign-in</h1>'
+        . ($safeError !== '' ? '<p class="err">' . $safeError . '</p>' : '')
+        . '<input type="hidden" name="maint_login" value="1">'
+        . '<input type="email" name="email" placeholder="Admin email" required autocomplete="username">'
+        . '<input type="password" name="password" placeholder="Password" required autocomplete="current-password">'
+        . '<button type="submit">Sign in</button></form></body></html>';
+    exit;
+}
+
+// Signed-in sessions must echo the per-session CSRF token on every action.
+if ($sessionValid && !$tokenValid && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'
+    && !hash_equals((string) ($_SESSION['maint_csrf'] ?? ''), (string) ($_POST['maint_csrf'] ?? ''))) {
+    http_response_code(419);
+    echo 'Session expired. Reload the page and try again.';
+    exit;
+}
+$maintCsrf = (string) ($_SESSION['maint_csrf'] ?? '');
 
 $actions = [
     'status' => [
@@ -520,6 +595,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <form method="post">
         <input type="hidden" name="maintenance_token" value="<?= htmlspecialchars($suppliedToken, ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="maint_csrf" value="<?= htmlspecialchars($maintCsrf, ENT_QUOTES, 'UTF-8') ?>">
         <div class="actions">
           <?php foreach ($actions as $key => $action): ?>
             <label class="action">
