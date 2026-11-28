@@ -9,6 +9,38 @@ require __DIR__ . '/../vendor/autoload.php';
 $app = require_once __DIR__ . '/../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
+/**
+ * Lets an admin of the *other* Armely app (main site <-> store) use the same
+ * login here. Reads that app's database settings from its .env and checks the
+ * email/password against its admin accounts. Read-only; any error = denied.
+ */
+function maintenanceOtherAppAdminOk(string $envPath, string $sql, callable $isAllowed, string $email, string $password): bool
+{
+    try {
+        if ($email === '' || $password === '' || !is_readable($envPath)) {
+            return false;
+        }
+        $env = \Dotenv\Dotenv::parse((string) file_get_contents($envPath));
+        if (strtolower((string) ($env['DB_CONNECTION'] ?? 'mysql')) !== 'mysql') {
+            return false;
+        }
+        $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4',
+            $env['DB_HOST'] ?? '127.0.0.1', $env['DB_PORT'] ?? '3306', $env['DB_DATABASE'] ?? '');
+        $pdo = new PDO($dsn, (string) ($env['DB_USERNAME'] ?? ''), (string) ($env['DB_PASSWORD'] ?? ''), [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_TIMEOUT => 5,
+        ]);
+        $statement = $pdo->prepare($sql);
+        $statement->execute([$email]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($row) && $isAllowed($row) && password_verify($password, (string) ($row['password'] ?? ''));
+    } catch (\Throwable $error) {
+        \Illuminate\Support\Facades\Log::warning('Maintenance page cross-app admin check failed', ['error' => $error->getMessage()]);
+        return false;
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Access guard: this page runs migrations, git pulls and cache rebuilds, so it
 // must never be reachable anonymously. Sign in with a store admin account
@@ -54,13 +86,18 @@ if (($_POST['maint_login'] ?? '') === '1') {
             && in_array((string) $admin->role, ['admin', 'super_admin'], true)
             && strtolower((string) ($admin->status ?? 'active')) === 'active'
             && \Illuminate\Support\Facades\Hash::check((string) ($_POST['password'] ?? ''), (string) $admin->password);
+        // Main-site /admin accounts can use the same login.
+        $ok = $ok || maintenanceOtherAppAdminOk(dirname(__DIR__, 2) . '/.env',
+            'SELECT id, password, status FROM admin WHERE LOWER(email) = ? LIMIT 1',
+            fn (array $row): bool => strtolower((string) ($row['status'] ?? '')) === 'active',
+            $email, (string) ($_POST['password'] ?? ''));
         if ($ok) {
             \Illuminate\Support\Facades\Cache::forget($attemptKey);
             session_regenerate_id(true);
-            $_SESSION['maint_admin_id'] = (int) $admin->id;
+            $_SESSION['maint_admin_id'] = $admin ? (int) $admin->id : -1;
             $_SESSION['maint_csrf'] = bin2hex(random_bytes(32));
             $_SESSION['maint_expires'] = time() + 3600;
-            \Illuminate\Support\Facades\Log::warning('Maintenance page sign-in', ['admin_id' => $admin->id, 'ip' => $clientIp]);
+            \Illuminate\Support\Facades\Log::warning('Maintenance page sign-in', ['email' => $email, 'ip' => $clientIp]);
             header('Location: ' . strtok((string) ($_SERVER['REQUEST_URI'] ?? ''), '?'));
             exit;
         }
