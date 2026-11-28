@@ -132,6 +132,14 @@ return Application::configure(basePath: dirname(__DIR__))
             ->name('tdsynnex-sync-catalog')
             ->withoutOverlapping();
 
+        // Find broken supplier photos before customers do; resumes nightly
+        // until the whole in-stock catalog has been checked.
+        $schedule->command('products:verify-images --limit=1500 --seconds=900')
+            ->dailyAt('02:30')
+            ->timezone('America/Chicago')
+            ->name('verify-product-images')
+            ->withoutOverlapping(60);
+
         $schedule->command('ai-marketing:evaluate')
             ->everyThirtyMinutes()
             ->name('ai-marketing-evaluate')

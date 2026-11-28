@@ -19,7 +19,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $adminEmail = env('ADMIN_EMAIL', 'unfo@armely.com');
-        $adminPassword = env('ADMIN_PASSWORD', 'Admin@12345');
+        // No built-in default password: use ADMIN_PASSWORD or a generated one.
+        $adminPassword = (string) (env('ADMIN_PASSWORD') ?: Str::password(20));
+        $passwordWasGenerated = !env('ADMIN_PASSWORD');
         $adminName = env('ADMIN_NAME', 'Armely Admin');
 
         $domain = Str::after($adminEmail, '@');
@@ -28,6 +30,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Armely Admin', 'status' => 'approved']
         );
 
+        $existed = User::query()->where('email', $adminEmail)->exists();
         User::firstOrCreate(
             ['email' => $adminEmail],
             [
@@ -39,5 +42,9 @@ class DatabaseSeeder extends Seeder
                 'status' => 'active',
             ]
         );
+
+        if (!$existed && $passwordWasGenerated) {
+            $this->command?->warn("Created admin {$adminEmail} with temporary password: {$adminPassword}");
+        }
     }
 }

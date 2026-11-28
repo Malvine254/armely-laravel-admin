@@ -28,15 +28,20 @@ class EmailTemplateDesignTest extends TestCase
             'expiresIn' => 60,
         ])->render();
 
+        // White brand header with the email-sized storefront logo, like the website.
         $this->assertStringContainsString('email-logo-cell', $html);
-        $this->assertStringContainsString('https://armely.com/store/images/logo/armely-store-logo.png', $html);
+        $this->assertStringContainsString('https://armely.com/store/images/logo/armely-store-logo-email.png', $html);
+        $this->assertStringContainsString('width="120"', $html);
         $this->assertStringContainsString('@media only screen and (max-width:620px)', $html);
-        $this->assertStringNotContainsString('text-align:center;margin-bottom:20px', $html);
+        $this->assertStringContainsString('My account', $html);
+        $this->assertFileExists(public_path('images/logo/armely-store-logo-email.png'));
 
         $marketingService = file_get_contents(app_path('Services/AzureGraphMailService.php'));
         $this->assertStringContainsString("width:50%!important", $marketingService);
-        $this->assertStringContainsString("height:82px!important", $marketingService);
-        $this->assertStringContainsString("width:46px!important", $marketingService);
+        $this->assertStringContainsString('armely-store-logo-email.png', $marketingService);
+        $this->assertStringContainsString('Email preferences', $marketingService);
+        // Marketing copy is no longer forced to lowercase.
+        $this->assertStringNotContainsString('text-transform:lowercase!important', $marketingService);
     }
 
     public function test_every_deliverable_blade_email_uses_shared_layout(): void

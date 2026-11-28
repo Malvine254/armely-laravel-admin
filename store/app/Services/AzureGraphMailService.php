@@ -27,7 +27,8 @@ class AzureGraphMailService
 
     private function logoUrl(): string
     {
-        return $this->marketingStoreUrl() . '/images/logo/armely-store-logo.png';
+        // Email-sized copy (240px, ~25 KB) of the storefront logo, shown at 120px.
+        return $this->marketingStoreUrl() . '/images/logo/armely-store-logo-email.png';
     }
 
     private function marketingStoreUrl(): string
@@ -1111,80 +1112,102 @@ class AzureGraphMailService
         ?string $badgeLabel = null,
         ?string $badgeColor = null,
         bool $wideLayout = true,
-        bool $compactLowercase = false
+        bool $compactLowercase = false // kept for callers; forced lowercase is no longer applied
     ): string {
-        $safeTitle       = e($title);
-        $safeButtonLabel = e($buttonLabel);
-        $safeButtonUrl   = e($buttonUrl);
-        $safeLogoUrl     = e($this->logoUrl());
-        $safeFooterNote  = $footerNote ? e($footerNote) : '';
-        $year            = date('Y');
-        $supportEmail    = e((string) AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', 'info@armely.com')));
-        $containerWidth  = $wideLayout ? '860px' : '680px';
-        $outerPadding    = $wideLayout ? '18px 10px 28px' : '32px 16px 48px';
-        $headerPadding   = $wideLayout ? '22px 26px 18px' : '28px 32px 24px';
-        $bodyPadding     = $wideLayout ? '22px 26px' : '28px 32px';
-        $shellClass      = $compactLowercase ? 'promo-shell marketing-compact' : 'promo-shell';
-        $compactCss      = $compactLowercase
-            ? '.marketing-compact,.marketing-compact p,.marketing-compact h1,.marketing-compact a,.marketing-compact span{text-transform:lowercase!important}.marketing-compact .promo-body{font-size:13px!important}.marketing-compact .promo-body p{font-size:13px!important;line-height:1.5!important}.marketing-compact .promo-title{font-size:19px!important}.marketing-compact .summary-label{font-size:10px!important}.marketing-compact .summary-value{font-size:14px!important}.marketing-compact .promo-name{font-size:11px!important;line-height:1.35!important;color:#475569!important;font-weight:600!important;text-transform:none!important}.marketing-compact .promo-price{font-size:16px!important}.marketing-compact .promo-part,.marketing-compact .promo-meta{font-size:10px!important}.marketing-compact .promo-button{font-size:12px!important;padding:10px 18px!important}'
-            : '';
-
-        $footerNoteHtml = $footerNote
-            ? "<p style='margin:0 0 12px;color:#64748b;font-size:13px;line-height:1.6'>{$safeFooterNote}</p>"
-            : '';
+        $brand         = '#2F5597';
+        $navy          = '#173b73';
+        $accent        = e($accentColor ?: $brand);
+        $safeTitle     = e($title);
+        $safeButton    = e($buttonLabel);
+        $safeButtonUrl = e($buttonUrl);
+        $safeLogoUrl   = e($this->logoUrl());
+        $storeUrl      = e($this->marketingStoreUrl());
+        $accountUrl    = e($this->marketingStoreUrl() . '/account');
+        $year          = date('Y');
+        $supportEmail  = e((string) AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', 'info@armely.com')));
+        $width         = $wideLayout ? 680 : 600;
+        $footerText    = e($footerNote ?: 'You are receiving this email because you have an Armely Store account.');
 
         $badgeHtml = $badgeLabel
-            ? "<span style='display:inline-block;margin-bottom:10px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:" . e($badgeColor ?? $accentColor) . ";color:#fff'>" . e($badgeLabel) . "</span>"
+            ? "<span style='display:inline-block;margin:0 0 10px;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:" . e($badgeColor ?? $accentColor) . ";color:#ffffff'>" . e($badgeLabel) . "</span><br>"
             : '';
 
-        return "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'><title>{$safeTitle}</title>
-<style>{$compactCss}@media only screen and (max-width:620px){.promo-column{display:inline-block!important;width:50%!important;padding:3px!important;box-sizing:border-box!important;vertical-align:top!important}.promo-shell{padding:6px 3px 14px!important}.promo-body{padding:13px 9px!important;font-size:13px!important}.promo-header{padding:12px 10px!important}.promo-title{font-size:18px!important}.promo-logo-cell{width:54px!important;padding-right:8px!important}.promo-logo-box{width:46px!important;height:40px!important;padding:3px!important}.promo-logo{width:46px!important;max-height:40px!important}.promo-image{height:82px!important}.promo-card-body{padding:8px!important}.promo-name{font-size:11px!important;min-height:30px!important}.promo-part,.promo-meta{font-size:9px!important}.promo-price{font-size:15px!important}.promo-button{display:block!important;text-align:center!important;padding:10px 12px!important;font-size:12px!important}}</style></head>
-<body style='margin:0;padding:0;background:#eef3fa;font-family:\"Segoe UI\",Arial,sans-serif'>
-<div class='{$shellClass}' style='max-width:{$containerWidth};margin:0 auto;padding:{$outerPadding}'>
+        // Table layout with inline styles and bgcolor attributes so the design
+        // holds in Outlook desktop, Gmail and mobile clients alike.
+        return "<!DOCTYPE html><html lang='en' xmlns='http://www.w3.org/1999/xhtml'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'><meta name='x-apple-disable-message-reformatting'><meta name='color-scheme' content='light'><title>{$safeTitle}</title>
+<style>
+body{margin:0!important;padding:0!important;width:100%!important}
+a{color:{$brand}}
+@media only screen and (max-width:620px){
+  .email-container{width:100%!important}
+  .email-pad{padding-left:18px!important;padding-right:18px!important}
+  .promo-title{font-size:21px!important}
+  .promo-column{display:inline-block!important;width:50%!important;padding:4px!important;box-sizing:border-box!important;vertical-align:top!important}
+  .promo-image{height:96px!important}
+  .promo-card-body{padding:9px!important}
+  .promo-name{font-size:12px!important;min-height:32px!important}
+  .promo-price{font-size:16px!important}
+  .promo-button-cell a{display:block!important}
+  .footer-links a{display:inline-block!important;margin:4px 6px!important}
+}
+</style></head>
+<body style='margin:0;padding:0;background-color:#eef3fa;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1f2937'>
+<table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' bgcolor='#eef3fa' style='background-color:#eef3fa'>
+<tr><td align='center' style='padding:24px 10px 32px'>
 
-  <!-- Card -->
-    <div style='background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 28px rgba(15,47,99,0.12);border:1px solid #dbe7f7'>
+  <table role='presentation' class='email-container' width='{$width}' cellpadding='0' cellspacing='0' border='0' style='width:{$width}px;max-width:{$width}px'>
 
-    <!-- Header band -->
-    <div class='promo-header' bgcolor='#173b73' style='background-color:#173b73;background-image:linear-gradient(135deg,#173b73 0%,#2f5597 100%);padding:{$headerPadding}'>
-      <table role='presentation' cellpadding='0' cellspacing='0' width='100%' style='width:100%;border-collapse:collapse'><tr>
-        <td class='promo-logo-cell' width='92' style='width:92px;padding-right:18px;vertical-align:middle'>
-          <div class='promo-logo-box' style='width:78px;height:64px;background:#ffffff;border-radius:10px;text-align:center;padding:5px'>
-            <img class='promo-logo' src='{$safeLogoUrl}' width='78' alt='Armely Store' style='display:block;width:78px;max-height:64px;height:auto;margin:0 auto'>
-          </div>
-        </td>
-        <td style='vertical-align:middle;color:#ffffff'>
-          {$badgeHtml}
-          <p style='margin:0 0 6px;font-size:10px;color:#dbe7ff;letter-spacing:0.08em;text-transform:uppercase;font-weight:700'>Armely Store</p>
-          <h1 class='promo-title' style='margin:0;color:#ffffff!important;font-family:Segoe UI,Arial,sans-serif;font-size:25px;font-weight:700;line-height:1.2'><font color='#ffffff'>{$safeTitle}</font></h1>
-        </td>
-      </tr></table>
-    </div>
+    <!-- Brand header: same white logo treatment as the website -->
+    <tr><td bgcolor='#ffffff' align='center' style='background-color:#ffffff;border-radius:16px 16px 0 0;border:1px solid #dbe7f7;border-bottom:0;padding:22px 24px 16px'>
+      <a href='{$storeUrl}' style='text-decoration:none'>
+        <img src='{$safeLogoUrl}' width='120' alt='Armely Store - Smart technology. Seamless Procurement' style='display:block;width:120px;max-width:120px;height:auto;border:0;margin:0 auto'>
+      </a>
+    </td></tr>
+    <tr><td bgcolor='{$brand}' height='4' style='background-color:{$brand};height:4px;font-size:0;line-height:0;border-left:1px solid #dbe7f7;border-right:1px solid #dbe7f7'>&nbsp;</td></tr>
+
+    <!-- Title -->
+    <tr><td class='email-pad' bgcolor='#ffffff' style='background-color:#ffffff;border-left:1px solid #dbe7f7;border-right:1px solid #dbe7f7;padding:26px 32px 4px'>
+      {$badgeHtml}
+      <h1 class='promo-title' style='margin:0;font-size:24px;line-height:1.3;font-weight:700;color:{$navy}'>{$safeTitle}</h1>
+    </td></tr>
 
     <!-- Body -->
-    <div class='promo-body' style='padding:{$bodyPadding}'>
+    <tr><td class='email-pad promo-body' bgcolor='#ffffff' style='background-color:#ffffff;border-left:1px solid #dbe7f7;border-right:1px solid #dbe7f7;padding:16px 32px 8px;font-size:15px;line-height:1.6;color:#374151'>
       {$contentHtml}
+    </td></tr>
 
-            <div style='margin-top:24px;padding-top:20px;border-top:1px solid #e8eef8'>
-        <a class='promo-button' href='{$safeButtonUrl}'
-                     style='display:inline-block;padding:13px 28px;background:" . e($accentColor) . ";color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.02em;box-shadow:0 8px 16px rgba(15,47,99,0.16)'>
-          {$safeButtonLabel} &rarr;
-        </a>
-      </div>
-    </div>
+    <!-- Call to action (bulletproof button) -->
+    <tr><td class='email-pad' bgcolor='#ffffff' style='background-color:#ffffff;border-left:1px solid #dbe7f7;border-right:1px solid #dbe7f7;padding:12px 32px 30px'>
+      <table role='presentation' cellpadding='0' cellspacing='0' border='0'><tr>
+        <td class='promo-button-cell' bgcolor='{$accent}' style='background-color:{$accent};border-radius:8px'>
+          <a class='promo-button' href='{$safeButtonUrl}' style='display:inline-block;padding:14px 30px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px'>{$safeButton} &rarr;</a>
+        </td>
+      </tr></table>
+    </td></tr>
 
-    <!-- Footer note -->
-    <div style='padding:16px 32px 20px;background:#f8fbff;border-top:1px solid #e3ebf8'>
-      {$footerNoteHtml}
-            <p style='margin:0;font-size:12px;color:#94a3b8'>You received this email because your account is subscribed to operational account notifications.
-        &nbsp;&bull;&nbsp; <a href='mailto:{$supportEmail}' style='color:#2f5597;text-decoration:none'>{$supportEmail}</a>
+    <!-- Help strip -->
+    <tr><td class='email-pad' bgcolor='#f4f8ff' style='background-color:#f4f8ff;border:1px solid #dbe7f7;border-bottom:0;padding:16px 32px;font-size:13px;line-height:1.6;color:#475569'>
+      Questions about pricing, stock or an order? Reply to this email or contact
+      <a href='mailto:{$supportEmail}' style='color:{$brand};font-weight:600;text-decoration:none'>{$supportEmail}</a>.
+    </td></tr>
+
+    <!-- Footer -->
+    <tr><td class='email-pad' bgcolor='{$navy}' align='center' style='background-color:{$navy};border-radius:0 0 16px 16px;padding:24px 32px 26px;color:#c7d6f0;font-size:12px;line-height:1.6'>
+      <p class='footer-links' style='margin:0 0 12px;font-size:13px'>
+        <a href='{$storeUrl}' style='color:#ffffff;font-weight:600;text-decoration:none'>Shop the store</a>
+        <span style='color:#5f7fb3'>&nbsp;&bull;&nbsp;</span>
+        <a href='{$accountUrl}' style='color:#ffffff;font-weight:600;text-decoration:none'>My account</a>
+        <span style='color:#5f7fb3'>&nbsp;&bull;&nbsp;</span>
+        <a href='{$accountUrl}' style='color:#ffffff;font-weight:600;text-decoration:none'>Email preferences</a>
       </p>
-    </div>
-  </div>
+      <p style='margin:0 0 10px;color:#c7d6f0'>{$footerText}</p>
+      <p style='margin:0;color:#8fa6cf'>&copy; {$year} Armely Store &middot; Smart technology. Seamless Procurement.</p>
+    </td></tr>
 
-  <!-- Bottom -->
-  <p style='text-align:center;margin-top:20px;font-size:11px;color:#94a3b8'>&copy; {$year} Armely Store. All rights reserved.</p>
-</div>
+  </table>
+
+</td></tr>
+</table>
 </body></html>";
     }
 
@@ -2324,6 +2347,67 @@ class AzureGraphMailService
         return $this->sendEmail($user->email, "Reminder: {$productName}", $html, $text);
     }
 
+    /**
+     * One "still thinking about these?" email for several viewed products,
+     * instead of a separate reminder per product.
+     *
+     * @param  array<int, Product>  $products  Most relevant first; up to 6 are shown.
+     */
+    public function sendViewedProductsDigestEmail(User $user, array $products): bool
+    {
+        if (!$this->isConfigured() || trim((string) ($user->email ?? '')) === '') {
+            return false;
+        }
+
+        $products = array_values(array_filter(
+            $products,
+            fn ($product): bool => $product instanceof Product && $this->productImageUrl($product) !== ''
+        ));
+        if ($products === []) {
+            return false;
+        }
+        if (count($products) === 1) {
+            return $this->sendViewedProductReminderEmail($user, $products[0], now(), \App\Support\OfferPricing::sellPrice($products[0]));
+        }
+
+        $products = array_slice($products, 0, 6);
+        $count = count($products);
+        $safeName = e((string) ($user->name ?: 'Customer'));
+        $grid = $this->buildMarketingProductGrid($products);
+        $unsubscribeUrl = $this->marketingUnsubscribeUrl($user, 'browse_reminders');
+        $recentlyViewedUrl = $this->marketingStoreUrl() . '/products';
+
+        $html = $this->buildModernNotificationEmail(
+            'Still Thinking About These?',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>Here are the {$count} items you looked at recently. Prices and stock change quickly, so add the ones you need to a quote while they are available.</p>
+                {$grid}
+                {$this->marketingUnsubscribeHtml($unsubscribeUrl)}
+            ",
+            'Continue Shopping',
+            $recentlyViewedUrl,
+            'You are receiving this because viewed-item reminders are active for your account.',
+            '#2F5597',
+            'Recently Viewed',
+            '#2F5597',
+            true,
+            true
+        );
+
+        $lines = array_map(function (Product $product): string {
+            $price = \App\Support\OfferPricing::sellPrice($product);
+            return '- ' . trim((string) $product->product_name)
+                . ($price > 0 ? ' — $' . number_format($price, 2) : '')
+                . ': ' . $this->marketingStoreUrl() . '/products/' . rawurlencode((string) ($product->tdsynnex_sku_no ?: $product->tdsynnex_product_id ?: $product->id));
+        }, $products);
+
+        $text = "Hello {$user->name},\n\nItems you looked at recently:\n" . implode("\n", $lines) . "\n\n"
+            . $this->marketingUnsubscribeText($unsubscribeUrl);
+
+        return $this->sendEmail($user->email, "Still thinking about these {$count} items?", $html, $text);
+    }
+
     public function sendFavoriteProductReminderEmail(
         \App\Models\User $user,
         \App\Models\Product $product,
@@ -2439,8 +2523,8 @@ class AzureGraphMailService
         $cells = [];
         foreach (array_slice($items, 0, 6) as $item) {
             $line = is_array($item) ? $item : [];
-            $name = e(Str::title(Str::lower(Str::limit((string) ($line['product_name'] ?? 'Product'), 72))));
-            $part = e(Str::lower((string) ($line['mfg_part_no'] ?? '')));
+            $name = e(Str::limit((string) ($line['product_name'] ?? 'Product'), 72));
+            $part = e(Str::upper((string) ($line['mfg_part_no'] ?? '')));
             $price = (float) ($line['unit_price'] ?? 0);
             $priceLabel = $price > 0 ? '$' . number_format($price, 2) : 'Request pricing';
             $quantity = max(1, (int) ($line['quantity'] ?? 1));
@@ -2459,7 +2543,7 @@ class AzureGraphMailService
                     <div style='border:1px solid #dbe5f3;border-radius:12px;background:#fff;overflow:hidden'>
                         <div style='background:#f8fafc;padding:10px;text-align:center'><img class='promo-image' src='{$image}' width='220' height='132' alt='{$name}' style='display:block;width:100%;height:132px;object-fit:contain;margin:0 auto' border='0'></div>
                         <div class='promo-card-body' style='padding:12px 13px 14px'>
-                            <p class='promo-name' style='margin:0 0 6px;color:#475569;font-size:11px;line-height:1.35;font-weight:600;min-height:32px;text-transform:none'>{$name}</p>
+                            <p class='promo-name' style='margin:0 0 6px;color:#1f2937;font-size:12px;line-height:1.35;font-weight:600;min-height:49px;text-transform:none'>{$name}</p>
                             <p class='promo-part' style='margin:0 0 11px;color:#64748b;font-size:11px'>Part {$part}</p>
                             <p class='promo-price' style='margin:0 0 3px;color:#1d4ed8;font-size:20px;font-weight:800'>{$priceLabel}</p>
                             {$quantityHtml}

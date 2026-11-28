@@ -174,6 +174,25 @@ $actions = [
             ['name' => 'products:prune-images', 'params' => ['--delete' => true]],
         ],
     ],
+    'lifecycle_doctor' => [
+        'label' => 'Marketing Email Health Check',
+        'help' => 'Read-only: is mail configured, are reminder and price-drop runs happening, how many were sent or failed, and how many customers are opted out.',
+        'commands' => [
+            ['name' => 'lifecycle:doctor', 'params' => []],
+        ],
+    ],
+    'lifecycle_test' => [
+        'label' => 'Send Test Marketing Emails',
+        'help' => 'Sends one sample of each reminder (viewed digest, saved item, price drop, cart, search) to the store account email entered below. Nothing is recorded against that customer.',
+        'commands' => [],
+    ],
+    'verify_images' => [
+        'label' => 'Check Product Image Links',
+        'help' => 'Checks supplier photo links for up to 300 in-stock products (continues where the last check stopped) and hides products whose photos are broken. Also runs nightly.',
+        'commands' => [
+            ['name' => 'products:verify-images', 'params' => ['--limit' => 300, '--seconds' => 100]],
+        ],
+    ],
     'rebuild_caches' => [
         'label' => 'Rebuild Laravel Caches',
         'help' => 'Warm config, route, view, event caches and optimize.',
@@ -583,6 +602,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'output' => $e->getMessage(),
             ];
         }
+    } elseif ($selectedAction === 'lifecycle_test') {
+        $to = strtolower(trim((string) ($_POST['test_email_to'] ?? '')));
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            $results[] = ['command' => 'lifecycle:send-test', 'status' => 'ERROR', 'output' => 'Enter the email of an existing store account in the field below the actions.'];
+        } else {
+            @set_time_limit(180);
+            $results[] = runArtisanCommand('lifecycle:send-test', ['email' => $to]);
+        }
     } else {
         foreach ((array) ($actions[$selectedAction]['commands'] ?? []) as $commandDef) {
             $commandName = (string) ($commandDef['name'] ?? '');
@@ -644,6 +671,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </label>
           <?php endforeach; ?>
         </div>
+        <p id="test-email-field" style="margin-top:12px;">
+          <label>Send test marketing emails to (store account email):<br>
+            <input type="email" name="test_email_to" placeholder="you@armely.com" style="width:100%;max-width:360px;padding:8px;border:1px solid #cbd5e1;border-radius:8px;margin-top:4px">
+          </label>
+        </p>
         <p style="margin-top:12px;"><button class="btn" type="submit">Run Selected Action</button></p>
       </form>
     </div>

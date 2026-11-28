@@ -563,4 +563,68 @@ class EmailPreferenceLifecycleTest extends TestCase
         $this->assertFalse((bool) $bought->fresh()->is_active);
         $this->assertFalse((bool) $stale->fresh()->is_active);
     }
+
+    public function test_several_viewed_items_are_sent_as_one_digest_email(): void
+    {
+        $this->createSearchCampaignTables();
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-10-12 12:00:00'));
+        $user = User::create(['name' => 'Browser', 'email' => 'digest@example.com', 'password' => 'password', 'status' => 'active']);
+        foreach ([201, 202, 203] as $index => $id) {
+            \DB::table('products')->insert(['id' => $id, 'tdsynnex_sku_no' => (string) (9100 + $index), 'product_name' => "Item {$id}",
+                'mfg_part_no' => "P-{$id}", 'base_price' => 100, 'is_available' => true, 'is_discontinued' => false, 'quantity' => 5]);
+            \App\Models\UserProductView::create(['user_id' => $user->id, 'identity_key' => 'user:'.$user->id,
+                'product_id' => $id, 'viewed_at' => now()->subDays(2)->addMinutes($index)]);
+            \App\Models\ReminderSubscription::create(['user_id' => $user->id, 'identity_key' => 'user:'.$user->id,
+                'product_id' => $id, 'trigger_type' => 'viewed_product', 'channel' => 'email', 'is_active' => true,
+                'delay_minutes' => 1440, 'cooldown_minutes' => 1440]);
+        }
+
+        $mailer = \Mockery::mock(\App\Services\AzureGraphMailService::class);
+        $mailer->shouldReceive('canFeatureProductInMarketing')->andReturn(true);
+        $mailer->shouldNotReceive('sendViewedProductReminderEmail');
+        $mailer->shouldReceive('sendViewedProductsDigestEmail')->once()
+            ->withArgs(fn ($recipient, $products) => $recipient->id === $user->id
+                && array_map(fn ($product) => $product->id, $products) === [203, 202, 201])
+            ->andReturn(true);
+
+        $job = new \App\Jobs\ProcessReminderSubscriptionsJob;
+        $job->handle($mailer, app(UserEmailPreferenceService::class));
+        $this->assertSame(1, AppSetting::getValue('lifecycle.reminders.last_metrics')['viewed_sent']);
+        $this->assertSame(1, SuppressionEvent::where('event_type', 'marketing_sent')->count());
+
+        // Same views, next run: nothing is sent twice.
+        $job->handle($mailer, app(UserEmailPreferenceService::class));
+        $this->assertSame(0, AppSetting::getValue('lifecycle.reminders.last_metrics')['viewed_sent']);
+    }
+
+    public function test_nightly_image_check_hides_products_with_broken_supplier_photos(): void
+    {
+        $this->createSearchCampaignTables();
+        $this->app->instance(\App\Support\PublicImageHostResolver::class, new class extends \App\Support\PublicImageHostResolver {
+            protected function lookup(string $host): array
+            {
+                return ['93.184.216.34'];
+            }
+        });
+        \Illuminate\Support\Facades\Http::fake([
+            'https://cdn.example/good.jpg' => \Illuminate\Support\Facades\Http::response(str_repeat('x', 2048), 200, ['Content-Type' => 'image/jpeg']),
+            'https://cdn.example/*' => \Illuminate\Support\Facades\Http::response('Not found', 404, ['Content-Type' => 'text/html']),
+        ]);
+        \DB::table('products')->insert([
+            ['id' => 301, 'tdsynnex_sku_no' => '9301', 'product_name' => 'Good', 'mfg_part_no' => 'G', 'base_price' => 10, 'is_available' => true, 'is_discontinued' => false, 'quantity' => 1,
+                'images' => json_encode([['imageUrl' => 'https://cdn.example/good.jpg']])],
+            ['id' => 302, 'tdsynnex_sku_no' => '9302', 'product_name' => 'Broken', 'mfg_part_no' => 'B', 'base_price' => 10, 'is_available' => true, 'is_discontinued' => false, 'quantity' => 1,
+                'images' => json_encode([['imageUrl' => 'https://cdn.example/missing.jpg']])],
+        ]);
+
+        $this->artisan('products:verify-images', ['--restart' => true])->assertSuccessful();
+
+        $fetcher = app(\App\Services\RemoteProductImageFetcher::class);
+        $this->assertFalse($fetcher->isKnownBroken('https://cdn.example/good.jpg'));
+        $this->assertTrue($fetcher->isKnownBroken('https://cdn.example/missing.jpg'));
+        $run = AppSetting::getValue('images.verify.last_run');
+        $this->assertSame(2, $run['products']);
+        $this->assertSame(1, $run['products_without_working_photo']);
+        $this->assertTrue($run['finished_catalog_pass']);
+    }
 }

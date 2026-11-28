@@ -3722,80 +3722,30 @@ class ProductController extends Controller
             }
         }
 
-        if (Cache::has($this->imageProxyFailureKey($url))) {
+        $fetcher = app(\App\Services\RemoteProductImageFetcher::class);
+        if ($fetcher->isKnownBroken($url)) {
             return $this->imageProxyPlaceholderResponse();
         }
 
-        try {
-            // SSRF guard: every hop must resolve to public internet addresses
-            // only, the connection is pinned to the address we validated
-            // (defeats DNS rebinding), and redirects are followed manually so
-            // each target is re-checked before it is requested.
-            $currentUrl = $url;
-            $response = null;
-            for ($hop = 0; $hop <= 3; $hop++) {
-                $publicAddress = app(\App\Support\PublicImageHostResolver::class)->resolve($currentUrl);
-                if ($publicAddress === null) {
-                    return $this->imageProxyPlaceholderResponse();
-                }
-
-                $host = (string) parse_url($currentUrl, PHP_URL_HOST);
-                $port = (int) (parse_url($currentUrl, PHP_URL_PORT) ?: (str_starts_with(strtolower($currentUrl), 'https') ? 443 : 80));
-                $response = \Illuminate\Support\Facades\Http::withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (compatible; ArmelyStore/1.0)',
-                ])->withOptions([
-                    'allow_redirects' => false,
-                    'curl' => [CURLOPT_RESOLVE => ["{$host}:{$port}:{$publicAddress}"]],
-                ])->connectTimeout(5)->timeout(10)->get($currentUrl);
-
-                $location = trim((string) $response->header('Location'));
-                if (!$response->redirect() || $location === '') {
-                    break;
-                }
-
-                if (str_starts_with($location, '//')) {
-                    $location = (string) parse_url($currentUrl, PHP_URL_SCHEME) . ':' . $location;
-                } elseif (str_starts_with($location, '/')) {
-                    $location = (string) parse_url($currentUrl, PHP_URL_SCHEME) . '://' . $host
-                        . (parse_url($currentUrl, PHP_URL_PORT) ? ':' . $port : '') . $location;
-                }
-                if (!preg_match('#^https?://#i', $location) || !filter_var($location, FILTER_VALIDATE_URL)) {
-                    break;
-                }
-                $currentUrl = $location;
-            }
-
-            $contentType = strtolower(trim((string) $response->header('Content-Type')));
-            if (
-                !$response->successful()
-                || strlen($response->body()) < 500
-                || strlen($response->body()) > 10 * 1024 * 1024
-                || !str_starts_with($contentType, 'image/')
-                || str_contains($contentType, 'svg')
-            ) {
-                Cache::put($this->imageProxyFailureKey($url), true, now()->addDay());
-                return $this->imageProxyPlaceholderResponse();
-            }
-
-            $ext = match (true) {
-                str_contains($contentType, 'png') => 'png',
-                str_contains($contentType, 'webp') => 'webp',
-                str_contains($contentType, 'gif') => 'gif',
-                default => 'jpeg',
-            };
-
-            // Stream instead of saving: every distinct proxied URL used to become a file,
-            // which exhausted the hosting account's file (inode) quota. Browsers cache via headers.
-            return response($response->body(), 200, [
-                'Content-Type' => 'image/' . $ext,
-                'Cache-Control' => 'public, max-age=2592000, immutable',
-                'X-Content-Type-Options' => 'nosniff',
-            ]);
-        } catch (\Throwable $e) {
-            Log::debug('imageProxy failed', ['url' => $url, 'error' => $e->getMessage()]);
-            Cache::put($this->imageProxyFailureKey($url), true, now()->addHours(6));
+        $image = $fetcher->fetch($url);
+        if ($image === null) {
             return $this->imageProxyPlaceholderResponse();
         }
+
+        $ext = match (true) {
+            str_contains($image['content_type'], 'png') => 'png',
+            str_contains($image['content_type'], 'webp') => 'webp',
+            str_contains($image['content_type'], 'gif') => 'gif',
+            default => 'jpeg',
+        };
+
+        // Stream instead of saving: every distinct proxied URL used to become a file,
+        // which exhausted the hosting account's file (inode) quota. Browsers cache via headers.
+        return response($image['body'], 200, [
+            'Content-Type' => 'image/' . $ext,
+            'Cache-Control' => 'public, max-age=2592000, immutable',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     /**
@@ -3811,15 +3761,10 @@ class ProductController extends Controller
         ]);
     }
 
-    private function imageProxyFailureKey(string $url): string
-    {
-        return 'img_proxy_failed:' . md5($url);
-    }
-
     /** True when the external image URL is already known to be broken. */
     private function isKnownBrokenExternalImage(string $url): bool
     {
-        return str_starts_with($url, 'http') && Cache::has($this->imageProxyFailureKey($url));
+        return app(\App\Services\RemoteProductImageFetcher::class)->isKnownBroken($url);
     }
 
 }

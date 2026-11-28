@@ -186,6 +186,10 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
         Carbon $now,
         array &$metrics
     ): void {
+        // Collect every due viewed item per customer first, then send one
+        // digest email per customer instead of one email per product.
+        $due = [];
+
         ReminderSubscription::query()
             ->where('is_active', true)
             ->where('channel', 'email')
@@ -194,10 +198,10 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
             ->whereNotNull('product_id')
             ->with(['user:id,name,email,status'])
             ->orderBy('id')
-            ->chunkById(200, function ($subscriptions) use ($mailer, $preferences, $now, &$metrics) {
+            ->chunkById(200, function ($subscriptions) use ($mailer, $preferences, $now, &$metrics, &$due) {
                 foreach ($subscriptions as $subscription) {
                     $metrics['viewed_scanned']++;
-                    $this->safely('viewed_product', (int) $subscription->id, $metrics, function () use ($subscription, $mailer, $preferences, $now, &$metrics) {
+                    $this->safely('viewed_product', (int) $subscription->id, $metrics, function () use ($subscription, $mailer, $preferences, $now, &$metrics, &$due) {
                         $user = $subscription->user;
                         if (!$this->isReachableUser($user)) {
                             return;
@@ -268,28 +272,47 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                             return;
                         }
 
-                        if (!$preferences->canSendLifecycleMarketing($user, 'viewed_product_reminder', 1, 2, 12, $now)) {
-                            return;
-                        }
-
-                        if (!$mailer->sendViewedProductReminderEmail($user, $product, $viewedAt, OfferPricing::sellPrice($product))) {
-                            $metrics['delivery_failed']++;
-                            return;
-                        }
-
-                        $this->recordSequenceSend($subscription, $metadata, $sequenceStage, count($delays), $viewedAt, $now);
-                        $context = [
-                            'subscription_id' => (int) $subscription->id,
-                            'trigger_type' => 'viewed_product',
-                            'product_id' => (int) $product->id,
-                            'sequence_stage' => $sequenceStage,
-                        ];
-                        $preferences->markIdempotencyKeySent($user, $idempotencyKey, $context);
-                        $preferences->markMarketingSent($user, 'viewed_product_reminder', $context);
-                        $metrics['viewed_sent']++;
+                        $due[(int) $user->id][] = compact('user', 'subscription', 'product', 'viewedAt', 'metadata', 'sequenceStage', 'delays', 'idempotencyKey');
                     });
                 }
             });
+
+        foreach ($due as $userId => $items) {
+            $this->safely('viewed_product_digest', (int) $userId, $metrics, function () use ($items, $mailer, $preferences, $now, &$metrics) {
+                $user = $items[0]['user'];
+                if (!$preferences->canSendLifecycleMarketing($user, 'viewed_product_reminder', 1, 2, 12, $now)) {
+                    return;
+                }
+
+                // Most recently viewed first; one email shows up to six items.
+                usort($items, fn (array $a, array $b): int => $b['viewedAt'] <=> $a['viewedAt']);
+                $items = array_slice($items, 0, 6);
+
+                $sent = count($items) === 1
+                    ? $mailer->sendViewedProductReminderEmail($user, $items[0]['product'], $items[0]['viewedAt'], OfferPricing::sellPrice($items[0]['product']))
+                    : $mailer->sendViewedProductsDigestEmail($user, array_column($items, 'product'));
+
+                if (!$sent) {
+                    $metrics['delivery_failed']++;
+                    return;
+                }
+
+                foreach ($items as $item) {
+                    $this->recordSequenceSend($item['subscription'], $item['metadata'], $item['sequenceStage'], count($item['delays']), $item['viewedAt'], $now);
+                    $preferences->markIdempotencyKeySent($user, $item['idempotencyKey'], [
+                        'subscription_id' => (int) $item['subscription']->id,
+                        'trigger_type' => 'viewed_product',
+                        'product_id' => (int) $item['product']->id,
+                        'sequence_stage' => $item['sequenceStage'],
+                    ]);
+                }
+                $preferences->markMarketingSent($user, 'viewed_product_reminder', [
+                    'trigger_type' => 'viewed_product',
+                    'product_ids' => array_map(fn (array $item): int => (int) $item['product']->id, $items),
+                ]);
+                $metrics['viewed_sent']++;
+            });
+        }
     }
 
     private function processFavoriteProductReminders(
