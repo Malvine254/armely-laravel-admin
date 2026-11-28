@@ -3,6 +3,8 @@
 return [
     'assortment_size' => 10000,
     'image_enrichment_batch' => 50,
+    // No longer read by the storefront: photo visibility is the saved admin
+    // setting catalog.show_products_without_images (maintenance page buttons).
     // Hidden by default: products without a usable photo never appear on the storefront.
     'show_products_without_images' => (bool) env('STOREFRONT_SHOW_PRODUCTS_WITHOUT_IMAGES', false),
 

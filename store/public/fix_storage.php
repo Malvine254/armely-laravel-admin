@@ -620,8 +620,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'command' => 'catalog.show_products_without_images = ' . ($show ? 'on' : 'off'),
                 'status' => 'OK',
                 'output' => $show
-                    ? 'Products without photos are now listed. This setting overrides STOREFRONT_SHOW_PRODUCTS_WITHOUT_IMAGES in .env.'
-                    : 'Products without photos are now hidden everywhere on the storefront. This setting overrides STOREFRONT_SHOW_PRODUCTS_WITHOUT_IMAGES in .env.',
+                    ? 'Products without photos are now listed. (Saved setting; the old .env flag is no longer used.)'
+                    : 'Products without photos are now hidden everywhere on the storefront. (Saved setting; the old .env flag is no longer used.)',
             ];
         } catch (\Throwable $e) {
             $results[] = ['command' => 'catalog.show_products_without_images', 'status' => 'ERROR', 'output' => $e->getMessage()];

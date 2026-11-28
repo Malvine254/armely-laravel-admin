@@ -92,9 +92,11 @@ class ProductController extends Controller
             $saved = null;
         }
 
-        return $this->showsProductsWithoutImages = $saved === null || $saved === ''
-            ? (bool) config('storefront.show_products_without_images', false)
-            : filter_var($saved, FILTER_VALIDATE_BOOLEAN);
+        // Hidden unless an admin explicitly chose "Show Products Without
+        // Photos". The old .env flag is deliberately ignored: production still
+        // had it set to true and it could not be edited without file access.
+        return $this->showsProductsWithoutImages = $saved !== null && $saved !== ''
+            && filter_var($saved, FILTER_VALIDATE_BOOLEAN);
     }
 
     private function apiProductHasUsableImage(array $product): bool

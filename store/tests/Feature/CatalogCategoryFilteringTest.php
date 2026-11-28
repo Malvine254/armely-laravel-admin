@@ -69,6 +69,9 @@ class CatalogCategoryFilteringTest extends TestCase
             $table->json('value')->nullable();
             $table->timestamps();
         });
+        // These category tests use fixtures without photos, so they opt in the
+        // way an admin would (the storefront hides photo-less products by default).
+        \App\Models\AppSetting::setValue('catalog.show_products_without_images', '1');
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
             $table->string('name');
