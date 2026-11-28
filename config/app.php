@@ -127,6 +127,10 @@ return [
 
     'key' => env('APP_KEY'),
 
+    // Shared secret for the browser-based maintenance page (public/fix_storage.php).
+    // Leave empty to keep that page locked. Use a long random value (32+ chars).
+    'maintenance_token' => env('MAINTENANCE_TOOL_TOKEN', ''),
+
     'previous_keys' => [
         ...array_filter(
             explode(',', (string) env('APP_PREVIOUS_KEYS', ''))

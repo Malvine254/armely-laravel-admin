@@ -73,7 +73,7 @@ Route::prefix('v1')->group(function () {
     Route::put('/auth/change-password', [AuthController::class, 'changePassword'])->middleware(['auth:sanctum', 'active.user']);
 
     // Image proxy — serves external product images through our server to avoid CORS/CSP issues
-    Route::get('/img-proxy', [ProductController::class, 'imageProxy']);
+    Route::get('/img-proxy', [ProductController::class, 'imageProxy'])->middleware('throttle:600,1');
 
     // Products endpoints
     Route::get('/product-discovery', [ProductDiscoveryController::class, 'search'])->middleware('throttle:10,1');
@@ -102,7 +102,11 @@ Route::prefix('v1')->group(function () {
     Route::delete('/behavior/price-alert-subscriptions/{productId}', [PriceAlertSubscriptionController::class, 'deactivate'])->middleware('throttle:60,1');
     Route::get('/behavior/email-preferences', [EmailPreferenceController::class, 'show'])->middleware(['auth:sanctum', 'active.user', 'throttle:60,1']);
     Route::put('/behavior/email-preferences', [EmailPreferenceController::class, 'update'])->middleware(['auth:sanctum', 'active.user', 'throttle:60,1']);
-    Route::get('/behavior/unsubscribe/{token}', [EmailPreferenceController::class, 'unsubscribe'])->middleware('throttle:30,1');
+    // GET only shows a confirmation page: mail security scanners open every
+    // link in a message, so a GET must never change preferences. POST applies
+    // the change (also used by RFC 8058 one-click List-Unsubscribe-Post).
+    Route::get('/behavior/unsubscribe/{token}', [EmailPreferenceController::class, 'confirmUnsubscribe'])->middleware('throttle:30,1');
+    Route::post('/behavior/unsubscribe/{token}', [EmailPreferenceController::class, 'unsubscribe'])->middleware('throttle:30,1');
 
     // Reviews endpoints (public read, auth write)
     Route::get('/products/reviews/stats', [ReviewController::class, 'stats']);
@@ -188,7 +192,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Admin endpoints (protected & requires admin role)
-    Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
+    Route::middleware(['auth:sanctum', 'active.user', 'admin.role'])->group(function () {
         // Dashboard stats
         Route::get('/admin/dashboard/stats', [AdminController::class, 'getDashboardStats']);
         Route::get('/admin/products', [AdminImportedProductController::class, 'all']);

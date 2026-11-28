@@ -33,6 +33,15 @@ class ProductImageFileQuotaTest extends TestCase
 
     public function test_image_proxy_streams_without_writing_files(): void
     {
+        // The test host does not exist in DNS; pin it to a public address so
+        // the proxy's SSRF guard lets the (faked) request through.
+        $this->app->instance(\App\Support\PublicImageHostResolver::class, new class extends \App\Support\PublicImageHostResolver {
+            protected function lookup(string $host): array
+            {
+                return ['93.184.216.34'];
+            }
+        });
+
         Http::fake([
             'https://images.example.test/*' => Http::response(str_repeat('x', 1024), 200, ['Content-Type' => 'image/png']),
         ]);

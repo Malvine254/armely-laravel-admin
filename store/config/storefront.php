@@ -3,7 +3,8 @@
 return [
     'assortment_size' => 10000,
     'image_enrichment_batch' => 50,
-    'show_products_without_images' => env('STOREFRONT_SHOW_PRODUCTS_WITHOUT_IMAGES', true),
+    // Hidden by default: products without a usable photo never appear on the storefront.
+    'show_products_without_images' => (bool) env('STOREFRONT_SHOW_PRODUCTS_WITHOUT_IMAGES', false),
 
     // Balanced quotas prevent software, cables, and a single large feed category
     // from consuming the storefront. All eligible products remain searchable.

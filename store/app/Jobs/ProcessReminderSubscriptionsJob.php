@@ -4,15 +4,14 @@ namespace App\Jobs;
 
 use App\Models\AppSetting;
 use App\Models\Product;
-use App\Models\SearchProfile;
-use App\Models\Order;
-use App\Models\Quote;
 use App\Models\ReminderSubscription;
+use App\Models\SearchProfile;
 use App\Models\UserCartSnapshot;
 use App\Models\UserFavoriteEvent;
 use App\Models\UserProductView;
 use App\Services\AzureGraphMailService;
 use App\Services\UserEmailPreferenceService;
+use App\Support\CustomerPurchaseHistory;
 use App\Support\OfferPricing;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -30,6 +29,9 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
     public int $timeout = 900;
     public int $tries = 1;
 
+    /** Views older than this are no longer a useful "still interested?" signal. */
+    private const VIEWED_REMINDER_MAX_AGE_DAYS = 30;
+
     public function middleware(): array
     {
         return [(new WithoutOverlapping('process-reminder-subscriptions'))->expireAfter(1200)];
@@ -44,17 +46,32 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
             'abandoned_sent' => 0,
             'viewed_scanned' => 0,
             'viewed_sent' => 0,
+            'viewed_expired' => 0,
             'favorite_scanned' => 0,
             'favorite_sent' => 0,
             'search_scanned' => 0,
             'search_sent' => 0,
+            'skipped_no_photo' => 0,
+            'skipped_already_bought' => 0,
             'delivery_failed' => 0,
+            'errors' => 0,
         ];
 
-        $this->processAbandonedCartReminders($mailer, $preferences, $now, $metrics);
-        $this->processViewedProductReminders($mailer, $preferences, $now, $metrics);
-        $this->processFavoriteProductReminders($mailer, $preferences, $now, $metrics);
-        $this->processSearchReminders($mailer, $preferences, $now, $metrics);
+        // Each campaign runs independently: an error in one (bad data, DB
+        // hiccup) must not stop the others or leave last_run_at unrecorded.
+        foreach ([
+            'abandoned_cart' => 'processAbandonedCartReminders',
+            'viewed_product' => 'processViewedProductReminders',
+            'favorite_product' => 'processFavoriteProductReminders',
+            'searched_products' => 'processSearchReminders',
+        ] as $campaign => $method) {
+            try {
+                $this->{$method}($mailer, $preferences, $now, $metrics);
+            } catch (\Throwable $error) {
+                $metrics['errors']++;
+                Log::error('Lifecycle reminder campaign failed', ['campaign' => $campaign, 'error' => $error->getMessage()]);
+            }
+        }
 
         AppSetting::setValue('lifecycle.reminders.last_run_at', $now->toISOString());
         AppSetting::setValue('lifecycle.reminders.last_metrics', array_merge($metrics, [
@@ -64,13 +81,27 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
         Log::info('ProcessReminderSubscriptionsJob complete', $metrics);
     }
 
+    /** Runs one subscription; a failure is logged and the loop moves on. */
+    private function safely(string $campaign, int $subscriptionId, array &$metrics, callable $work): void
+    {
+        try {
+            $work();
+        } catch (\Throwable $error) {
+            $metrics['errors']++;
+            Log::warning('Lifecycle reminder skipped after an error', [
+                'campaign' => $campaign,
+                'subscription_id' => $subscriptionId,
+                'error' => $error->getMessage(),
+            ]);
+        }
+    }
+
     private function processAbandonedCartReminders(
         AzureGraphMailService $mailer,
         UserEmailPreferenceService $preferences,
         Carbon $now,
         array &$metrics
-    ): void
-    {
+    ): void {
         ReminderSubscription::query()
             ->where('is_active', true)
             ->where('channel', 'email')
@@ -81,99 +112,70 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
             ->chunkById(200, function ($subscriptions) use ($mailer, $preferences, $now, &$metrics) {
                 foreach ($subscriptions as $subscription) {
                     $metrics['abandoned_scanned']++;
+                    $this->safely('abandoned_cart', (int) $subscription->id, $metrics, function () use ($subscription, $mailer, $preferences, $now, &$metrics) {
+                        $user = $subscription->user;
+                        if (!$this->isReachableUser($user)) {
+                            return;
+                        }
 
-                    $user = $subscription->user;
-                    if (!$user || strtolower((string) ($user->status ?? 'active')) !== 'active' || trim((string) ($user->email ?? '')) === '') {
-                        continue;
-                    }
+                        if (!$preferences->shouldSendReminder($user, 'abandoned_cart', $now)) {
+                            return;
+                        }
 
-                    if (!$preferences->shouldSendReminder($user, 'abandoned_cart', $now)) {
-                        continue;
-                    }
+                        if (!$this->cooldownElapsed($subscription->last_notified_at, (int) ($subscription->cooldown_minutes ?? 0), $now)) {
+                            return;
+                        }
 
-                    if (!$this->cooldownElapsed($subscription->last_notified_at, (int) ($subscription->cooldown_minutes ?? 0), $now)) {
-                        continue;
-                    }
+                        $snapshot = $this->latestCartSnapshot($subscription);
+                        if (!$snapshot || (int) ($snapshot->item_count ?? 0) <= 0) {
+                            return;
+                        }
 
-                    $snapshot = UserCartSnapshot::query()
-                        ->where(function ($query) use ($subscription) {
-                            $query->where('identity_key', (string) $subscription->identity_key);
-                            if ($subscription->user_id) {
-                                $query->orWhere('user_id', (int) $subscription->user_id);
-                            }
-                        })
-                        ->orderByDesc('last_synced_at')
-                        ->first();
+                        $lastSyncedAt = $this->asCarbon($snapshot->last_synced_at, $now);
 
-                    if (!$snapshot || (int) ($snapshot->item_count ?? 0) <= 0) {
-                        continue;
-                    }
+                        $metadata = is_array($subscription->metadata) ? $subscription->metadata : [];
+                        $delays = $this->sequenceDelaysForTrigger('abandoned_cart', (int) ($subscription->delay_minutes ?? 120));
+                        $sequenceStage = min(max(0, (int) ($metadata['sequence_stage'] ?? 0)), count($delays) - 1);
 
-                    $lastSyncedAt = $snapshot->last_synced_at instanceof Carbon
-                        ? $snapshot->last_synced_at
-                        : Carbon::parse((string) ($snapshot->last_synced_at ?? $now->toISOString()));
+                        if ($lastSyncedAt->copy()->addMinutes($delays[$sequenceStage])->greaterThan($now)) {
+                            return;
+                        }
 
-                    $metadata = is_array($subscription->metadata) ? $subscription->metadata : [];
-                    $sequenceStage = max(0, (int) ($metadata['sequence_stage'] ?? 0));
-                    $delays = $this->sequenceDelaysForTrigger('abandoned_cart', (int) ($subscription->delay_minutes ?? 120));
-                    if ($sequenceStage >= count($delays)) {
-                        $sequenceStage = count($delays) - 1;
-                    }
+                        $items = $this->buildCartReminderItems((array) ($snapshot->items ?? []));
+                        if (count($items) === 0) {
+                            return;
+                        }
 
-                    $delayMinutes = $delays[$sequenceStage];
-                    if ($lastSyncedAt->copy()->addMinutes($delayMinutes)->greaterThan($now)) {
-                        continue;
-                    }
+                        if (CustomerPurchaseHistory::hasQuotedOrOrderedSince((int) $user->id, array_column($items, 'product_id'), $lastSyncedAt)) {
+                            $metrics['skipped_already_bought']++;
+                            $subscription->update(['is_active' => false]);
+                            return;
+                        }
 
-                    $items = $this->buildCartReminderItems((array) ($snapshot->items ?? []));
-                    if (count($items) === 0) {
-                        continue;
-                    }
+                        $idempotencyKey = 'abandoned_cart:' . (int) $subscription->id . ':' . $sequenceStage . ':' . $lastSyncedAt->format('YmdHi');
+                        if ($preferences->wasIdempotencyKeySent($idempotencyKey)) {
+                            return;
+                        }
 
-                    if ($this->hasRequestedQuoteSince(
-                        (int) $user->id,
-                        array_column($items, 'product_id'),
-                        $lastSyncedAt
-                    )) {
-                        $subscription->update(['is_active' => false]);
-                        continue;
-                    }
+                        if (!$preferences->canSendLifecycleMarketing($user, 'abandoned_cart_reminder', 1, 2, 12, $now)) {
+                            return;
+                        }
 
-                    $idempotencyKey = 'abandoned_cart:' . (int) $subscription->id . ':' . $sequenceStage . ':' . $lastSyncedAt->format('YmdHi');
-                    if ($preferences->wasIdempotencyKeySent($idempotencyKey)) {
-                        continue;
-                    }
+                        if (!$mailer->sendAbandonedCartReminderEmail($user, $items, $lastSyncedAt)) {
+                            $metrics['delivery_failed']++;
+                            return;
+                        }
 
-                    if (!$preferences->canSendLifecycleMarketing($user, 'abandoned_cart_reminder', 1, 2, 12, $now)) {
-                        continue;
-                    }
-
-                    $sent = $mailer->sendAbandonedCartReminderEmail($user, $items, $lastSyncedAt);
-                    if (!$sent) {
-                        $metrics['delivery_failed']++;
-                        continue;
-                    }
-
-                    $nextStage = min($sequenceStage + 1, count($delays) - 1);
-                    $subscription->update([
-                        'last_notified_at' => $now,
-                        'metadata' => array_merge($metadata, [
-                            'sequence_stage' => $nextStage,
-                            'sequence_anchor_at' => $lastSyncedAt->toISOString(),
-                            'last_sequence_sent_at' => $now->toISOString(),
-                        ]),
-                    ]);
-                    $preferences->markIdempotencyKeySent($user, $idempotencyKey, [
-                        'subscription_id' => (int) $subscription->id,
-                        'trigger_type' => 'abandoned_cart',
-                        'sequence_stage' => $sequenceStage,
-                    ]);
-                    $preferences->markMarketingSent($user, 'abandoned_cart_reminder', [
-                        'subscription_id' => (int) $subscription->id,
-                        'trigger_type' => 'abandoned_cart',
-                        'sequence_stage' => $sequenceStage,
-                    ]);
-                    $metrics['abandoned_sent']++;
+                        $this->recordSequenceSend($subscription, $metadata, $sequenceStage, count($delays), $lastSyncedAt, $now);
+                        $context = [
+                            'subscription_id' => (int) $subscription->id,
+                            'trigger_type' => 'abandoned_cart',
+                            'sequence_stage' => $sequenceStage,
+                        ];
+                        $preferences->markIdempotencyKeySent($user, $idempotencyKey, $context);
+                        $preferences->markMarketingSent($user, 'abandoned_cart_reminder', $context);
+                        $metrics['abandoned_sent']++;
+                    });
                 }
             });
     }
@@ -183,8 +185,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
         UserEmailPreferenceService $preferences,
         Carbon $now,
         array &$metrics
-    ): void
-    {
+    ): void {
         ReminderSubscription::query()
             ->where('is_active', true)
             ->where('channel', 'email')
@@ -196,116 +197,97 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
             ->chunkById(200, function ($subscriptions) use ($mailer, $preferences, $now, &$metrics) {
                 foreach ($subscriptions as $subscription) {
                     $metrics['viewed_scanned']++;
+                    $this->safely('viewed_product', (int) $subscription->id, $metrics, function () use ($subscription, $mailer, $preferences, $now, &$metrics) {
+                        $user = $subscription->user;
+                        if (!$this->isReachableUser($user)) {
+                            return;
+                        }
 
-                    $user = $subscription->user;
-                    if (!$user || strtolower((string) ($user->status ?? 'active')) !== 'active' || trim((string) ($user->email ?? '')) === '') {
-                        continue;
-                    }
+                        if (!$preferences->shouldSendReminder($user, 'viewed_product', $now)) {
+                            return;
+                        }
 
-                    if (!$preferences->shouldSendReminder($user, 'viewed_product', $now)) {
-                        continue;
-                    }
+                        if (!$this->cooldownElapsed($subscription->last_notified_at, (int) ($subscription->cooldown_minutes ?? 0), $now)) {
+                            return;
+                        }
 
-                    if (!$this->cooldownElapsed($subscription->last_notified_at, (int) ($subscription->cooldown_minutes ?? 0), $now)) {
-                        continue;
-                    }
+                        $latestView = UserProductView::query()
+                            ->whereIn('product_id', $this->productEventReferences((int) $subscription->product_id))
+                            ->where(fn ($query) => $this->whereSubscriber($query, $subscription))
+                            ->orderByDesc('viewed_at')
+                            ->first();
 
-                    $latestView = UserProductView::query()
-                        ->whereIn('product_id', $this->productEventReferences((int) $subscription->product_id))
-                        ->where(function ($query) use ($subscription) {
-                            $query->where('identity_key', (string) $subscription->identity_key);
-                            if ($subscription->user_id) {
-                                $query->orWhere('user_id', (int) $subscription->user_id);
-                            }
-                        })
-                        ->orderByDesc('viewed_at')
-                        ->first();
+                        if (!$latestView) {
+                            return;
+                        }
 
-                    if (!$latestView) {
-                        continue;
-                    }
+                        $viewedAt = $this->asCarbon($latestView->viewed_at, $now);
 
-                    $viewedAt = $latestView->viewed_at instanceof Carbon
-                        ? $latestView->viewed_at
-                        : Carbon::parse((string) ($latestView->viewed_at ?? $now->toISOString()));
+                        // A product glanced at months ago is not a reminder
+                        // anyone wants. Retire it; a fresh view re-activates it.
+                        if ($viewedAt->lessThan($now->copy()->subDays(self::VIEWED_REMINDER_MAX_AGE_DAYS))) {
+                            $metrics['viewed_expired']++;
+                            $subscription->update(['is_active' => false]);
+                            return;
+                        }
 
-                    $metadata = is_array($subscription->metadata) ? $subscription->metadata : [];
-                    $sequenceStage = max(0, (int) ($metadata['sequence_stage'] ?? 0));
-                    $delays = $this->sequenceDelaysForTrigger('viewed_product', (int) ($subscription->delay_minutes ?? 1440));
-                    if ($sequenceStage >= count($delays)) {
-                        $sequenceStage = count($delays) - 1;
-                    }
+                        $metadata = is_array($subscription->metadata) ? $subscription->metadata : [];
+                        $delays = $this->sequenceDelaysForTrigger('viewed_product', (int) ($subscription->delay_minutes ?? 1440));
+                        $sequenceStage = min(max(0, (int) ($metadata['sequence_stage'] ?? 0)), count($delays) - 1);
 
-                    $delayMinutes = $delays[$sequenceStage];
-                    if ($viewedAt->copy()->addMinutes($delayMinutes)->greaterThan($now)) {
-                        continue;
-                    }
+                        if ($viewedAt->copy()->addMinutes($delays[$sequenceStage])->greaterThan($now)) {
+                            return;
+                        }
 
-                    $product = Product::query()->find((int) $subscription->product_id);
-                    if (!$product) {
-                        continue;
-                    }
+                        $product = Product::query()->find((int) $subscription->product_id);
+                        if (!$product) {
+                            return;
+                        }
 
-                    if ($this->hasRequestedQuoteSince((int) $user->id, [(int) $product->id], $viewedAt)) {
-                        $subscription->update(['is_active' => false]);
-                        continue;
-                    }
+                        if (CustomerPurchaseHistory::hasQuotedOrOrderedSince((int) $user->id, [(int) $product->id], $viewedAt)) {
+                            $metrics['skipped_already_bought']++;
+                            $subscription->update(['is_active' => false]);
+                            return;
+                        }
 
-                    // Skip viewed reminders when the product is already in the
-                    // user's most recent cart snapshot.
-                    $cartSnapshot = UserCartSnapshot::query()
-                        ->where(function ($query) use ($subscription) {
-                            $query->where('identity_key', (string) $subscription->identity_key);
-                            if ($subscription->user_id) {
-                                $query->orWhere('user_id', (int) $subscription->user_id);
-                            }
-                        })
-                        ->orderByDesc('last_synced_at')
-                        ->first();
+                        // Already in the cart: the cart reminder covers it.
+                        $cartSnapshot = $this->latestCartSnapshot($subscription);
+                        if ($cartSnapshot && $this->cartContainsProduct((array) ($cartSnapshot->items ?? []), $product)) {
+                            return;
+                        }
 
-                    if ($cartSnapshot && $this->cartContainsProduct((array) ($cartSnapshot->items ?? []), $product)) {
-                        continue;
-                    }
+                        // Promotional emails always show a product photo. Skip
+                        // quietly (not a delivery failure) and retry next run.
+                        if (!$mailer->canFeatureProductInMarketing($product)) {
+                            $metrics['skipped_no_photo']++;
+                            return;
+                        }
 
-                    $price = OfferPricing::sellPrice($product);
+                        $idempotencyKey = 'viewed_product:' . (int) $subscription->id . ':' . $sequenceStage . ':' . $viewedAt->format('YmdHi');
+                        if ($preferences->wasIdempotencyKeySent($idempotencyKey)) {
+                            return;
+                        }
 
-                    $idempotencyKey = 'viewed_product:' . (int) $subscription->id . ':' . $sequenceStage . ':' . $viewedAt->format('YmdHi');
-                    if ($preferences->wasIdempotencyKeySent($idempotencyKey)) {
-                        continue;
-                    }
+                        if (!$preferences->canSendLifecycleMarketing($user, 'viewed_product_reminder', 1, 2, 12, $now)) {
+                            return;
+                        }
 
-                    if (!$preferences->canSendLifecycleMarketing($user, 'viewed_product_reminder', 1, 2, 12, $now)) {
-                        continue;
-                    }
+                        if (!$mailer->sendViewedProductReminderEmail($user, $product, $viewedAt, OfferPricing::sellPrice($product))) {
+                            $metrics['delivery_failed']++;
+                            return;
+                        }
 
-                    $sent = $mailer->sendViewedProductReminderEmail($user, $product, $viewedAt, $price);
-                    if (!$sent) {
-                        $metrics['delivery_failed']++;
-                        continue;
-                    }
-
-                    $nextStage = min($sequenceStage + 1, count($delays) - 1);
-                    $subscription->update([
-                        'last_notified_at' => $now,
-                        'metadata' => array_merge($metadata, [
-                            'sequence_stage' => $nextStage,
-                            'sequence_anchor_at' => $viewedAt->toISOString(),
-                            'last_sequence_sent_at' => $now->toISOString(),
-                        ]),
-                    ]);
-                    $preferences->markIdempotencyKeySent($user, $idempotencyKey, [
-                        'subscription_id' => (int) $subscription->id,
-                        'trigger_type' => 'viewed_product',
-                        'product_id' => (int) $product->id,
-                        'sequence_stage' => $sequenceStage,
-                    ]);
-                    $preferences->markMarketingSent($user, 'viewed_product_reminder', [
-                        'subscription_id' => (int) $subscription->id,
-                        'trigger_type' => 'viewed_product',
-                        'product_id' => (int) $product->id,
-                        'sequence_stage' => $sequenceStage,
-                    ]);
-                    $metrics['viewed_sent']++;
+                        $this->recordSequenceSend($subscription, $metadata, $sequenceStage, count($delays), $viewedAt, $now);
+                        $context = [
+                            'subscription_id' => (int) $subscription->id,
+                            'trigger_type' => 'viewed_product',
+                            'product_id' => (int) $product->id,
+                            'sequence_stage' => $sequenceStage,
+                        ];
+                        $preferences->markIdempotencyKeySent($user, $idempotencyKey, $context);
+                        $preferences->markMarketingSent($user, 'viewed_product_reminder', $context);
+                        $metrics['viewed_sent']++;
+                    });
                 }
             });
     }
@@ -327,114 +309,151 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
             ->chunkById(200, function ($subscriptions) use ($mailer, $preferences, $now, &$metrics) {
                 foreach ($subscriptions as $subscription) {
                     $metrics['favorite_scanned']++;
+                    $this->safely('favorite_product', (int) $subscription->id, $metrics, function () use ($subscription, $mailer, $preferences, $now, &$metrics) {
+                        $user = $subscription->user;
+                        if (!$this->isReachableUser($user)) {
+                            return;
+                        }
 
-                    $user = $subscription->user;
-                    if (!$user || strtolower((string) ($user->status ?? 'active')) !== 'active' || trim((string) ($user->email ?? '')) === '') {
-                        continue;
-                    }
+                        if (!$preferences->shouldSendReminder($user, 'favorite_product', $now)) {
+                            return;
+                        }
 
-                    if (!$preferences->shouldSendReminder($user, 'favorite_product', $now)) {
-                        continue;
-                    }
+                        if (!$this->cooldownElapsed($subscription->last_notified_at, (int) ($subscription->cooldown_minutes ?? 0), $now)) {
+                            return;
+                        }
 
-                    if (!$this->cooldownElapsed($subscription->last_notified_at, (int) ($subscription->cooldown_minutes ?? 0), $now)) {
-                        continue;
-                    }
+                        $latestFavoriteEvent = UserFavoriteEvent::query()
+                            ->whereIn('product_id', $this->productEventReferences((int) $subscription->product_id))
+                            ->where(fn ($query) => $this->whereSubscriber($query, $subscription))
+                            ->orderByDesc('event_at')
+                            ->first();
 
-                    $latestFavoriteEvent = UserFavoriteEvent::query()
-                        ->whereIn('product_id', $this->productEventReferences((int) $subscription->product_id))
-                        ->where(function ($query) use ($subscription) {
-                            $query->where('identity_key', (string) $subscription->identity_key);
-                            if ($subscription->user_id) {
-                                $query->orWhere('user_id', (int) $subscription->user_id);
+                        if (!$latestFavoriteEvent || !in_array((string) ($latestFavoriteEvent->event_type ?? ''), ['add', 'toggle'], true)) {
+                            return;
+                        }
+
+                        $favoritedAt = $this->asCarbon($latestFavoriteEvent->event_at, $now);
+
+                        $metadata = is_array($subscription->metadata) ? $subscription->metadata : [];
+                        $delays = $this->sequenceDelaysForTrigger('favorite_product', (int) ($subscription->delay_minutes ?? 720));
+                        $sequenceStage = min(max(0, (int) ($metadata['sequence_stage'] ?? 0)), count($delays) - 1);
+
+                        if ($favoritedAt->copy()->addMinutes($delays[$sequenceStage])->greaterThan($now)) {
+                            return;
+                        }
+
+                        $product = Product::query()->find((int) $subscription->product_id);
+                        if (!$product) {
+                            return;
+                        }
+
+                        if (CustomerPurchaseHistory::hasQuotedOrOrderedSince((int) $user->id, [(int) $product->id], $favoritedAt)) {
+                            $metrics['skipped_already_bought']++;
+                            $subscription->update(['is_active' => false]);
+                            return;
+                        }
+
+                        $cartSnapshot = $this->latestCartSnapshot($subscription);
+                        if ($cartSnapshot && $this->cartContainsProduct((array) ($cartSnapshot->items ?? []), $product)) {
+                            return;
+                        }
+
+                        if (!$mailer->canFeatureProductInMarketing($product)) {
+                            $metrics['skipped_no_photo']++;
+                            return;
+                        }
+
+                        $idempotencyKey = 'favorite_product:' . (int) $subscription->id . ':' . $sequenceStage . ':' . $favoritedAt->format('YmdHi');
+                        if ($preferences->wasIdempotencyKeySent($idempotencyKey)) {
+                            return;
+                        }
+
+                        if (!$preferences->canSendLifecycleMarketing($user, 'favorite_product_reminder', 1, 2, 12, $now)) {
+                            return;
+                        }
+
+                        if (!$mailer->sendFavoriteProductReminderEmail($user, $product, $favoritedAt, OfferPricing::sellPrice($product))) {
+                            $metrics['delivery_failed']++;
+                            return;
+                        }
+
+                        $this->recordSequenceSend($subscription, $metadata, $sequenceStage, count($delays), $favoritedAt, $now);
+                        $context = [
+                            'subscription_id' => (int) $subscription->id,
+                            'trigger_type' => 'favorite_product',
+                            'product_id' => (int) $product->id,
+                            'sequence_stage' => $sequenceStage,
+                        ];
+                        $preferences->markIdempotencyKeySent($user, $idempotencyKey, $context);
+                        $preferences->markMarketingSent($user, 'favorite_product_reminder', $context);
+                        $metrics['favorite_sent']++;
+                    });
+                }
+            });
+    }
+
+    private function processSearchReminders(
+        AzureGraphMailService $mailer,
+        UserEmailPreferenceService $preferences,
+        Carbon $now,
+        array &$metrics
+    ): void {
+        SearchProfile::whereNotNull('user_id')->with('user:id,name,email,status')
+            ->chunkById(100, function ($profiles) use ($mailer, $preferences, $now, &$metrics): void {
+                foreach ($profiles as $profile) {
+                    $metrics['search_scanned']++;
+                    $this->safely('searched_products', (int) $profile->id, $metrics, function () use ($profile, $mailer, $preferences, $now, &$metrics) {
+                        $user = $profile->user;
+                        if (!$this->isReachableUser($user) || !$preferences->shouldSendReminder($user, 'searched_products', $now)) {
+                            return;
+                        }
+                        $entries = collect($profile->terms ?: [])->sortByDesc('lastSearched')->take(3);
+                        foreach ($entries as $entry) {
+                            $term = trim((string) ($entry['term'] ?? ''));
+                            try {
+                                $searchedAt = Carbon::parse($entry['lastSearched'] ?? '');
+                            } catch (\InvalidArgumentException $error) {
+                                Log::warning('Skipping malformed search reminder date', ['profile_id' => $profile->id]);
+                                continue;
                             }
-                        })
-                        ->orderByDesc('event_at')
-                        ->first();
-
-                    if (!$latestFavoriteEvent) {
-                        continue;
-                    }
-
-                    $eventType = (string) ($latestFavoriteEvent->event_type ?? '');
-                    if (!in_array($eventType, ['add', 'toggle'], true)) {
-                        continue;
-                    }
-
-                    $favoritedAt = $latestFavoriteEvent->event_at instanceof Carbon
-                        ? $latestFavoriteEvent->event_at
-                        : Carbon::parse((string) ($latestFavoriteEvent->event_at ?? $now->toISOString()));
-
-                    $metadata = is_array($subscription->metadata) ? $subscription->metadata : [];
-                    $sequenceStage = max(0, (int) ($metadata['sequence_stage'] ?? 0));
-                    $delays = $this->sequenceDelaysForTrigger('favorite_product', (int) ($subscription->delay_minutes ?? 720));
-                    if ($sequenceStage >= count($delays)) {
-                        $sequenceStage = count($delays) - 1;
-                    }
-
-                    $delayMinutes = $delays[$sequenceStage];
-                    if ($favoritedAt->copy()->addMinutes($delayMinutes)->greaterThan($now)) {
-                        continue;
-                    }
-
-                    $product = Product::query()->find((int) $subscription->product_id);
-                    if (!$product) {
-                        continue;
-                    }
-
-                    $cartSnapshot = UserCartSnapshot::query()
-                        ->where(function ($query) use ($subscription) {
-                            $query->where('identity_key', (string) $subscription->identity_key);
-                            if ($subscription->user_id) {
-                                $query->orWhere('user_id', (int) $subscription->user_id);
+                            if (mb_strlen($term) < 2 || $searchedAt->greaterThan($now->copy()->subDay())
+                                || $searchedAt->lessThan($now->copy()->subDays(7))) {
+                                continue;
                             }
-                        })
-                        ->orderByDesc('last_synced_at')
-                        ->first();
-
-                    if ($cartSnapshot && $this->cartContainsProduct((array) ($cartSnapshot->items ?? []), $product)) {
-                        continue;
-                    }
-
-                    $price = OfferPricing::sellPrice($product);
-
-                    $idempotencyKey = 'favorite_product:' . (int) $subscription->id . ':' . $sequenceStage . ':' . $favoritedAt->format('YmdHi');
-                    if ($preferences->wasIdempotencyKeySent($idempotencyKey)) {
-                        continue;
-                    }
-
-                    if (!$preferences->canSendLifecycleMarketing($user, 'favorite_product_reminder', 1, 2, 12, $now)) {
-                        continue;
-                    }
-
-                    $sent = $mailer->sendFavoriteProductReminderEmail($user, $product, $favoritedAt, $price);
-                    if (!$sent) {
-                        $metrics['delivery_failed']++;
-                        continue;
-                    }
-
-                    $nextStage = min($sequenceStage + 1, count($delays) - 1);
-                    $subscription->update([
-                        'last_notified_at' => $now,
-                        'metadata' => array_merge($metadata, [
-                            'sequence_stage' => $nextStage,
-                            'sequence_anchor_at' => $favoritedAt->toISOString(),
-                            'last_sequence_sent_at' => $now->toISOString(),
-                        ]),
-                    ]);
-                    $preferences->markIdempotencyKeySent($user, $idempotencyKey, [
-                        'subscription_id' => (int) $subscription->id,
-                        'trigger_type' => 'favorite_product',
-                        'product_id' => (int) $product->id,
-                        'sequence_stage' => $sequenceStage,
-                    ]);
-                    $preferences->markMarketingSent($user, 'favorite_product_reminder', [
-                        'subscription_id' => (int) $subscription->id,
-                        'trigger_type' => 'favorite_product',
-                        'product_id' => (int) $product->id,
-                        'sequence_stage' => $sequenceStage,
-                    ]);
-                    $metrics['favorite_sent']++;
+                            $key = 'search:' . $user->id . ':' . hash('sha256', mb_strtolower($term) . '|' . $searchedAt->toISOString());
+                            if ($preferences->wasIdempotencyKeySent($key)) {
+                                continue;
+                            }
+                            $query = Product::where('is_available', true)->where('is_discontinued', false)->where('quantity', '>', 0);
+                            $words = preg_split('/\s+/u', mb_strtolower($term), -1, PREG_SPLIT_NO_EMPTY);
+                            foreach ($words as $word) {
+                                $query->where(function ($query) use ($word): void {
+                                    $pattern = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $word) . '%';
+                                    $query->whereRaw("LOWER(COALESCE(product_name, '')) LIKE ? ESCAPE '!'", [$pattern])
+                                        ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ? ESCAPE '!'", [$pattern]);
+                                });
+                            }
+                            $cart = UserCartSnapshot::where('user_id', $user->id)->first();
+                            $products = $query->orderByDesc('quantity')->limit(30)->get()->filter(function (Product $product) use ($user, $searchedAt, $cart, $mailer): bool {
+                                return OfferPricing::sellPrice($product) > 0
+                                    && $mailer->canFeatureProductInMarketing($product)
+                                    && (!$cart || !$this->cartContainsProduct((array) $cart->items, $product))
+                                    && !CustomerPurchaseHistory::hasQuotedOrOrderedSince((int) $user->id, [(int) $product->id], $searchedAt);
+                            })->take(3)->values()->all();
+                            if ($products === [] || !$preferences->canSendLifecycleMarketing($user, 'search_reminder', 1, 2, 12, $now)) {
+                                continue;
+                            }
+                            if (!$mailer->sendSearchReminderEmail($user, $term, $products)) {
+                                $metrics['delivery_failed']++;
+                                break;
+                            }
+                            $preferences->markIdempotencyKeySent($user, $key, ['trigger_type' => 'searched_products']);
+                            $preferences->markMarketingSent($user, 'search_reminder', ['profile_id' => $profile->id]);
+                            $metrics['search_sent']++;
+                            break;
+                        }
+                    });
                 }
             });
     }
@@ -496,31 +515,12 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
                 'line_total' => $unitPrice > 0 ? round($unitPrice * $quantity, 2) : 0.0,
-                'image_url' => $this->productImageUrl($product),
+                'image_url' => null,
                 'product_url' => $this->publicStoreUrl() . '/products/' . rawurlencode((string) ($product->tdsynnex_sku_no ?: $product->tdsynnex_product_id ?: $product->id)),
             ];
         }
 
         return $result;
-    }
-
-    private function productImageUrl(Product $product): ?string
-    {
-        $images = is_array($product->images) ? $product->images : [];
-        $first = $images[0] ?? null;
-        $candidate = is_array($first)
-            ? ($first['imageUrl'] ?? $first['image_url'] ?? $first['imageURL'] ?? $first['imagePath'] ?? $first['url'] ?? null)
-            : $first;
-        if (!is_string($candidate) || trim($candidate) === '') {
-            return null;
-        }
-
-        $candidate = trim($candidate);
-        if (preg_match('#^https?://#i', $candidate)) {
-            return $candidate;
-        }
-
-        return $this->publicStoreUrl() . '/' . ltrim($candidate, '/');
     }
 
     private function publicStoreUrl(): string
@@ -534,46 +534,50 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
         return $url;
     }
 
-    private function hasRequestedQuoteSince(int $userId, array $productIds, Carbon $since): bool
+    private function isReachableUser($user): bool
     {
-        $references = Product::query()
-            ->whereIn('id', array_map('intval', $productIds))
-            ->get(['id', 'tdsynnex_product_id', 'tdsynnex_sku_no', 'mfg_part_no'])
-            ->flatMap(fn (Product $product) => [
-                (string) $product->id,
-                (string) ($product->tdsynnex_product_id ?? ''),
-                (string) ($product->tdsynnex_sku_no ?? ''),
-                (string) ($product->mfg_part_no ?? ''),
-            ])
-            ->filter()
-            ->unique()
-            ->all();
+        return $user
+            && strtolower((string) ($user->status ?? 'active')) === 'active'
+            && trim((string) ($user->email ?? '')) !== '';
+    }
 
-        if ($references === []) {
-            return false;
+    private function whereSubscriber($query, ReminderSubscription $subscription): void
+    {
+        $query->where('identity_key', (string) $subscription->identity_key);
+        if ($subscription->user_id) {
+            $query->orWhere('user_id', (int) $subscription->user_id);
         }
+    }
 
-        $quotes = Quote::query()
-            ->where('user_id', $userId)
-            ->where('created_at', '>=', $since)
-            ->whereNotIn('status', ['cancelled', 'rejected'])
-            ->get(['items']);
-        $orders = Order::query()->where('user_id', $userId)->where('created_at', '>=', $since)
-            ->whereNotIn('status', ['cancelled', 'refunded'])->get(['items']);
+    private function latestCartSnapshot(ReminderSubscription $subscription): ?UserCartSnapshot
+    {
+        return UserCartSnapshot::query()
+            ->where(fn ($query) => $this->whereSubscriber($query, $subscription))
+            ->orderByDesc('last_synced_at')
+            ->first();
+    }
 
-        return $quotes->concat($orders)
-            ->contains(function ($quote) use ($references): bool {
-                foreach ((array) ($quote->items ?? []) as $item) {
-                    $line = is_array($item) ? $item : [];
-                    foreach (['product_id', 'productId', 'id', 'sku', 'partNumber', 'mfg_part_no', 'mfgPartNo'] as $key) {
-                        if (isset($line[$key]) && in_array((string) $line[$key], $references, true)) {
-                            return true;
-                        }
-                    }
-                }
+    private function asCarbon(mixed $value, Carbon $fallback): Carbon
+    {
+        return $value instanceof Carbon ? $value : Carbon::parse((string) ($value ?? $fallback->toISOString()));
+    }
 
-                return false;
-            });
+    private function recordSequenceSend(
+        ReminderSubscription $subscription,
+        array $metadata,
+        int $sequenceStage,
+        int $stageCount,
+        Carbon $anchor,
+        Carbon $now
+    ): void {
+        $subscription->update([
+            'last_notified_at' => $now,
+            'metadata' => array_merge($metadata, [
+                'sequence_stage' => min($sequenceStage + 1, $stageCount - 1),
+                'sequence_anchor_at' => $anchor->toISOString(),
+                'last_sequence_sent_at' => $now->toISOString(),
+            ]),
+        ]);
     }
 
     private function cartContainsProduct(array $items, Product $product): bool
@@ -592,68 +596,6 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
         }
 
         return false;
-    }
-
-    private function processSearchReminders(
-        AzureGraphMailService $mailer,
-        UserEmailPreferenceService $preferences,
-        Carbon $now,
-        array &$metrics
-    ): void {
-        SearchProfile::whereNotNull('user_id')->with('user:id,name,email,status')
-            ->chunkById(100, function ($profiles) use ($mailer, $preferences, $now, &$metrics): void {
-                foreach ($profiles as $profile) {
-                    $metrics['search_scanned']++;
-                    $user = $profile->user;
-                    if (!$user || $user->status !== 'active' || !$preferences->shouldSendReminder($user, 'searched_products', $now)) {
-                        continue;
-                    }
-                    $entries = collect($profile->terms ?: [])->sortByDesc('lastSearched')->take(3);
-                    foreach ($entries as $entry) {
-                        $term = trim((string) ($entry['term'] ?? ''));
-                        try {
-                            $searchedAt = Carbon::parse($entry['lastSearched'] ?? '');
-                        } catch (\InvalidArgumentException $error) {
-                            Log::warning('Skipping malformed search reminder date', ['profile_id' => $profile->id]);
-                            continue;
-                        }
-                        if (mb_strlen($term) < 2 || $searchedAt->greaterThan($now->copy()->subDay())
-                            || $searchedAt->lessThan($now->copy()->subDays(7))) {
-                            continue;
-                        }
-                        $key = 'search:' . $user->id . ':' . hash('sha256', mb_strtolower($term) . '|' . $searchedAt->toISOString());
-                        if ($preferences->wasIdempotencyKeySent($key)) {
-                            continue;
-                        }
-                        $query = Product::where('is_available', true)->where('is_discontinued', false)->where('quantity', '>', 0);
-                        $words = preg_split('/\s+/u', mb_strtolower($term), -1, PREG_SPLIT_NO_EMPTY);
-                        foreach ($words as $word) {
-                            $query->where(function ($query) use ($word): void {
-                                $pattern = '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $word) . '%';
-                                $query->whereRaw("LOWER(COALESCE(product_name, '')) LIKE ? ESCAPE '!'", [$pattern])
-                                    ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ? ESCAPE '!'", [$pattern]);
-                            });
-                        }
-                        $cart = UserCartSnapshot::where('user_id', $user->id)->first();
-                        $products = $query->orderByDesc('quantity')->limit(30)->get()->filter(function (Product $product) use ($user, $searchedAt, $cart): bool {
-                            return OfferPricing::sellPrice($product) > 0
-                                && (!$cart || !$this->cartContainsProduct((array) $cart->items, $product))
-                                && !$this->hasRequestedQuoteSince((int) $user->id, [(int) $product->id], $searchedAt);
-                        })->take(3)->values()->all();
-                        if ($products === [] || !$preferences->canSendLifecycleMarketing($user, 'search_reminder', 1, 2, 12, $now)) {
-                            continue;
-                        }
-                        if (!$mailer->sendSearchReminderEmail($user, $term, $products)) {
-                            $metrics['delivery_failed']++;
-                            break;
-                        }
-                        $preferences->markIdempotencyKeySent($user, $key, ['trigger_type' => 'searched_products']);
-                        $preferences->markMarketingSent($user, 'search_reminder', ['profile_id' => $profile->id]);
-                        $metrics['search_sent']++;
-                        break;
-                    }
-                }
-            });
     }
 
     private function productEventReferences(int $productId): array

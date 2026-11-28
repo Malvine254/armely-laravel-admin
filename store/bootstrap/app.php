@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'active.user' => \App\Http\Middleware\EnsureUserIsActive::class,
+            'admin.role' => \App\Http\Middleware\EnsureUserIsAdmin::class,
         ]);
 
         $middleware->web(append: [
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(append: [
             \App\Http\Middleware\KickOffDuePriceSync::class,
+            \App\Http\Middleware\KickOffDueLifecycleEmails::class,
         ]);
 
         // API routes are token-based and should never redirect to a web login route.

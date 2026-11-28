@@ -47,6 +47,7 @@
           :image="getPrimaryImage(product)"
           :favorite="isFavorite(product.productId)"
           :eager="productIndex < 2"
+          :hide-when-image-missing="false"
           @view="viewDetails"
           @quote="addToQuote"
           @favorite="toggleFavorite"

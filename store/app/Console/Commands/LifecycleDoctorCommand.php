@@ -44,6 +44,23 @@ class LifecycleDoctorCommand extends Command
             $this->line($campaign.' metrics: '.json_encode(AppSetting::getValue("lifecycle.{$campaign}.last_metrics", [])));
             $healthy = $healthy && $recent;
         }
+        $this->line('Active watches: price alerts '.DB::table('price_alert_subscriptions')->where('is_active', true)->whereNotNull('user_id')->count()
+            .', reminders '.DB::table('reminder_subscriptions')->where('is_active', true)->whereNotNull('user_id')->count().' (signed-in customers only)');
+        $this->line('Customers opted out: all marketing '.DB::table('email_preferences')->where('marketing_enabled', false)->count()
+            .', price alerts '.DB::table('email_preferences')->where('price_alerts_enabled', false)->count()
+            .', browse reminders '.DB::table('email_preferences')->where('browse_reminders_enabled', false)->count()
+            .', cart reminders '.DB::table('email_preferences')->where('cart_reminders_enabled', false)->count());
+
+        // Unsubscribes recorded within two minutes of a marketing email are
+        // almost always a mail security scanner opening the link, not a person.
+        $recentUnsubscribes = DB::table('suppression_events')->where('event_type', 'unsubscribe')
+            ->where('occurred_at', '>=', now()->subDays(90))->get(['user_id', 'occurred_at']);
+        $likelyScanner = $recentUnsubscribes->filter(fn ($event) => DB::table('suppression_events')
+            ->where('user_id', $event->user_id)->where('event_type', 'marketing_sent')
+            ->whereBetween('occurred_at', [Carbon::parse($event->occurred_at)->subMinutes(2), Carbon::parse($event->occurred_at)])
+            ->exists())->count();
+        $this->line("Unsubscribes (90 days): {$recentUnsubscribes->count()}, of which {$likelyScanner} happened within 2 minutes of a send (likely automated link scanning; review before re-enabling)");
+
         $this->line('Queued jobs: '.(Schema::hasTable('jobs') ? DB::table('jobs')->count() : 'table missing'));
         $this->line('Failed jobs: '.(Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->count() : 'table missing'));
         $this->line('Graph 202 means accepted by Microsoft, not proof of inbox delivery. Check Exchange message trace for actual delivery.');

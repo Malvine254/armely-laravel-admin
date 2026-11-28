@@ -170,6 +170,22 @@ class UserEmailPreferenceService
         return rtrim(config('app.url', ''), '/') . '/api/v1/behavior/unsubscribe/' . urlencode($token);
     }
 
+    /** Scope of a valid, unexpired token without changing anything. */
+    public function peekUnsubscribeScope(string $token): ?string
+    {
+        $plain = trim($token);
+        if ($plain === '') {
+            return null;
+        }
+
+        $record = UnsubscribeToken::query()->where('token_hash', hash('sha256', $plain))->first();
+        if (!$record || !$record->user_id || ($record->expires_at && $record->expires_at->isPast())) {
+            return null;
+        }
+
+        return $this->normalizeScope((string) ($record->scope ?? 'marketing'));
+    }
+
     public function applyUnsubscribeToken(string $token, ?string $ipAddress = null): ?array
     {
         $plain = trim($token);
@@ -190,26 +206,19 @@ class UserEmailPreferenceService
             return null;
         }
 
-        $scope = (string) ($record->scope ?? 'marketing');
+        $scope = $this->normalizeScope((string) ($record->scope ?? 'marketing'));
         $user = $record->user;
         $preference = $this->ensurePreference($user);
 
-        $updates = [
-            'marketing_enabled' => false,
-            'ai_marketing_enabled' => false,
-        ];
-
-        if ($scope === 'price_alerts') {
-            $updates['price_alerts_enabled'] = false;
-        }
-
-        if ($scope === 'cart_reminders') {
-            $updates['cart_reminders_enabled'] = false;
-        }
-
-        if ($scope === 'browse_reminders') {
-            $updates['browse_reminders_enabled'] = false;
-        }
+        // A scoped link only turns off that campaign. Previously every link
+        // also cleared marketing_enabled, so leaving price alerts silently
+        // stopped cart, browse and favorite reminders too.
+        $updates = match ($scope) {
+            'price_alerts' => ['price_alerts_enabled' => false],
+            'cart_reminders' => ['cart_reminders_enabled' => false],
+            'browse_reminders' => ['browse_reminders_enabled' => false],
+            default => ['marketing_enabled' => false, 'ai_marketing_enabled' => false],
+        };
 
         $preference->fill($updates);
         $preference->save();

@@ -51,6 +51,11 @@ class BehaviorEventController extends Controller
             ]
         );
 
+        // Viewing a product also watches its price, so "items you looked at
+        // but did not buy" can trigger a price-drop email. Previously only cart
+        // adds and favorites created a watch, so browsers never got one.
+        $this->upsertPriceAlertSubscription($identityKey, $userId, (int) $validated['product_id'], 'view');
+
         return $this->responseOk($newToken);
     }
 
@@ -259,17 +264,30 @@ class BehaviorEventController extends Controller
             return;
         }
 
+        $wasInactive = !$subscription->is_active;
+
+        // Keep the strongest intent signal: a view never downgrades a watch
+        // that came from the cart, a favorite, or an explicit sign-up.
+        $sourceStrength = ['view' => 0, 'cart' => 1, 'favorite' => 2, 'manual' => 3];
+        $currentSource = (string) ($subscription->source ?? 'manual');
+        $keepSource = !$wasInactive && ($sourceStrength[$currentSource] ?? 3) > ($sourceStrength[$source] ?? 0);
+
         $subscription->fill([
             'identity_key' => $identityKey,
-            'user_id' => $userId,
+            'user_id' => $userId ?: $subscription->user_id,
             'is_active' => true,
-            'source' => $source,
+            'source' => $keepSource ? $currentSource : $source,
         ]);
 
-        if ((float) ($subscription->baseline_price ?? 0) <= 0) {
+        // A re-activated watch starts from today's price so an old baseline
+        // cannot trigger a misleading "price dropped" email.
+        if ($wasInactive || (float) ($subscription->baseline_price ?? 0) <= 0) {
             $subscription->baseline_price = $currentPrice;
         }
 
+        // Fresh activity keeps view-based watches alive (they lapse after
+        // weeks without another visit).
+        $subscription->updated_at = now();
         $subscription->save();
     }
 

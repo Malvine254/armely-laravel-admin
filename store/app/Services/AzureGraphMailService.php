@@ -79,6 +79,15 @@ class AzureGraphMailService
         return '';
     }
 
+    /**
+     * Lets lifecycle jobs skip a product quietly (and retry later when a photo
+     * arrives) instead of counting a missing photo as a delivery failure.
+     */
+    public function canFeatureProductInMarketing(Product $product): bool
+    {
+        return $this->productImageUrl($product) !== '';
+    }
+
     private function hasMarketingImage(Product $product): bool
     {
         if ($this->productImageUrl($product) !== '') {
@@ -2138,21 +2147,25 @@ class AzureGraphMailService
         }
 
         $safeName = e((string) ($user->name ?: 'Customer'));
-        $itemCount = count($items);
-        if ($itemCount === 0) {
+        // Show only cart lines that have a photo. Previously one photo-less
+        // item cancelled the whole reminder, so mixed carts never got one.
+        $withPhotos = [];
+        foreach ($items as $item) {
+            $saved = Product::query()->find((int) ($item['product_id'] ?? 0));
+            $imageUrl = $saved ? $this->productImageUrl($saved) : '';
+            if ($imageUrl === '') {
+                continue;
+            }
+            $item['image_url'] = $imageUrl;
+            $withPhotos[] = $item;
+        }
+        $hiddenCount = count($items) - count($withPhotos);
+        $items = $withPhotos;
+        $itemCount = count($items) + $hiddenCount;
+        if (count($items) === 0) {
+            Log::info('Cart reminder skipped: no cart item has a usable photo.', ['user_id' => $user->id]);
             return false;
         }
-        foreach ($items as &$item) {
-            $saved = Product::query()->find((int) ($item['product_id'] ?? 0));
-            if (!$saved || !$this->hasMarketingImage($saved)) {
-                Log::warning('Cart promotional email skipped: cart product photo is missing.', [
-                    'product_id' => $item['product_id'] ?? null,
-                ]);
-                return false;
-            }
-            $item['image_url'] = $this->productImageUrl($saved);
-        }
-        unset($item);
 
         $rows = '';
         $total = 0.0;

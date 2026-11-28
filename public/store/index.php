@@ -92,15 +92,25 @@ if ($candidatePath !== '') {
 
     $isWithinAllowedRoot = false;
     foreach ([$storePublicRealPath, $storeStoragePublicRealPath] as $allowedRoot) {
-        if ($allowedRoot !== false && $candidateFullPath !== false && str_starts_with($candidateFullPath, $allowedRoot)) {
+        // Compare with a trailing separator so a sibling such as
+        // "public_old" can never pass as being inside "public".
+        if ($allowedRoot !== false && $candidateFullPath !== false
+            && str_starts_with($candidateFullPath, rtrim($allowedRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
             $isWithinAllowedRoot = true;
             break;
         }
     }
 
+    // Never stream server-side code or hidden files (.env, .htaccess, *.php)
+    // as downloads; those requests fall through to the Laravel router.
+    $isServableStaticFile = $candidateFullPath !== false
+        && !preg_match('/\.(php\d?|phtml|phar|env|ini|log|sql|sh|bat|ps1)$/i', $candidateFullPath)
+        && !str_starts_with(basename($candidateFullPath), '.');
+
     if (
         $candidateFullPath !== false
         && $isWithinAllowedRoot
+        && $isServableStaticFile
         && is_file($candidateFullPath)
     ) {
         $extension = strtolower((string) pathinfo($candidateFullPath, PATHINFO_EXTENSION));

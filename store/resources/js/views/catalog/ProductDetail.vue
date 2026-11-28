@@ -474,10 +474,10 @@
       </div>
 
       <!-- Related Products Section -->
-      <div v-if="product && relatedProducts.length > 0" class="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 lg:p-8">
+      <div v-if="product && visibleRelatedProducts.length > 0" class="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 lg:p-8">
         <div class="flex items-center justify-between mb-5">
           <h2 class="text-xl font-bold text-gray-900">Related Products</h2>
-          <span class="text-sm text-gray-500">Showing {{ paginatedRelated.length }} of {{ relatedProducts.length }}</span>
+          <span class="text-sm text-gray-500">Showing {{ paginatedRelated.length }} of {{ visibleRelatedProducts.length }}</span>
         </div>
         
         <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -493,7 +493,7 @@
                 loading="lazy"
                 decoding="async"
                 sizes="(min-width: 1024px) 240px, (min-width: 640px) 50vw, 100vw"
-                @error="event => event.target.style.display = 'none'"
+                @error="failedRelatedImages[relatedProduct.productId] = true"
               />
               <template v-else>
                 <div class="absolute inset-0 opacity-10">
@@ -1280,10 +1280,17 @@ const isDescriptionLong = computed(() => {
   return text.length > 300
 })
 
-const relatedTotalPages = computed(() => Math.ceil(relatedProducts.value.length / RELATED_PER_PAGE))
+// Related products follow the storefront photo rule: no photo, or a photo
+// that fails to load, removes the card instead of showing an empty frame.
+const failedRelatedImages = ref({})
+const visibleRelatedProducts = computed(() => relatedProducts.value.filter(
+  item => getPrimaryImageUrl(item) && !failedRelatedImages.value[item.productId]
+))
+
+const relatedTotalPages = computed(() => Math.ceil(visibleRelatedProducts.value.length / RELATED_PER_PAGE))
 
 const sortedRelatedProducts = computed(() => {
-  const source = relatedProducts.value
+  const source = visibleRelatedProducts.value
   const indexed = source.map((item, index) => ({ item, index }))
   indexed.sort((left, right) => {
     const rankDiff = getStockRank(left.item) - getStockRank(right.item)
@@ -1296,6 +1303,10 @@ const sortedRelatedProducts = computed(() => {
 const paginatedRelated = computed(() => {
   const start = (relatedPage.value - 1) * RELATED_PER_PAGE
   return sortedRelatedProducts.value.slice(start, start + RELATED_PER_PAGE)
+})
+
+watch(relatedTotalPages, (total) => {
+  if (relatedPage.value > Math.max(1, total)) relatedPage.value = Math.max(1, total)
 })
 
 const relatedPageNumbers = computed(() => {

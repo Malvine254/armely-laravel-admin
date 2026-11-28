@@ -212,6 +212,7 @@ class EmailPreferenceLifecycleTest extends TestCase
         \DB::table('orders')->insert(['user_id' => $user->id, 'status' => 'confirmed',
             'items' => json_encode([['productId' => '9002']]), 'created_at' => now()->subDay()]);
         $mailer = \Mockery::mock(\App\Services\AzureGraphMailService::class);
+        $mailer->shouldReceive('canFeatureProductInMarketing')->andReturn(true);
         $mailer->shouldReceive('sendSearchReminderEmail')->once()->withArgs(function ($recipient, $term, $products) use ($user) {
             return $recipient->id === $user->id && $term === 'laptop' && count($products) === 1 && $products[0]->id === 1;
         })->andReturn(false);
@@ -221,6 +222,7 @@ class EmailPreferenceLifecycleTest extends TestCase
         $this->assertSame(1, AppSetting::getValue('lifecycle.reminders.last_metrics')['delivery_failed']);
         $this->assertSame(0, SuppressionEvent::count());
         $accepted = \Mockery::mock(\App\Services\AzureGraphMailService::class);
+        $accepted->shouldReceive('canFeatureProductInMarketing')->andReturn(true);
         $accepted->shouldReceive('sendSearchReminderEmail')->once()->andReturn(true);
         $job->handle($accepted, $preferences);
         $job->handle($accepted, $preferences);
@@ -416,6 +418,7 @@ class EmailPreferenceLifecycleTest extends TestCase
             'product_id' => 101, 'trigger_type' => 'viewed_product', 'channel' => 'email', 'is_active' => true,
             'delay_minutes' => 1440, 'cooldown_minutes' => 1440]);
         $mailer = \Mockery::mock(\App\Services\AzureGraphMailService::class);
+        $mailer->shouldReceive('canFeatureProductInMarketing')->andReturn(true);
         $mailer->shouldReceive('sendViewedProductReminderEmail')->once()->andReturn(true);
         (new \App\Jobs\ProcessReminderSubscriptionsJob)->handle($mailer, app(UserEmailPreferenceService::class));
         $this->assertSame(1, AppSetting::getValue('lifecycle.reminders.last_metrics')['viewed_sent']);
@@ -448,18 +451,23 @@ class EmailPreferenceLifecycleTest extends TestCase
         $url = $service->unsubscribeUrl($user, 'price_alerts');
         $token = basename($url);
 
-        $this->getJson('/api/v1/behavior/unsubscribe/' . $token)
+        // Opening the link (what mail security scanners do) changes nothing.
+        $this->get('/api/v1/behavior/unsubscribe/' . $token)
+            ->assertOk()
+            ->assertSee('Confirm unsubscribe');
+        $this->assertDatabaseMissing(SuppressionEvent::class, ['user_id' => $user->id, 'event_type' => 'unsubscribe']);
+
+        // Confirming applies only the scoped channel.
+        $this->postJson('/api/v1/behavior/unsubscribe/' . $token)
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.scope', 'price_alerts')
-            ->assertJsonPath('data.preferences.marketing_enabled', false)
-            ->assertJsonPath('data.preferences.ai_marketing_enabled', false)
+            ->assertJsonPath('data.preferences.marketing_enabled', true)
             ->assertJsonPath('data.preferences.price_alerts_enabled', false);
 
         $this->assertDatabaseHas(EmailPreference::class, [
             'user_id' => $user->id,
-            'marketing_enabled' => 0,
-            'ai_marketing_enabled' => 0,
+            'marketing_enabled' => 1,
             'price_alerts_enabled' => 0,
         ]);
 
@@ -468,5 +476,87 @@ class EmailPreferenceLifecycleTest extends TestCase
             'event_type' => 'unsubscribe',
             'reason' => 'one_click_unsubscribe',
         ]);
+    }
+
+    private function createPriceWatchTables(): void
+    {
+        $this->createSearchCampaignTables();
+        Schema::table('products', function (Blueprint $table) {
+            $table->decimal('sale_price')->nullable();
+            $table->boolean('is_on_sale')->default(false);
+            $table->string('offer_source')->nullable();
+        });
+        Schema::create('price_alert_subscriptions', function (Blueprint $table) {
+            $table->id();
+            $table->string('identity_key', 96);
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedBigInteger('product_id');
+            $table->decimal('baseline_price', 15, 2)->nullable();
+            $table->decimal('min_drop_amount', 15, 2)->default(0);
+            $table->decimal('min_drop_percent', 7, 2)->default(0);
+            $table->unsignedInteger('cooldown_minutes')->default(1440);
+            $table->timestamp('last_notified_at')->nullable();
+            $table->string('source', 24)->default('manual');
+            $table->boolean('is_active')->default(true);
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+            $table->unique(['identity_key', 'product_id']);
+        });
+    }
+
+    public function test_viewing_a_product_starts_a_price_watch_without_downgrading_stronger_sources(): void
+    {
+        $this->createPriceWatchTables();
+        $user = User::create(['name' => 'Viewer', 'email' => 'viewer@example.com', 'password' => 'password', 'status' => 'active']);
+        \DB::table('products')->insert([
+            ['id' => 1, 'tdsynnex_sku_no' => '7001', 'product_name' => 'Monitor', 'mfg_part_no' => 'M-1', 'base_price' => 200, 'is_available' => true, 'is_discontinued' => false, 'quantity' => 5],
+            ['id' => 2, 'tdsynnex_sku_no' => '7002', 'product_name' => 'Dock', 'mfg_part_no' => 'D-1', 'base_price' => 150, 'is_available' => true, 'is_discontinued' => false, 'quantity' => 5],
+        ]);
+        \App\Models\PriceAlertSubscription::create(['identity_key' => 'user:'.$user->id, 'user_id' => $user->id,
+            'product_id' => 2, 'baseline_price' => 150, 'source' => 'favorite', 'is_active' => true]);
+
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/behavior/product-view', ['product_id' => 7001])->assertOk();
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/behavior/product-view', ['product_id' => 7002])->assertOk();
+
+        $this->assertDatabaseHas('price_alert_subscriptions', ['user_id' => $user->id, 'product_id' => 1, 'source' => 'view', 'is_active' => 1]);
+        $this->assertDatabaseHas('price_alert_subscriptions', ['user_id' => $user->id, 'product_id' => 2, 'source' => 'favorite']);
+    }
+
+    public function test_price_drop_alert_sends_for_unbought_item_and_retires_bought_or_stale_watches(): void
+    {
+        $this->createPriceWatchTables();
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-10-12 12:00:00'));
+        $user = User::create(['name' => 'Buyer', 'email' => 'drops@example.com', 'password' => 'password', 'status' => 'active']);
+        \DB::table('products')->insert([
+            ['id' => 1, 'tdsynnex_sku_no' => '8001', 'product_name' => 'Laptop', 'mfg_part_no' => 'L-1', 'base_price' => 900, 'is_available' => true, 'is_discontinued' => false, 'quantity' => 5],
+            ['id' => 2, 'tdsynnex_sku_no' => '8002', 'product_name' => 'Bought laptop', 'mfg_part_no' => 'L-2', 'base_price' => 900, 'is_available' => true, 'is_discontinued' => false, 'quantity' => 5],
+            ['id' => 3, 'tdsynnex_sku_no' => '8003', 'product_name' => 'Old view', 'mfg_part_no' => 'L-3', 'base_price' => 900, 'is_available' => true, 'is_discontinued' => false, 'quantity' => 5],
+        ]);
+        $watch = fn (int $productId, string $source) => \App\Models\PriceAlertSubscription::create([
+            'identity_key' => 'user:'.$user->id.':'.$productId, 'user_id' => $user->id, 'product_id' => $productId,
+            'baseline_price' => 1000, 'min_drop_percent' => 5, 'source' => $source, 'is_active' => true]);
+        $fresh = $watch(1, 'view');
+        $bought = $watch(2, 'view');
+        $stale = $watch(3, 'view');
+        \DB::table('price_alert_subscriptions')->where('id', $stale->id)->update(['updated_at' => now()->subDays(60)]);
+        \DB::table('orders')->insert(['user_id' => $user->id, 'status' => 'confirmed',
+            'items' => json_encode([['productId' => '8002']]), 'created_at' => now()->addMinute()]);
+        $this->travel(2)->minutes();
+
+        $mailer = \Mockery::mock(\App\Services\AzureGraphMailService::class);
+        $mailer->shouldReceive('canFeatureProductInMarketing')->andReturn(true);
+        $mailer->shouldReceive('sendPriceDropAlertEmail')->once()
+            ->withArgs(fn ($recipient, $product) => $recipient->id === $user->id && $product->id === 1)
+            ->andReturn(true);
+
+        (new \App\Jobs\ProcessPriceDropAlertsJob)->handle($mailer, app(UserEmailPreferenceService::class));
+
+        $metrics = AppSetting::getValue('lifecycle.price_drop.last_metrics');
+        $this->assertSame(1, $metrics['sent']);
+        $this->assertSame(1, $metrics['skipped_already_bought']);
+        $this->assertSame(1, $metrics['expired']);
+        $this->assertSame('900.00', (string) $fresh->fresh()->baseline_price);
+        $this->assertFalse((bool) $bought->fresh()->is_active);
+        $this->assertFalse((bool) $stale->fresh()->is_active);
     }
 }

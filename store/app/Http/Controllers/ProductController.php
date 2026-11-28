@@ -1414,8 +1414,15 @@ class ProductController extends Controller
             $total = min($total, $defaultBrowseMaxItems);
         }
 
+        $records = $products->map(fn (Product $product) => $this->mapPriceAvailabilityDatabaseProduct($product));
+        // The SQL photo test only sees that a URL is stored. Drop rows whose
+        // photos all turned out to be missing files or broken supplier links.
+        if (!$this->storefrontShowsProductsWithoutImages()) {
+            $records = $records->filter(fn (array $record): bool => $this->apiProductHasUsableImage($record))->values();
+        }
+
         return [
-            'records' => $products->map(fn (Product $product) => $this->mapPriceAvailabilityDatabaseProduct($product))->toArray(),
+            'records' => $records->toArray(),
             'total' => $total,
             'has_more' => $hasMore,
             'total_is_estimate' => false,
@@ -2027,11 +2034,17 @@ class ProductController extends Controller
                 }
             }
 
+            // Supplier URLs the image proxy already found broken (404, HTML
+            // error page, tiny tracking pixel) are dropped so the product is
+            // treated as having no photo instead of rendering an empty frame.
+            if ($this->isKnownBrokenExternalImage($url)) {
+                continue;
+            }
+
             // External URLs are routed through the server-side proxy so the browser never
             // makes cross-origin image requests (avoids CORS/CSP failures and timeouts).
-            // The proxy downloads and caches each image locally on first hit.
             if (str_starts_with($url, 'http')) {
-                $proxyBase = rtrim((string) config('app.url'), '/') . '/api/v1/img-proxy?url=';
+                $proxyBase =rtrim((string) config('app.url'), '/') . '/api/v1/img-proxy?url=';
                 $absoluteUrl = $proxyBase . base64_encode($url);
             } else {
                 // Convert relative local paths (/images/...) to absolute URLs using APP_URL.
@@ -2446,6 +2459,11 @@ class ProductController extends Controller
             $query->whereRaw('MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)', [$searchWord . '*']);
         }
 
+        // Related products obey the same photo rule as the main catalog.
+        if (!$this->storefrontShowsProductsWithoutImages()) {
+            $this->applyProductImageFilter($query, true);
+        }
+
         $candidates = $query
             ->orderByRaw(
                 "CASE
@@ -2470,6 +2488,10 @@ class ProductController extends Controller
             $candidateSku = strtoupper(trim((string) ($mapped['sku'] ?? $mapped['productId'] ?? '')));
 
             if ($candidateSku === '' || $candidateSku === $targetSku) {
+                continue;
+            }
+
+            if (!$this->storefrontShowsProductsWithoutImages() && !$this->apiProductHasUsableImage($mapped)) {
                 continue;
             }
 
@@ -3695,17 +3717,58 @@ class ProductController extends Controller
             }
         }
 
+        if (Cache::has($this->imageProxyFailureKey($url))) {
+            return $this->imageProxyPlaceholderResponse();
+        }
+
         try {
-            $response = \Illuminate\Support\Facades\Http::withHeaders([
-                'User-Agent' => 'Mozilla/5.0 (compatible; ArmelyStore/1.0)',
-            ])->timeout(10)->get($url);
+            // SSRF guard: every hop must resolve to public internet addresses
+            // only, the connection is pinned to the address we validated
+            // (defeats DNS rebinding), and redirects are followed manually so
+            // each target is re-checked before it is requested.
+            $currentUrl = $url;
+            $response = null;
+            for ($hop = 0; $hop <= 3; $hop++) {
+                $publicAddress = app(\App\Support\PublicImageHostResolver::class)->resolve($currentUrl);
+                if ($publicAddress === null) {
+                    return $this->imageProxyPlaceholderResponse();
+                }
+
+                $host = (string) parse_url($currentUrl, PHP_URL_HOST);
+                $port = (int) (parse_url($currentUrl, PHP_URL_PORT) ?: (str_starts_with(strtolower($currentUrl), 'https') ? 443 : 80));
+                $response = \Illuminate\Support\Facades\Http::withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (compatible; ArmelyStore/1.0)',
+                ])->withOptions([
+                    'allow_redirects' => false,
+                    'curl' => [CURLOPT_RESOLVE => ["{$host}:{$port}:{$publicAddress}"]],
+                ])->connectTimeout(5)->timeout(10)->get($currentUrl);
+
+                $location = trim((string) $response->header('Location'));
+                if (!$response->redirect() || $location === '') {
+                    break;
+                }
+
+                if (str_starts_with($location, '//')) {
+                    $location = (string) parse_url($currentUrl, PHP_URL_SCHEME) . ':' . $location;
+                } elseif (str_starts_with($location, '/')) {
+                    $location = (string) parse_url($currentUrl, PHP_URL_SCHEME) . '://' . $host
+                        . (parse_url($currentUrl, PHP_URL_PORT) ? ':' . $port : '') . $location;
+                }
+                if (!preg_match('#^https?://#i', $location) || !filter_var($location, FILTER_VALIDATE_URL)) {
+                    break;
+                }
+                $currentUrl = $location;
+            }
 
             $contentType = strtolower(trim((string) $response->header('Content-Type')));
             if (
                 !$response->successful()
                 || strlen($response->body()) < 500
+                || strlen($response->body()) > 10 * 1024 * 1024
                 || !str_starts_with($contentType, 'image/')
+                || str_contains($contentType, 'svg')
             ) {
+                Cache::put($this->imageProxyFailureKey($url), true, now()->addDay());
                 return $this->imageProxyPlaceholderResponse();
             }
 
@@ -3725,27 +3788,33 @@ class ProductController extends Controller
             ]);
         } catch (\Throwable $e) {
             Log::debug('imageProxy failed', ['url' => $url, 'error' => $e->getMessage()]);
+            Cache::put($this->imageProxyFailureKey($url), true, now()->addHours(6));
             return $this->imageProxyPlaceholderResponse();
         }
     }
 
+    /**
+     * A real 404 (not a 200 placeholder graphic) so the storefront's <img>
+     * error handler fires and the product card can be hidden. Returning a
+     * placeholder SVG here is what kept "image not available" cards visible.
+     */
     private function imageProxyPlaceholderResponse(): \Illuminate\Http\Response
     {
-        $svg = <<<'SVG'
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480" role="img" aria-label="Product image unavailable">
-  <rect width="640" height="480" fill="#f8fafc"/>
-  <g fill="none" stroke="#cbd5e1" stroke-linecap="round" stroke-linejoin="round" stroke-width="12">
-    <rect x="190" y="120" width="260" height="240" rx="24"/>
-    <path d="m220 320 70-72 54 52 56-82 28 38"/>
-    <circle cx="270" cy="190" r="24"/>
-  </g>
-</svg>
-SVG;
-
-        return response($svg, 200, [
-            'Content-Type' => 'image/svg+xml; charset=UTF-8',
+        return response('', 404, [
             'Cache-Control' => 'public, max-age=3600',
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }
+
+    private function imageProxyFailureKey(string $url): string
+    {
+        return 'img_proxy_failed:' . md5($url);
+    }
+
+    /** True when the external image URL is already known to be broken. */
+    private function isKnownBrokenExternalImage(string $url): bool
+    {
+        return str_starts_with($url, 'http') && Cache::has($this->imageProxyFailureKey($url));
+    }
+
 }

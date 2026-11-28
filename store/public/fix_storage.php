@@ -9,6 +9,22 @@ require __DIR__ . '/../vendor/autoload.php';
 $app = require_once __DIR__ . '/../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
+// ---------------------------------------------------------------------------
+// Access guard: this page runs migrations, git pulls and cache rebuilds, so it
+// must never be reachable anonymously. It stays locked unless
+// MAINTENANCE_TOOL_TOKEN (32+ chars) is set in .env, and every request must
+// carry that token.
+// ---------------------------------------------------------------------------
+$maintenanceToken = (string) (config('app.maintenance_token') ?: getenv('MAINTENANCE_TOOL_TOKEN') ?: '');
+$suppliedToken = (string) ($_POST['maintenance_token'] ?? $_GET['token'] ?? '');
+header('X-Robots-Tag: noindex, nofollow');
+header('Cache-Control: no-store');
+if (strlen($maintenanceToken) < 32 || $suppliedToken === '' || !hash_equals($maintenanceToken, $suppliedToken)) {
+    http_response_code(404);
+    echo 'Not Found';
+    exit;
+}
+
 $actions = [
     'status' => [
         'label' => 'Status',
@@ -503,6 +519,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <p class="notice">Frontend build works only if this server has Node.js, npm, and installed node_modules for the store app. If not, build locally and upload public/build.</p>
 
       <form method="post">
+        <input type="hidden" name="maintenance_token" value="<?= htmlspecialchars($suppliedToken, ENT_QUOTES, 'UTF-8') ?>">
         <div class="actions">
           <?php foreach ($actions as $key => $action): ?>
             <label class="action">

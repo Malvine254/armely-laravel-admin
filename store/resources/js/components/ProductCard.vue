@@ -1,5 +1,5 @@
 <template>
-  <div class="product-card-shell group flex min-h-[272px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,42,82,0.05)] transition hover:border-blue-200 hover:shadow-[0_8px_24px_rgba(15,42,82,0.10)] sm:h-[272px] sm:min-h-0 sm:flex-row">
+  <div v-if="!hiddenForMissingImage" class="product-card-shell group flex min-h-[272px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,42,82,0.05)] transition hover:border-blue-200 hover:shadow-[0_8px_24px_rgba(15,42,82,0.10)] sm:h-[272px] sm:min-h-0 sm:flex-row">
     <div class="relative flex aspect-square w-full flex-shrink-0 items-center justify-center overflow-hidden border-b border-slate-100 bg-white transition sm:aspect-auto sm:h-full sm:w-[39%] sm:border-b-0 sm:border-r">
       <img v-if="image && !imageFailed" :src="image" :alt="product.productName" class="max-h-full max-w-full object-contain p-3" :loading="eager ? 'eager' : 'lazy'" :fetchpriority="eager ? 'high' : 'auto'" decoding="async" sizes="(min-width: 1024px) 320px, (min-width: 768px) 50vw, 100vw" width="320" height="320" @error="imageFailed = true">
       <div v-else class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 opacity-80"><div class="absolute right-2 top-2 h-12 w-12 rounded-full bg-blue-400 opacity-10"></div><div class="absolute bottom-4 left-2 h-8 w-8 rounded-full bg-blue-300 opacity-10"></div></div>
@@ -60,12 +60,17 @@ const props = defineProps({
   image: { type: String, default: '' },
   favorite: { type: Boolean, default: false },
   eager: { type: Boolean, default: false },
+  // Storefront lists hide cards without a usable photo (missing URL, 404, or
+  // broken supplier link). Pages like Favorites opt out so saved items stay.
+  hideWhenImageMissing: { type: Boolean, default: true },
   reviewStats: { type: Object, default: () => ({ total: 0, average: 0 }) },
 })
-defineEmits(['view', 'quote', 'favorite', 'share'])
+const emit = defineEmits(['view', 'quote', 'favorite', 'share', 'image-unavailable'])
 
 const imageFailed = ref(false)
 watch(() => props.image, () => { imageFailed.value = false })
+const hiddenForMissingImage = computed(() => props.hideWhenImageMissing && (!props.image || imageFailed.value))
+watch(hiddenForMissingImage, (hidden) => { if (hidden) emit('image-unavailable', props.product) }, { immediate: true })
 const pricingReady = ref(false)
 const { loadPricingSettings, convertFromUsd, formatWithCurrency } = usePricingSettings()
 onMounted(async () => { await loadPricingSettings(); pricingReady.value = true })
