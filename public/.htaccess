@@ -76,4 +76,11 @@
     <FilesMatch "^(logo-replace-v2|armely-logo-email)\.png$">
         Header always set Cross-Origin-Resource-Policy "cross-origin"
     </FilesMatch>
+
+    # Product photos in marketing emails load through the store image proxy;
+    # webmail (Outlook on the web, new Outlook) must be allowed to embed them.
+    # THE_REQUEST is matched because the URL is rewritten to store/index.php.
+    <If "%{THE_REQUEST} =~ m#^(GET|HEAD)\s+/store/api/v1/img-proxy[?\s]#">
+        Header always set Cross-Origin-Resource-Policy "cross-origin"
+    </If>
 </IfModule>

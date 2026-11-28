@@ -44,6 +44,22 @@ class EmailTemplateDesignTest extends TestCase
         $this->assertStringNotContainsString('text-transform:lowercase!important', $marketingService);
     }
 
+    public function test_marketing_emails_use_the_original_supplier_photo_not_the_image_proxy(): void
+    {
+        $original = 'https://cdn.example.com/media/laptop+front.jpg';
+        $product = new \App\Models\Product();
+        $product->forceFill(['images' => [['imageUrl' => 'https://armely.com/store/api/v1/img-proxy?url=' . base64_encode($original)]]]);
+
+        $mailer = app(\App\Services\AzureGraphMailService::class);
+        $method = new \ReflectionMethod($mailer, 'productImageUrl');
+        $method->setAccessible(true);
+        $this->assertSame($original, $method->invoke($mailer, $product));
+
+        // A photo the nightly checker found broken is not used in emails.
+        app(\App\Services\RemoteProductImageFetcher::class)->markBroken($original, now()->addDay());
+        $this->assertSame('', $method->invoke($mailer, $product));
+    }
+
     public function test_every_deliverable_blade_email_uses_shared_layout(): void
     {
         $root = resource_path('views/emails');

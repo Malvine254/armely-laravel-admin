@@ -61,9 +61,25 @@ class AzureGraphMailService
             if (str_starts_with($candidate, '//')) {
                 $candidate = 'https:'.$candidate;
             }
+            // Emails link the supplier's original photo, not our image proxy:
+            // webmail clients fetch images cross-site, and the proxy is a page
+            // of our API rather than a stable public image URL.
+            if (str_contains($candidate, '/api/v1/img-proxy')) {
+                parse_str((string) parse_url($candidate, PHP_URL_QUERY), $query);
+                // parse_str turns '+' into a space; base64 needs it back.
+                $original = base64_decode(strtr((string) ($query['url'] ?? ''), ' ', '+'), true);
+                if (!is_string($original) || !preg_match('#^https?://#i', $original)) {
+                    continue;
+                }
+                $candidate = $original;
+            }
             if (preg_match('#^https?://#i', $candidate)) {
                 $host = strtolower((string) parse_url($candidate, PHP_URL_HOST));
                 if ($host !== '' && !in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+                    // Skip photos the image checker already found broken.
+                    if (app(\App\Services\RemoteProductImageFetcher::class)->isKnownBroken($candidate)) {
+                        continue;
+                    }
                     return $candidate;
                 }
                 $candidate = (string) parse_url($candidate, PHP_URL_PATH);

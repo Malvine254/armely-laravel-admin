@@ -18,7 +18,10 @@ class EmailLogoPolicyTest extends TestCase
             . '    </FilesMatch>',
             str_replace("\r\n", "\n", $policy)
         );
-        $this->assertSame(1, substr_count($policy, 'Cross-Origin-Resource-Policy "cross-origin"'));
+        // Exactly two exceptions: the email wordmarks and the store image proxy
+        // (product photos in marketing emails). Everything else stays same-site.
+        $this->assertSame(2, substr_count($policy, 'Cross-Origin-Resource-Policy "cross-origin"'));
+        $this->assertStringContainsString('<If "%{THE_REQUEST} =~ m#^(GET|HEAD)\s+/store/api/v1/img-proxy[?\s]#">', $policy);
         $this->assertFileExists(__DIR__.'/../../public/images/logo/logo-replace-v2.png');
         $this->assertFileExists(__DIR__.'/../../public/images/logo/armely-logo-email.png');
     }
