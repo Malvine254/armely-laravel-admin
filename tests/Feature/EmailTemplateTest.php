@@ -43,7 +43,7 @@ class EmailTemplateTest extends TestCase
         $this->assertStringNotContainsString('<script>', $html);
         $this->assertStringContainsString('max-width:640px', $html);
         $this->assertStringContainsString('bgcolor="#0f2f63"', $html);
-        $this->assertStringContainsString('src="https://armely.com/images/logo/logo-replace-v2.png"', $html);
+        $this->assertStringContainsString('src="https://armely.com/images/logo/armely-logo-email.png"', $html);
         $this->assertStringNotContainsString('armely-store-logo.png', $html);
 
         $dom = new \DOMDocument;

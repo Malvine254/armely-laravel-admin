@@ -11,11 +11,15 @@ class EmailLogoPolicyTest extends TestCase
         $policy = file_get_contents(__DIR__.'/../../public/.htaccess');
 
         $this->assertStringContainsString('Header always set Cross-Origin-Resource-Policy "same-site"', $policy);
-        $this->assertMatchesRegularExpression(
-            '/<Files "logo-replace-v2\.png">\s*Header always set Cross-Origin-Resource-Policy "cross-origin"\s*<\/Files>/',
-            $policy
+        // Only the two email wordmarks are allowed to load cross-origin.
+        $this->assertStringContainsString(
+            '<FilesMatch "^(logo-replace-v2|armely-logo-email)\.png$">' . "\n"
+            . '        Header always set Cross-Origin-Resource-Policy "cross-origin"' . "\n"
+            . '    </FilesMatch>',
+            str_replace("\r\n", "\n", $policy)
         );
         $this->assertSame(1, substr_count($policy, 'Cross-Origin-Resource-Policy "cross-origin"'));
         $this->assertFileExists(__DIR__.'/../../public/images/logo/logo-replace-v2.png');
+        $this->assertFileExists(__DIR__.'/../../public/images/logo/armely-logo-email.png');
     }
 }
