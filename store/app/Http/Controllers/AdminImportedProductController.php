@@ -448,7 +448,8 @@ class AdminImportedProductController extends Controller
             'storefront_pinned_at' => $validated['pinned'] ? now() : null,
         ]);
         \Illuminate\Support\Facades\Cache::forget('storefront_capped_product_ids_v5');
-        \Illuminate\Support\Facades\Cache::forget('menu_categories:v15:pinned-storefront-cap');
+        \Illuminate\Support\Facades\Cache::forget('menu_categories:v20:single-scan:photos');
+        \Illuminate\Support\Facades\Cache::forget('menu_categories:v20:single-scan:all');
 
         return response()->json(['success' => true, 'message' => $validated['pinned'] ? 'Product pinned to storefront.' : 'Storefront pin removed.']);
     }

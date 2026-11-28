@@ -1166,7 +1166,8 @@ class TDSynnexService
         Cache::forget('pa_db_cache_exists');
         Cache::forget('tdsynnex:priceavailability:vendors:list');
         Cache::forget('storefront_capped_product_ids_v5');
-        Cache::forget('menu_categories:v15:pinned-storefront-cap');
+        Cache::forget('menu_categories:v20:single-scan:photos');
+        Cache::forget('menu_categories:v20:single-scan:all');
         Cache::forever('catalog:price_version', (string) now()->getTimestampMs());
 
         return $product->fresh();

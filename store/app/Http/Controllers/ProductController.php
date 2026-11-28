@@ -767,6 +767,9 @@ class ProductController extends Controller
                     'source' => 'priceavailability-db',
                     'supplier_lookup_queued' => $supplierLookupQueued,
                     'media_counts' => $dbPage['media_counts'] ?? ['has_images' => 0, 'no_images' => 0],
+                    // The storefront hides the Has/No Images filter when products
+                    // without photos are not shown at all.
+                    'show_products_without_images' => $this->storefrontShowsProductsWithoutImages(),
                 ],
                 'message' => $supplierLookupQueued
                     ? 'No local match was found. A supplier catalog lookup has been queued; retry shortly.'
@@ -1418,7 +1421,15 @@ class ProductController extends Controller
         // The SQL photo test only sees that a URL is stored. Drop rows whose
         // photos all turned out to be missing files or broken supplier links.
         if (!$this->storefrontShowsProductsWithoutImages()) {
+            $before = $records->count();
             $records = $records->filter(fn (array $record): bool => $this->apiProductHasUsableImage($record))->values();
+            $removed = $before - $records->count();
+            // Keep "N results" in step with the cards actually returned.
+            if ($removed > 0) {
+                $total = $hasMore
+                    ? max($offset + $records->count(), $total - $removed)
+                    : $offset + $records->count();
+            }
         }
 
         return [
@@ -2584,7 +2595,8 @@ class ProductController extends Controller
                     $vendorCacheKey = sprintf(
                         'pa_vendor_counts:%s',
                         md5(json_encode([
-                            'v' => 6,
+                            'v' => 7,
+                            'show_no_images' => $this->storefrontShowsProductsWithoutImages(),
                             'curated_it_mix' => $curatedItMix,
                             'min_price' => $minPrice,
                             'max_price' => $maxPrice,
@@ -2654,7 +2666,7 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v19:single-scan', 1800, function () {
+            $data = Cache::remember('menu_categories:v20:single-scan:' . ($this->storefrontShowsProductsWithoutImages() ? 'all' : 'photos'), 1800, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -2830,7 +2842,8 @@ class ProductController extends Controller
             $cacheKey = sprintf(
                 'pa_category_counts:%s',
                 md5(json_encode([
-                    'v' => 7,
+                    'v' => 8,
+                    'show_no_images' => $this->storefrontShowsProductsWithoutImages(),
                     'hide_zero' => $hideZero,
                     'min_price' => $minPrice,
                     'max_price' => $maxPrice,
@@ -2940,6 +2953,12 @@ class ProductController extends Controller
 
         if ($hideZero) {
             $query->whereRaw($this->preferredDbPriceSql() . ' > 0');
+        }
+
+        // Menu, category and vendor counts follow the same photo rule as the
+        // product list, so a count never includes products that are hidden.
+        if (!$this->storefrontShowsProductsWithoutImages()) {
+            $this->applyProductImageFilter($query, true);
         }
 
         if ($minPrice !== null) {

@@ -23,7 +23,7 @@
             :active-filters="currentFilters"
             :lifecycle-options="lifecycleOptions"
             :media-options="reviewRatingOptions"
-            :show-image-filters="SHOW_IMAGE_FILTERS"
+            :show-image-filters="showImageFilters"
             :compact="false"
             @filter-change="handleFilterChange"
             @clear-all="resetFilters"
@@ -180,6 +180,7 @@
                 @quote="addToQuote"
                 @favorite="toggleFavorite"
                 @share="openShareModal"
+                @image-unavailable="markImageUnavailable"
               />
             </div>
 
@@ -351,6 +352,19 @@ const ITEMS_PER_PAGE = 10
 const paginationRow = ref(null)
 const paginationWidth = ref(0)
 const SHOW_IMAGE_FILTERS = __SHOW_IMAGE_FILTERS__
+// The server says whether products without photos are shown at all. When
+// they are hidden, a Has/No Images filter is meaningless, so it is removed.
+const serverShowsProductsWithoutImages = ref(false)
+const showImageFilters = computed(() => SHOW_IMAGE_FILTERS && serverShowsProductsWithoutImages.value)
+// Cards whose photo is missing or fails to load hide themselves; keep the
+// results count and list in step with what the shopper actually sees.
+const hiddenImageProductIds = ref({})
+const markImageUnavailable = (product) => {
+  const id = String(product?.productId ?? '')
+  if (!id || showImageFilters.value || hiddenImageProductIds.value[id]) return
+  hiddenImageProductIds.value = { ...hiddenImageProductIds.value, [id]: true }
+}
+const hiddenImageCount = computed(() => Object.keys(hiddenImageProductIds.value).length)
 const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
 const PROFILE_TERM_LIMIT = 25
@@ -443,6 +457,7 @@ const FALLBACK_VENDOR_SCOPE = [
 ]
 
 const products = ref([])
+watch(products, () => { hiddenImageProductIds.value = {} })
 const serverTotal = ref(0)
 const serverPaged = ref(false)
 const serverHasMore = ref(false)
@@ -845,7 +860,7 @@ const reviewRatingOptions = computed(() => {
     { name: 'Has Reviews', count: hasReviews },
   ]
 
-  if (SHOW_IMAGE_FILTERS) {
+  if (showImageFilters.value) {
     options.push(
       { name: 'Has Images', count: hasImages },
       { name: 'No Images', count: noImages },
@@ -1279,10 +1294,10 @@ const requiresClientSideFiltering = computed(() => {
 const totalProducts = computed(() => {
   if (discoveryOpen.value) return discoveryTotal.value
   if (serverPaged.value) {
-    return Number(serverTotal.value || 0)
+    return Math.max(0, Number(serverTotal.value || 0) - hiddenImageCount.value)
   }
 
-  return filteredProducts.value.length
+  return Math.max(0, filteredProducts.value.length - hiddenImageCount.value)
 })
 
 const totalProductsLabel = computed(() => {
@@ -1296,7 +1311,8 @@ const totalProductsLabel = computed(() => {
 
 const totalPages = computed(() => Math.max(1, Math.ceil(totalProducts.value / ITEMS_PER_PAGE)))
 
-const visibleProductsCount = computed(() => paginatedProducts.value.length)
+const visibleProductsCount = computed(() => paginatedProducts.value
+  .filter((product) => !hiddenImageProductIds.value[String(product?.productId ?? '')]).length)
 
 const visibleProductsRangeLabel = computed(() => {
   if (totalProducts.value === 0 || visibleProductsCount.value === 0) {
@@ -1824,6 +1840,7 @@ const performSearch = async (resetPage = true, background = false) => {
           noImages: Number(rawMediaCounts.no_images || 0),
         }
         mediaFacetCountsLoaded.value = true
+        serverShowsProductsWithoutImages.value = Boolean(payload.show_products_without_images)
       } else {
         loadedProducts = await fetchAllProductPages(params)
         loadedTotal = loadedProducts.length
@@ -2108,7 +2125,7 @@ const handleFilterChange = (filters) => {
     mediaStatuses: Array.isArray(value.mediaStatuses)
       ? [...value.mediaStatuses]
           .map((v) => String(v).trim())
-          .filter((status) => SHOW_IMAGE_FILTERS || !['Has Images', 'No Images'].includes(status))
+          .filter((status) => showImageFilters.value || !['Has Images', 'No Images'].includes(status))
       : [],
   })
 
@@ -2710,7 +2727,7 @@ watch(
         : []
     }
 
-    if (!SHOW_IMAGE_FILTERS) {
+    if (!showImageFilters.value) {
       nextMediaStatuses = nextMediaStatuses.filter((status) => !['Has Images', 'No Images'].includes(status))
     }
 
