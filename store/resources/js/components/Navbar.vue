@@ -30,7 +30,7 @@
         </button>
 
         <!-- Global catalog search -->
-        <form data-nav-search class="relative order-2 mx-3 hidden min-w-[18rem] max-w-[680px] basis-[34rem] flex-1 lg:flex xl:mx-5 2xl:mx-7" role="search" @submit.prevent="submitNavSearch">
+        <form data-nav-search class="relative order-2 mx-3 hidden min-w-[14rem] max-w-[680px] flex-1 basis-0 lg:flex xl:mx-5 xl:min-w-[18rem] 2xl:mx-7" role="search" @submit.prevent="submitNavSearch">
           <div class="flex h-12 min-w-0 flex-1 overflow-hidden rounded-lg border border-slate-300 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
             <input
               v-model="navSearchQuery"
@@ -74,11 +74,11 @@
           <div
             v-for="(cat, catIdx) in primaryCategories"
             :key="cat.value"
-            class="relative flex min-w-0 flex-1 items-center"
+            class="relative flex min-w-0 flex-auto items-center"
           >
             <button
               type="button"
-              class="flex h-full w-full min-w-0 items-center justify-center gap-1 border-b-[3px] border-transparent px-1.5 py-2 text-sm font-semibold text-white transition hover:bg-white/10 hover:text-cyan-200 2xl:px-2"
+              class="flex h-full w-full min-w-0 items-center justify-center gap-1 whitespace-nowrap border-b-[3px] border-transparent px-2 py-2 text-[13px] font-semibold text-white transition hover:bg-white/10 hover:text-cyan-200 xl:px-3 xl:text-sm"
               :class="isCategoryActive(cat) ? 'border-cyan-300 bg-[#244a86] text-white' : ''"
               @click="toggleCategoryDropdownAt(cat, $event)"
               :aria-expanded="categoryDropdownOpen === cat.value"
@@ -145,10 +145,10 @@
           </div>
 
           <!-- More Categories Dropdown -->
-          <div v-if="overflowCategories.length > 0" class="relative flex min-w-0 flex-1 items-center">
+          <div v-if="overflowCategories.length > 0" class="relative flex min-w-0 flex-auto items-center">
             <button
               type="button"
-              class="flex h-full w-full items-center justify-center gap-1 border-b-[3px] border-transparent px-1.5 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10 hover:text-cyan-300 2xl:px-2"
+              class="flex h-full w-full items-center justify-center gap-1 whitespace-nowrap border-b-[3px] border-transparent px-2 py-2 text-[13px] font-semibold text-slate-100 transition hover:bg-white/10 hover:text-cyan-300 xl:px-3 xl:text-sm"
               :class="hasActiveOverflowCategory ? 'border-cyan-300 bg-[#244a86] text-white' : ''"
               @click="toggleMoreCategoriesAt($event)"
             >
@@ -228,7 +228,7 @@
             <span class="pointer-events-none absolute right-0 top-12 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-xs font-medium text-slate-900 shadow-lg group-hover:block">Orders</span>
           </button>
           <!-- Cart Icon - Always visible (guest + authenticated) -->
-          <button type="button" class="group relative order-1 ml-2 flex cursor-pointer items-center gap-2 border-l border-slate-200 py-1 pl-5 pr-2 text-[#102f61] transition hover:text-blue-700 xl:ml-4" @click="goToCart">
+          <button type="button" class="group relative order-1 ml-1 flex cursor-pointer items-center gap-2 border-l border-slate-200 py-1 pl-3 pr-2 text-[#102f61] transition hover:text-blue-700 xl:ml-4 xl:pl-5" @click="goToCart">
             <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m10-9l2 9m-9 0h14m-5-9v9"></path>
             </svg>
@@ -263,7 +263,7 @@
                 <!-- Profile Picture or Initials -->
                 <img v-if="userProfilePictureUrl && !userAvatarLoadFailed" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="h-10 w-10 rounded-full border border-blue-100 object-cover" @error="handleUserAvatarError">
                 <div v-else class="flex h-10 w-10 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-xs font-bold text-[#0b3b82]">{{ userInitials }}</div>
-                <span class="text-sm font-medium">Hi, {{ userFirstName }} 👋</span>
+                <span class="hidden whitespace-nowrap text-sm font-medium xl:inline">Hi, {{ userFirstName }} 👋</span>
                 <svg class="h-4 w-4 flex-shrink-0 transition-transform" :class="accountMenuOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
                 </svg>
